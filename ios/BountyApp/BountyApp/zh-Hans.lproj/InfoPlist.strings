@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "需要相机用于任务取证拍照";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "需要定位用于任务地点匹配与拍照水印";
+"NSLocationWhenInUseUsageDescription" = "需要定位用于任务地点匹配与拍照水印";

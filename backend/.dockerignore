@@ -1,0 +1,22 @@
+# macOS AppleDouble / 资源 Fork 文件 (会导致 migrations 被当成 SQL 执行报错)
+._*
+
+# 本地数据库与测试产物
+*.sqlite
+*.sqlite.*
+*.db
+*.db.bak.*
+bountyapp
+bountydb.sqlite
+seekerdb.sqlite
+
+# 运行时本地落盘目录 (由 volume 挂载, 不应打进镜像)
+uploads/
+
+# 旧的 compose / 部署残留
+docker-compose.yml
+server
+
+# 编辑器 / 系统
+.DS_Store
+*.swp

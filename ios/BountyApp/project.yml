@@ -1,0 +1,53 @@
+name: Seeker
+options:
+  bundleIdPrefix: com.gotseeker.app
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    INFOPLIST_FILE: BountyApp/Info.plist
+    ENABLE_PREVIEWS: YES
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    PRODUCT_BUNDLE_IDENTIFIER: com.gotseeker.app
+    PRODUCT_NAME: Seeker
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # 内网联调时允许明文 HTTP（连接本地 Go 服务）
+    NSAppTransportSecurity:
+      NSAllowsArbitraryLoads: true
+
+targets:
+  Seeker:
+    type: application
+    platform: iOS
+    sources:
+      - path: BountyApp
+        excludes:
+          - "Info.plist"
+    info:
+      path: BountyApp/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        NSCameraUsageDescription: "Seeker needs camera access to complete tasks"
+        NSLocationWhenInUseUsageDescription: "Seeker needs location to find nearby tasks"
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Seeker needs location for task matching and photo watermark"
+        CFBundleURLTypes:
+          - CFBundleURLName: com.gotseeker.app
+            CFBundleURLSchemes:
+              - gotseeker
+
+  SeekerUITests:
+    type: test
+    platform: iOS
+    sources:
+      - path: SeekerUITests
+    dependencies:
+      - target: Seeker
+        embed: false

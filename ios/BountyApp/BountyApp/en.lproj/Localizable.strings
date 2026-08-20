@@ -1,0 +1,331 @@
+/* General */
+"app_name" = "Seeker";
+"app_slogan" = "Post bounties, get tasks done";
+"ok" = "OK";
+"cancel" = "Cancel";
+"done" = "Done";
+"confirm" = "Confirm";
+"retry" = "Retry";
+"loading" = "Loading...";
+"delete" = "Delete";
+"save" = "Save";
+"search" = "Search";
+"no_data" = "No data";
+"network_error" = "Network error, please try again";
+"unknown_error" = "Unknown error";
+"pull_refresh" = "Pull to refresh";
+
+/* Login */
+"login_email_placeholder" = "Email address";
+"login_code_placeholder" = "Verification code";
+"login_get_code" = "Get Code";
+"login_register" = "Log In / Sign Up";
+"login_verify" = "Verify & Login";
+"login_retry_after" = "Retry in %ds";
+"login_error_title" = "Notice";
+"login_agreement_hint" = "By continuing, you agree to the Privacy Policy & Terms of Service";
+"login_invalid_email" = "Please enter a valid email address";
+"login_code_sent" = "Verification code sent";
+"login_code_send_failed" = "Failed to send code";
+"login_failed" = "Login failed";
+"login_auth_failed" = "Authentication failed, please try again";
+"login_server_error" = "Server error";
+"login_decode_failed" = "Response format error";
+"login_invalid_url" = "Invalid server URL";
+"login_network_fail" = "Unable to connect to server";
+
+/* Tabs */
+"tab_square" = "Square";
+"tab_my_tasks" = "My Tasks";
+"tab_messages" = "Messages";
+"tab_profile" = "Profile";
+
+/* Square */
+"square_title" = "Task Square";
+"square_subtitle" = "Find nearby bounties";
+"square_filter_all" = "All";
+"square_filter_within" = "Nearby";
+"square_locating" = "Locating...";
+"square_empty" = "No tasks nearby";
+"square_empty_hint" = "Be the first to post a task!";
+"square_publish_action" = "Post Task";
+
+/* Task Card */
+"task_card_minutes" = "min";
+
+/* Task Status */
+"status_pending" = "Pending";
+"status_claimed" = "Claimed";
+"status_submitted" = "Submitted";
+"status_completed" = "Completed";
+"status_released" = "Released";
+"status_disputed" = "Disputed";
+"status_published" = "Published";
+
+/* Task Detail */
+"task_detail_title" = "Task Details";
+"task_not_found" = "Task not found";
+"task_not_found_hint" = "Maybe it was cancelled";
+"task_no_location" = "No location info";
+"task_in_progress" = "In progress, waiting for completion";
+"task_received_submit" = "Task submitted, waiting for review";
+"task_wait_review" = "Waiting for you to review";
+"task_completed_paid" = "Bounty paid out";
+"task_disputed_hint" = "Under dispute";
+"task_add_photo" = "Add photo";
+"task_submit_evidence" = "Submit evidence";
+"task_evidence" = "Evidence";
+"task_evidence_load_failed" = "Failed to load evidence";
+"task_chat_title" = "Chat with Claimer";
+"task_chat_placeholder" = "Type a message...";
+"task_chat_empty" = "No messages yet";
+"task_claim" = "Claim Task";
+"task_claiming" = "Claiming...";
+"task_publish_confirm" = "Confirm & Pay";
+"task_publishing" = "Publishing...";
+"task_balance_low" = "Insufficient balance";
+"task_recharge_hint" = "Please recharge first";
+"task_confirm_pass" = "Confirm completion";
+"task_request_more" = "Request more evidence";
+"task_sender_pub" = "Publisher";
+"task_sender_claimer" = "Claimer";
+"task_submit_success" = "Submission successful, waiting for review";
+"task_submit_fail" = "Submission failed";
+"task_confirm_paid" = "Confirmed, bounty paid";
+"task_dispute_requested" = "Dispute filed";
+"task_claimed_banner" = "Task in progress, please submit evidence within %d minutes";
+"task_ops_failed" = "Operation failed, please try again";
+"task_send_fail" = "Failed to send message";
+"task_msg_empty" = "Message cannot be empty";
+"task_evidence_preview" = "Evidence preview";
+"task_send_fail_retry" = "Send failed, please retry";
+"task_submit_fail_network" = "Submission failed, check network";
+"task_ops_fail_short" = "Operation failed";
+"task_evidence_requested" = "Additional evidence requested";
+
+/* Publish */
+"publish_title" = "Post Task";
+"publish_task_title" = "Task Title";
+"publish_title_placeholder" = "e.g. Help me buy milk tea";
+"publish_description" = "Description";
+"publish_bounty_amount" = "Bounty";
+"publish_currency" = "Currency";
+"publish_currency_cny" = "CNY (¥)";
+"publish_currency_usd" = "USD ($)";
+"publish_amount_placeholder" = "Amount";
+"publish_bounty_total" = "Bounty";
+"publish_service_fee" = "Service fee (10%)";
+"publish_total_pay" = "Total to pay";
+"publish_approx_cny" = "≈ ¥%.2f CNY";
+"publish_target_location" = "Target Location";
+"publish_location_selected" = "Selected location";
+"publish_location_required" = "Please select a location";
+"publish_location_auto_fill" = "Auto-fill current location";
+"publish_location_manual" = "Choose on map";
+"publish_location_failed" = "Failed to get location";
+"publish_radius" = "Search Radius";
+"publish_time_limit" = "Time Limit";
+"publish_time_unit" = "min";
+"publish_search_address" = "Search address...";
+"publish_search_btn" = "Search";
+"publish_search_not_found" = "No results found";
+"publish_map_drag" = "Drag marker to adjust";
+"publish_location_picked" = "Location pinned";
+"publish_confirm_title" = "Confirm Publish";
+"publish_confirm_use" = "Use this location";
+"publish_confirm_edit" = "Edit";
+"publish_confirm_msg" = "Are you sure you want to publish this task?";
+"publish_pay_btn" = "Pay & Publish";
+"publish_need_login" = "Please log in first";
+"publish_need_location" = "Please enable location permissions";
+"publish_fail" = "Publish failed";
+"publish_success" = "Task published!";
+"publish_success_pending" = "Task is under review";
+"publish_balance_low" = "Insufficient balance for bounty";
+"publish_bad_params" = "Please fill in all fields";
+"publish_expired" = "Login expired, please log in again";
+"publish_network_error" = "Network error, please try again";
+"publish_server_error" = "Server error, please try again later";
+
+/* My Tasks */
+"my_tasks_title" = "My Tasks";
+"my_tasks_published" = "Published";
+"my_tasks_claimed" = "Claimed";
+"my_tasks_empty_pub" = "No published tasks";
+"my_tasks_empty_claimed" = "No claimed tasks";
+"my_tasks_go_square" = "Browse Square";
+"my_tasks_reload" = "Reload";
+"my_tasks_publish_now" = "Post a task now";
+"my_tasks_published_toast" = "Posted";
+"my_tasks_publish_failed" = "Publish failed";
+"my_tasks_load_failed" = "Failed to load tasks";
+
+/* Messages */
+"messages_title" = "Messages";
+"messages_empty" = "No messages";
+"messages_empty_hint" = "Messages from tasks will appear here";
+"messages_read_all" = "Mark all as read";
+"messages_got_it" = "Got it";
+
+/* Wallet */
+"wallet_title" = "Wallet";
+"wallet_balance" = "Balance";
+"wallet_frozen" = "Frozen";
+"wallet_total_earned" = "Total Earned";
+"wallet_withdraw" = "Withdraw";
+"wallet_recharge" = "Recharge";
+"wallet_recharge_sim" = "Simulated Recharge";
+"wallet_min_withdraw" = "Min withdrawal ¥10.00";
+"wallet_transactions" = "Transactions";
+"wallet_help" = "Help";
+"wallet_help_page" = "Wallet Help\n\nThis is a simulated wallet for demo purposes.\nRecharge adds virtual balance.\nWithdrawal will be processed within 3 business days.";
+"wallet_withdraw_title" = "Withdraw";
+"wallet_withdraw_amount" = "Amount";
+"wallet_withdraw_min" = "Min ¥10.00";
+"wallet_withdraw_method" = "Method";
+"wallet_withdraw_bank" = "Bank Transfer";
+"wallet_withdraw_paypal" = "PayPal";
+"wallet_withdraw_eta" = "Estimated arrival: 1-3 business days";
+"wallet_withdraw_confirm" = "Confirm Withdrawal";
+"wallet_recharge_title" = "Recharge";
+"wallet_recharge_amount" = "Amount (CNY)";
+"wallet_recharge_placeholder" = "Enter amount";
+"wallet_recharge_hint" = "This is a simulated recharge for testing";
+"wallet_recharge_confirm" = "Confirm Recharge";
+"wallet_load_failed" = "Failed to load wallet info";
+"wallet_withdraw_failed" = "Withdrawal failed";
+"wallet_recharge_failed" = "Recharge failed";
+"wallet_auth_expired" = "Login expired";
+"wallet_bounty" = "Bounty";
+
+/* Profile */
+"profile_title" = "Profile";
+"profile_wallet" = "My Wallet";
+"profile_my_tasks" = "My Tasks";
+"profile_settings" = "Settings";
+"profile_help" = "Help & Feedback";
+"profile_terms" = "Terms of Service";
+"profile_privacy" = "Privacy Policy";
+"profile_logout" = "Log Out";
+"profile_logout_confirm" = "Are you sure you want to log out?";
+"profile_logout_action" = "Log Out";
+
+/* Settings */
+"settings_title" = "Settings";
+"settings_permissions" = "Permissions";
+"settings_notifications" = "Notifications";
+"settings_location" = "Location";
+"settings_about" = "About";
+"settings_version" = "Version";
+"settings_build" = "Build";
+"settings_language" = "Language";
+"settings_section_general" = "General";
+"settings_section_notifications" = "Notifications";
+"settings_section_privacy" = "Privacy & Legal";
+"settings_privacy_policy" = "Privacy Policy";
+"settings_terms_of_service" = "Terms of Service";
+
+/* Onboarding */
+"onboarding_lang_title" = "Choose Your Language";
+"onboarding_lang_subtitle" = "Select a language for the app. You can change it later in Settings.";
+"onboarding_get_started" = "Get Started";
+
+/* Server Settings */
+"server_settings_title" = "Server Settings";
+"server_current_host" = "Current Host";
+"server_persist_host" = "Remember Host";
+"server_manual_ip" = "Manual IP & Port";
+"server_ip_placeholder" = "e.g. 192.168.1.100:8080";
+"server_save_apply" = "Save & Apply";
+"server_connectivity" = "Connectivity";
+"server_test_conn" = "Test Connection";
+"server_testing" = "Testing...";
+"server_saved" = "Settings saved";
+"server_addr_invalid" = "Invalid IP format";
+"server_hint" = "Connection Hints";
+"server_hint_footer" = "Ensure same Wi-Fi and firewall settings";
+"server_timeout" = "Connection timed out";
+"server_unreachable" = "Server unreachable";
+"server_no_internet" = "No internet connection";
+"server_ok" = "Connected";
+"server_unknown" = "Unknown";
+"server_not_tested" = "Not tested";
+"server_saved_host_fmt" = "Saved: %@";
+
+/* Review */
+"review_title" = "Review";
+"review_prompt" = "Review claimer's submission";
+"review_claimer_info" = "Claimer Info";
+"review_claimer" = "Claimer";
+"review_submit_time" = "Time";
+"review_photos" = "Submission";
+"review_notes" = "Notes";
+"review_no_submission" = "No submission";
+"review_dispute" = "Dispute";
+"review_confirm_pay" = "Confirm & Pay";
+"review_dispute_title" = "Dispute Task";
+"review_dispute_reason" = "Reason";
+"review_dispute_submit" = "Submit Dispute";
+
+/* Network */
+"network_switched" = "Network status changed";
+"network_disconnected" = "Network disconnected";
+
+/* Privacy / GDPR */
+"privacy_consent_title" = "Privacy Notice";
+"privacy_consent_body" = "We value your privacy. Seeker collects minimal data to provide our services. Please review our Privacy Policy and Terms of Service.";
+"privacy_consent_agree" = "I Agree";
+"privacy_consent_disagree" = "Disagree";
+
+/* Country Picker */
+"country_picker_title" = "Select Country";
+"country_picker_search" = "Search country...";
+
+/* Exchange Rate */
+"exchange_rate_label" = "Exchange Rate";
+
+/* Camera */
+"camera_timestamp" = "Time";
+"camera_gps" = "GPS";
+"camera_timestamp_fmt" = "%@: %@";
+"camera_gps_fmt" = "%@: %@";
+"camera_photo_count" = " (%d/%d)";
+
+/* API Error */
+"api_server_error_fmt" = "Server error (%d)";
+"api_timeout" = "Connection timed out";
+"api_cannot_connect" = "Cannot connect to server";
+"api_cancelled" = "Request cancelled";
+"api_network_error_fmt" = "Network error (%d)";
+"api_network_error" = "Network error";
+
+/* Server Settings Detail */
+"server_not_configured" = "Server not configured";
+"server_addr_not_set" = "Server address not set";
+"server_set_hint" = "Tap top-right to set server address";
+"server_default" = "(default)";
+"server_addr_parse_fail" = "Invalid server address";
+"server_timeout_detail" = "Timeout: unreachable or backend not running";
+"server_cannot_connect_detail" = "Cannot connect: host unreachable";
+"server_no_internet_detail" = "No internet connection";
+"server_error_code_fmt" = "HTTP error %d";
+"server_conn_success_fmt" = "Connected HTTP %d";
+
+/* Formatting */
+"distance_meter" = "%.0fm";
+"distance_km" = "%.1fkm";
+"duration_hour_min" = "%dh%02dm";
+"duration_min_sec" = "%dm%02ds";
+"duration_zero" = "00:00";
+"countdown_sec" = "%ds";
+"task_distance_km" = "%dkm";
+"task_time_min" = "%dmin";
+
+/* Login Debug */
+"login_connecting_fmt" = "Connecting: %@";
+"login_host_error_fmt" = "host: %@\nerr: %@";
+
+/* Messages Mock */
+"messages_offer_claimed" = "Your offer has been claimed, pending review";
+"messages_evidence_submitted" = "Task evidence has been submitted, please review";
+"messages_bounty_received" = "You have received a bounty of ¥%.2f";

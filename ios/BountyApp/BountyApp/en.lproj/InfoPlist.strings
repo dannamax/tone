@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "Camera is used for task evidence photos";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Location is used for task matching and photo watermarks";
+"NSLocationWhenInUseUsageDescription" = "Location is used for task matching and photo watermarks";

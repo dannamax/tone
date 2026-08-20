@@ -1,0 +1,21 @@
+# 云端部署用 compose (PostgreSQL + memory + COS)
+# 用法: docker compose -f docker-compose.cloud.yml up -d
+# 数据库相关变量 (DB_DRIVER/DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME/DB_SSLMODE)
+# 统一由 .env 提供, 这里不再硬编码, 便于 sqlite <-> postgres 切换。
+services:
+  app:
+    build: .
+    image: bountyapp-app:latest
+    container_name: bountyapp_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - SERVER_PORT=8080
+      - CODE_STORE=memory
+    ports:
+      - "127.0.0.1:8080:8080"   # 只暴露给本机, 由 Caddy 反代
+    volumes:
+      - ./uploads:/app/uploads  # 若仍用本地落盘兜底 (main.go 用相对路径 uploads)
+
+  # 正式期可加 redis 服务 (CODE_STORE=redis) 做多实例共享验证码。

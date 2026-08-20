@@ -1,0 +1,17 @@
+# Caddy 自动 HTTPS + 反代到本地 bountyapp 容器
+api.gotseeker.com {
+    # 自动申请/续期 Let's Encrypt 证书, 无需手动配置
+    reverse_proxy 127.0.0.1:8080 {
+        transport http {
+            read_timeout 60s
+        }
+    }
+
+    # 日志
+    log {
+        output file /var/log/caddy/bountyapp.log
+    }
+
+    # HSTS (iOS ATS 友好)
+    header Strict-Transport-Security "max-age=31536000;"
+}
