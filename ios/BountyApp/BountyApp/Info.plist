@@ -29,27 +29,12 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>api.gotseeker.com</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
 	<key>BackendBaseHost</key>
 	<string>https://api.gotseeker.com</string>
 	<key>PrivacyPolicyURL</key>
-	<string>https://gotseeker.com/privacy</string>
+	<string>https://api.gotseeker.com/privacy</string>
 	<key>TermsOfServiceURL</key>
-	<string>https://gotseeker.com/terms</string>
+	<string>https://api.gotseeker.com/terms</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Seeker needs camera access to complete tasks</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

@@ -8,7 +8,7 @@ set -e
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="Seeker"
-BUNDLE_ID="com.seeker.ios"
+BUNDLE_ID="com.gotseeker.app"
 
 echo "========================================="
 echo "  Seeker - iOS 项目初始化"
@@ -50,7 +50,7 @@ PACKAGE
 cat > "${PROJECT_DIR}/project.yml" << 'YML'
 name: Seeker
 options:
-  bundleIdPrefix: com.seeker
+  bundleIdPrefix: com.gotseeker
   deploymentTarget:
     iOS: "16.0"
 settings:
@@ -66,7 +66,7 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: BountyApp/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.seeker.ios
+        PRODUCT_BUNDLE_IDENTIFIER: com.gotseeker.app
         SWIFT_VERSION: "5.9"
     info:
       path: BountyApp/Info.plist
