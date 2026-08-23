@@ -41,6 +41,9 @@ struct SeekerApp: App {
                 }
                 .environmentObject(lang)
             }
+            // 切换语言时用 currentCode 作为 id，强制整个视图树销毁重建，
+            // 确保所有已渲染的页面同步到新语言（L10n 已改为 static var 可重算）。
+            .id(lang.currentCode)
             .ignoresSafeArea()
         }
     }
