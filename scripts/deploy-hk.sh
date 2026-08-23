@@ -69,12 +69,15 @@ echo "==> 上传源码包..."
 ${SCP[@]} "$ARCHIVE" "$REMOTE:$HK_DEPLOY_DIR/src.tgz"
 ${SSH[@]} "$REMOTE" "cd $HK_DEPLOY_DIR && rm -rf backend && tar -xzf src.tgz && rm -f src.tgz"
 
-# ---------- 生成云端 .env（基于本地 .env.example + HK 覆盖项）----------
-echo "==> 写入云端 .env..."
+# ---------- 生成云端 .env ----------
+# 重要: 优先使用本地 backend/.env(含真实 SMTP 授权码等敏感配置, 已被 .gitignore 忽略),
+# 避免每次部署用占位符 .env.example 覆盖掉已配置的真实凭据(曾导致反复需重填邮箱/授权码)。
+# 本地 .env 不存在时回退到 .env.example 占位符。
+echo "==> 写入云端 .env (使用本地 backend/.env 真实配置)..."
 ${SSH[@]} "$REMOTE" "cat > $HK_DEPLOY_DIR/.env <<'EOF'
 # 自动生成 by deploy-hk.sh @ $(date -u +%Y-%m-%dT%H:%M:%SZ)
-$(grep -vE '^\s*#|^\s*$' "$BACKEND_DIR/.env.example" 2>/dev/null || true)
-# ---- HK 覆盖项 ----
+$(grep -vE '^\s*#|^\s*$' "$BACKEND_DIR/.env" 2>/dev/null || grep -vE '^\s*#|^\s*$' "$BACKEND_DIR/.env.example" 2>/dev/null || true)
+# ---- HK 覆盖项 (最后写入, 确保生效) ----
 SERVER_PORT=$HK_PORT
 CODE_STORE=$HK_CODE_STORE
 REDIS_ADDR=redis:6379
