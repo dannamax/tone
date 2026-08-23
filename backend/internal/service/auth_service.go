@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"math/big"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -44,6 +44,9 @@ type AuthService struct {
 	cfg       *config.Config
 	emailProv email.Provider
 	store     CodeStore
+	// codeRand is the entropy source for verification codes. It defaults to
+	// crypto/rand in production and can be seeded deterministically in tests.
+	codeRand io.Reader
 }
 
 func NewAuthService(userRepo *repository.UserRepo, cfg *config.Config, emailProv email.Provider) *AuthService {
@@ -55,6 +58,7 @@ func NewAuthService(userRepo *repository.UserRepo, cfg *config.Config, emailProv
 		cfg:       cfg,
 		emailProv: emailProv,
 		store:     store,
+		codeRand:  rand.Reader,
 	}
 }
 
@@ -67,24 +71,24 @@ func (s *AuthService) Shutdown() {
 func (s *AuthService) SendCode(ctx context.Context, emailAddr string) error {
 	emailAddr = strings.ToLower(strings.TrimSpace(emailAddr))
 	if !emailRegex.MatchString(emailAddr) {
-		return i18n.NewAPIError(400, i18n.ErrCodeInvalidEmail, i18n.T(i18n.LangEN, "invalid_email"))
+		return i18n.NewAPIError(400, i18n.ErrCodeInvalidEmail, i18n.TCtx(ctx, "invalid_email"))
 	}
 
 	// Rate limit: block resends within the cooldown window (60s).
 	if s.inCooldown(ctx, emailAddr) {
-		return i18n.NewAPIError(429, i18n.ErrCodeRateLimit, i18n.T(i18n.LangEN, "rate_limited"))
+		return i18n.NewAPIError(429, i18n.ErrCodeRateLimit, i18n.TCtx(ctx, "rate_limited"))
 	}
 
-	code := generateCode()
-	// For automated end-to-end testing with the mock provider, allow a fixed
-	// code via environment variable. Never set this in production.
-	if fixed := os.Getenv("MOCK_FIXED_CODE"); fixed != "" && len(fixed) == 6 {
-		code = fixed
+	code, err := generateCode(s.codeRand)
+	if err != nil {
+		// crypto/rand failure is a serious entropy problem; refuse to issue a
+		// code rather than falling back to a predictable value.
+		return i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.TCtx(ctx, "email_send_failed"))
 	}
 
 	// Store verification code (expires in 5 minutes).
 	if err := s.store.Save(ctx, emailAddr, code, codeTTL); err != nil {
-		return i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.T(i18n.LangEN, "send_failed"))
+		return i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.TCtx(ctx, "email_send_failed"))
 	}
 	// Mark the cooldown window so repeated sends are throttled.
 	_ = s.store.Save(ctx, emailAddr+":cooldown", "1", resendCooldown)
@@ -108,62 +112,70 @@ func (s *AuthService) RegisterOrLogin(ctx context.Context, emailAddr, code, devi
 	// Verify code
 	storedCode, attempts, exists, err := s.store.Get(ctx, emailAddr)
 	if err != nil {
-		return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.T(i18n.LangEN, "internal_error"))
+		return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.TCtx(ctx, "internal_error"))
 	}
 	if !exists {
-		return nil, i18n.NewAPIError(400, i18n.ErrCodeCodeInvalid, i18n.T(i18n.LangEN, "code_expired"))
+		return nil, i18n.NewAPIError(400, i18n.ErrCodeCodeInvalid, i18n.TCtx(ctx, "code_expired"))
 	}
 	if storedCode != code {
 		// Increment attempts; if too many failures, invalidate the code.
 		newAttempts, _ := s.store.IncrementAttempts(ctx, emailAddr)
 		if newAttempts >= maxCodeAttempts {
 			_ = s.store.Delete(ctx, emailAddr)
-			return nil, i18n.NewAPIError(400, i18n.ErrCodeCodeExpired, i18n.T(i18n.LangEN, "code_expired"))
+			return nil, i18n.NewAPIError(400, i18n.ErrCodeCodeExpired, i18n.TCtx(ctx, "code_max_attempts"))
 		}
-		return nil, i18n.NewAPIError(400, i18n.ErrCodeCodeInvalid, i18n.T(i18n.LangEN, "code_invalid"))
+		return nil, i18n.NewAPIError(400, i18n.ErrCodeCodeInvalid, i18n.TCtx(ctx, "code_invalid"))
 	}
 
 	// Code correct — consume it so it cannot be reused.
 	if err := s.store.Delete(ctx, emailAddr); err != nil {
-		return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.T(i18n.LangEN, "internal_error"))
+		return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.TCtx(ctx, "internal_error"))
 	}
 	_ = attempts // reserved for future telemetry
 
 	// Find or create user
 	user, err := s.userRepo.FindByEmail(ctx, emailAddr)
-	if err != nil || user == nil {
+	if err != nil {
+		return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.TCtx(ctx, "register_failed"))
+	}
+	if user == nil {
 		user, err = s.userRepo.CreateByEmail(ctx, emailAddr, deviceID)
 		if err != nil || user == nil {
-			return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.T(i18n.LangEN, "register_failed"))
+			return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.TCtx(ctx, "register_failed"))
 		}
 	}
 
 	// Generate JWT token
 	tokenStr, expiresAt, err := jwt.GenerateToken(user.ID, user.Email, deviceID, s.cfg.JWT.Secret, s.cfg.JWT.ExpireTime)
 	if err != nil {
-		return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.T(i18n.LangEN, "token_generate_failed"))
+		return nil, i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.TCtx(ctx, "token_generate_failed"))
 	}
 
 	return &model.TokenResponse{
 		AccessToken: tokenStr,
 		ExpiresIn:   expiresAt,
 		User: model.User{
-			ID:       user.ID,
-			Email:    maskEmail(emailAddr),
-			Nickname: user.Nickname,
-			Avatar:   user.Avatar,
-			Balance:  user.Balance,
-			Role:     user.Role,
+			ID:           user.ID,
+			Email:        maskEmail(emailAddr),
+			Nickname:     user.Nickname,
+			Avatar:       user.Avatar,
+			Balance:      user.Balance,
+			FrozenBal:    user.FrozenBal,
+			PublishQuota: user.PublishQuota,
+			UsedQuota:    user.UsedQuota,
+			Role:         user.Role,
 		},
 	}, nil
 }
 
-func generateCode() string {
-	n, err := rand.Int(rand.Reader, big.NewInt(900000))
+func generateCode(rnd io.Reader) (string, error) {
+	// Uniformly sample a value in [0, 900000) to avoid modulo bias, then shift
+	// into the [100000, 999999] range so the code never starts with 0.
+	n, err := rand.Int(rnd, big.NewInt(900000))
 	if err != nil {
-		return "123456"
+		return "", err
 	}
-	return fmt.Sprintf("%06d", n.Int64()+100000)
+	return fmt.Sprintf("%06d", n.Int64()+100000), nil
 }
 
 func maskEmail(emailAddr string) string {

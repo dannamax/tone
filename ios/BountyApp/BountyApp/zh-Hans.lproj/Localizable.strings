@@ -1,5 +1,5 @@
 /* General */
-"app_name" = "Seeker";
+"app_name" = "SeekerHub";
 "app_slogan" = "发布悬赏，让任务搞定";
 "ok" = "确定";
 "cancel" = "取消";
@@ -19,9 +19,10 @@
 "login_email_placeholder" = "邮箱地址";
 "login_code_placeholder" = "验证码";
 "login_get_code" = "获取验证码";
+"login_resend_code" = "重新获取";
 "login_register" = "登录/注册";
 "login_verify" = "验证并登录";
-"login_retry_after" = "%d秒后重试";
+"login_retry_after" = "重新获取(%d秒)";
 "login_error_title" = "提示";
 "login_agreement_hint" = "继续即表示同意《隐私政策》和《用户协议》";
 "login_invalid_email" = "请输入有效的邮箱地址";
@@ -81,10 +82,12 @@
 "task_chat_empty" = "暂无消息";
 "task_claim" = "领取任务";
 "task_claiming" = "领取中...";
-"task_publish_confirm" = "确认并支付";
+"task_publish_confirm" = "确认并发布";
 "task_publishing" = "发布中...";
 "task_balance_low" = "余额不足";
 "task_recharge_hint" = "请先充值";
+"task_quota_low" = "发布额度不足";
+"task_quota_hint" = "请先在钱包购买额度";
 "task_confirm_pass" = "确认完成";
 "task_request_more" = "要求补充凭证";
 "task_sender_pub" = "发布者";
@@ -136,12 +139,17 @@
 "publish_confirm_edit" = "修改";
 "publish_confirm_msg" = "确认发布此任务？";
 "publish_pay_btn" = "支付并发布";
+"publish_quota_hint" = "发布消耗";
+"publish_quota_cost" = "1 个额度";
+"publish_quota_desc" = "发布一个任务会消耗 1 个发布额度。";
+"publish_submit_btn" = "发布任务";
 "publish_need_login" = "请先登录";
 "publish_need_location" = "请开启位置权限";
 "publish_fail" = "发布失败";
 "publish_success" = "发布成功！";
 "publish_success_pending" = "任务审核中";
 "publish_balance_low" = "余额不足以支付悬赏";
+"publish_quota_low" = "发布额度不足，请先在钱包购买额度";
 "publish_bad_params" = "请填写完整信息";
 "publish_expired" = "登录已过期，请重新登录";
 "publish_network_error" = "网络错误，请重试";
@@ -197,6 +205,22 @@
 "wallet_recharge_failed" = "充值失败";
 "wallet_auth_expired" = "登录已过期";
 "wallet_bounty" = "悬赏金";
+
+/* Publish Quota (方案1) */
+"quota_remaining_title" = "剩余发布额度";
+"quota_used_fmt" = "已使用：%d";
+"quota_buy_button" = "购买额度";
+"quota_packages_title" = "购买发布额度";
+"quota_loading" = "加载套餐中...";
+"quota_package_count_fmt" = "%d 条任务";
+"quota_purchasing" = "正在处理购买...";
+"common_close" = "关闭";
+
+/* StoreKit / Apple IAP */
+"store_product_not_found" = "商品不可用";
+"store_user_cancelled" = "已取消购买";
+"store_pending" = "购买待审核";
+"store_unknown" = "购买失败";
 
 /* Profile */
 "profile_title" = "我的";
@@ -262,7 +286,7 @@
 "review_notes" = "备注";
 "review_no_submission" = "暂未提交";
 "review_dispute" = "发起争议";
-"review_confirm_pay" = "确认支付";
+"review_confirm_pay" = "确认完成";
 "review_dispute_title" = "发起争议";
 "review_dispute_reason" = "争议原因";
 "review_dispute_submit" = "提交争议";

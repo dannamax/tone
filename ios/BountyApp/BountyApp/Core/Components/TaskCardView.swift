@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TaskCardView: View {
     let task: TaskItem
+    @ObservedObject private var lang = LanguageManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {

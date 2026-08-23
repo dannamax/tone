@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SquareView: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = SquareViewModel()
     @State private var selectedRadius = 0
     @State private var hasLocatedOnce = false

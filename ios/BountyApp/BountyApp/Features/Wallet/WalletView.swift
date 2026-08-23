@@ -1,103 +1,81 @@
 import SwiftUI
 
 struct WalletView: View {
+    @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = WalletViewModel()
-    @State private var showWithdraw = false
-    @State private var showRecharge = false
-    @State private var withdrawAmount: Double = 0
-    @State private var withdrawChannel = "bank"
-    @State private var rechargeAmount: Double = 100
+    @State private var showPackages = false
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             ScrollView {
                 VStack(spacing: 16) {
-                    VStack(spacing: 12) {
-                        Text(L10n.walletBalance)
-                            .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.7))
-                        Text("¥\(String(format: "%.2f", vm.balance))")
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-
-                        HStack(spacing: 20) {
-                            VStack {
-                                Text("¥\(String(format: "%.2f", vm.frozenBalance))")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.8))
-                                Text(L10n.walletFrozen)
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-                            VStack {
-                                Text("¥\(String(format: "%.2f", vm.totalEarned))")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.8))
-                                Text(L10n.walletTotalEarned)
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-                        }
-                        .padding(.top, 4)
-                    }
-                    .padding(.vertical, 30)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.bountyDark, Color(hex: "#2D2D4E")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .cornerRadius(20)
-
-                    if let error = vm.loadError {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 12))
-                            Text(error)
+                    // 发布额度主卡片
+                    VStack(spacing: 16) {
+                        VStack(spacing: 6) {
+                            Text(L10n.quotaRemainingTitle)
                                 .font(.system(size: 13))
+                                .foregroundColor(.bountyTextSecondary)
+                            Text("\(vm.publishQuota)")
+                                .font(.system(size: 44, weight: .bold))
+                                .foregroundColor(.bountyText)
+                            Text(String(format: L10n.quotaUsedFmt, vm.usedQuota))
+                                .font(.system(size: 12))
+                                .foregroundColor(.bountyGray)
                         }
-                        .foregroundColor(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 4)
-                    }
+                        .padding(.top, 12)
 
-                    Button(action: { showWithdraw = true }) {
-                        HStack {
-                            Image(systemName: "arrow.down.to.line")
-                            Text(L10n.walletWithdraw)
+                        Button {
+                            showPackages = true
+                        } label: {
+                            Text(L10n.quotaBuyButton)
+                                .font(.system(size: 16, weight: .semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Capsule().fill(Color.bountyGold))
+                                .foregroundColor(.white)
                         }
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(vm.canWithdraw ? Color.bountyGold : Color.bountyGray)
-                        .cornerRadius(12)
                     }
-                    .disabled(!vm.canWithdraw)
-                    .opacity(vm.canWithdraw ? 1.0 : 0.6)
+                    .padding(20)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.white)
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.04), radius: 8, y: 4)
 
-                    Button(action: { showRecharge = true }) {
-                        HStack {
-                            Image(systemName: "plus.circle")
-                            Text(L10n.walletRechargeSim)
+                    // 余额卡片（保留，展示真实资金而非提现入口）
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(L10n.walletBalance)
+                                .font(.system(size: 13))
+                                .foregroundColor(.bountyTextSecondary)
+                            Text(String(format: "¥%.2f", vm.balance))
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.bountyText)
                         }
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.bountyText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.bountyBg)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.bountyGold, lineWidth: 1)
-                        )
+                        Spacer()
+                        VStack(alignment: .trailing, spacing:  4) {
+                            Text(L10n.walletFrozen)
+                                .font(.system(size: 13))
+                                .foregroundColor(.bountyTextSecondary)
+                            Text(String(format: "¥%.2f", vm.frozenBalance))
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.bountyText)
+                        }
                     }
+                    .padding(20)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.white)
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.04), radius: 8, y: 4)
 
-                    if !vm.canWithdraw && vm.balance > 0 {
-                        Text(L10n.walletMinWithdraw)
-                            .font(.system(size: 12))
-                            .foregroundColor(.bountyGray)
+                    if vm.isPurchasing {
+                        ProgressView(L10n.quotaPurchasing)
+                            .padding()
+                    }
+                    if let err = vm.loadError {
+                        Text(err)
+                            .font(.system(size: 13))
+                            .foregroundColor(.bountyDanger)
+                            .padding(.horizontal, 8)
                     }
 
                     VStack(spacing: 0) {
@@ -119,27 +97,6 @@ struct WalletView: View {
                             .background(Color.white)
                         }
                         .buttonStyle(.plain)
-
-                        Divider().padding(.leading, 52)
-
-                        NavigationLink {
-                            Text(L10n.walletHelpPage)
-                        } label: {
-                            HStack {
-                                Image(systemName: "questionmark.circle")
-                                    .foregroundColor(.bountyText)
-                                Text(L10n.walletHelp)
-                                    .foregroundColor(.bountyText)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.bountyGray)
-                            }
-                            .font(.system(size: 15))
-                            .padding(16)
-                            .background(Color.white)
-                        }
-                        .buttonStyle(.plain)
                     }
                     .cornerRadius(12)
                 }
@@ -149,95 +106,66 @@ struct WalletView: View {
             .background(Color.bountyBg)
             .navigationTitle(L10n.walletTitle)
         }
-        .sheet(isPresented: $showWithdraw) {
-            VStack(spacing: 24) {
-                Text(L10n.walletWithdrawTitle)
-                    .font(.system(size: 18, weight: .bold))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L10n.walletWithdrawAmount)
-                        .font(.system(size: 14, weight: .medium))
-                    HStack {
-                        Text("¥").font(.system(size: 22, weight: .bold))
-                        TextField(L10n.walletMinWithdraw, value: $withdrawAmount, format: .number)
-                            .keyboardType(.decimalPad)
-                            .font(.system(size: 22, weight: .bold))
-                    }
-                    .padding()
-                    .background(Color.bountyBg)
-                    .cornerRadius(12)
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L10n.walletWithdrawMethod)
-                        .font(.system(size: 14, weight: .medium))
-                    HStack(spacing: 10) {
-                        ForEach(["bank", "paypal"], id: \.self) { ch in
-                            Button(ch == "bank" ? L10n.walletWithdrawBank : L10n.walletWithdrawPaypal) {
-                                withdrawChannel = ch
-                            }
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(withdrawChannel == ch ? .white : .bountyTextSecondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(withdrawChannel == ch ? Color.bountyGold : Color.white)
-                            )
-                        }
-                    }
-                }
-
-                Text(L10n.walletWithdrawETA)
-                    .font(.system(size: 12))
-                    .foregroundColor(.bountyGray)
-
-                Button(L10n.walletWithdrawConfirm) {
-                    vm.withdraw(amount: withdrawAmount, channel: withdrawChannel)
-                    showWithdraw = false
-                }
-                .bountyButton()
-                .disabled(withdrawAmount < 10)
-                .opacity(withdrawAmount >= 10 ? 1.0 : 0.5)
-            }
-            .padding(24)
-            .presentationDetents([.medium, .large])
-        }
-        .sheet(isPresented: $showRecharge) {
-            VStack(spacing: 24) {
-                Text(L10n.walletRechargeSim)
-                    .font(.system(size: 18, weight: .bold))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L10n.walletRechargeAmount)
-                        .font(.system(size: 14, weight: .medium))
-                    HStack {
-                        Text("¥").font(.system(size: 22, weight: .bold))
-                        TextField(L10n.walletRechargePlaceholder, value: $rechargeAmount, format: .number)
-                            .keyboardType(.decimalPad)
-                            .font(.system(size: 22, weight: .bold))
-                    }
-                    .padding()
-                    .background(Color.bountyBg)
-                    .cornerRadius(12)
-                }
-
-                Text(L10n.walletRechargeHint)
-                    .font(.system(size: 12))
-                    .foregroundColor(.bountyGray)
-
-                Button(L10n.walletRechargeConfirm) {
-                    vm.recharge(amount: rechargeAmount)
-                    showRecharge = false
-                }
-                .bountyButton()
-                .disabled(rechargeAmount <= 0)
-                .opacity(rechargeAmount > 0 ? 1.0 : 0.5)
-            }
-            .padding(24)
-            .presentationDetents([.medium, .large])
+        .sheet(isPresented: $showPackages) {
+            QuotaPackagesSheet(vm: vm)
         }
         .onAppear { vm.load() }
+    }
+}
+
+/// 额度套餐选择面板
+struct QuotaPackagesSheet: View {
+    @ObservedObject private var lang = LanguageManager.shared
+    @ObservedObject var vm: WalletViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 14) {
+                    if vm.packages.isEmpty && !vm.isPurchasing {
+                        Text(L10n.quotaLoading)
+                            .foregroundColor(.bountyGray)
+                            .padding(.top, 40)
+                    }
+                    ForEach(vm.packages) { pkg in
+                        Button {
+                            Task {
+                                await vm.purchase(pkg)
+                                dismiss()
+                            }
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(pkg.localizedQuota)
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundColor(.bountyText)
+                                    Text(pkg.name)
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.bountyTextSecondary)
+                                }
+                                Spacer()
+                                Text(pkg.localizedPrice)
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.bountyGold)
+                            }
+                            .padding(20)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.white)
+                            .cornerRadius(14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius:  14)
+                                    .stroke(Color.bountyGold.opacity(0.4), lineWidth: 1)
+                            )
+                        }
+                        .disabled(vm.isPurchasing)
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle(L10n.quotaPackagesTitle)
+            .navigationBarItems(trailing: Button(L10n.commonClose) { dismiss() })
+        }
     }
 }
 
@@ -246,96 +174,84 @@ class WalletViewModel: ObservableObject {
     @Published var frozenBalance: Double = 0
     @Published var totalEarned: Double = 0
     @Published var canWithdraw = false
+    @Published var publishQuota: Int = 0
+    @Published var usedQuota: Int = 0
+    @Published var packages: [QuotaPackage] = []
+    @Published var isPurchasing = false
     @Published var loadError: String?
-    @Published var isLoading = false
 
     func load() {
         Task {
-            await MainActor.run { isLoading = true }
+            await MainActor.run { /* loading */ }
             do {
                 let resp: APIResponse<WalletData> = try await APIClient.shared.request("/wallet")
                 await MainActor.run {
-                    isLoading = false
                     if resp.code == 0, let data = resp.data {
                         self.balance = data.balance
                         self.frozenBalance = data.frozenBalance
                         self.totalEarned = data.totalEarned
                         self.canWithdraw = data.canWithdraw
+                        self.publishQuota = data.publishQuota
+                        self.usedQuota = data.usedQuota
                         self.loadError = nil
                     } else {
                         self.loadError = resp.message.isEmpty ? L10n.walletLoadFailed : resp.message
                     }
                 }
+                await fetchPackages()
             } catch {
                 await MainActor.run {
-                    isLoading = false
-                    if let err = error as? APIError, case .unauthorized = err {
-                        self.loadError = L10n.walletAuthExpired
-                    } else {
-                        self.loadError = L10n.networkError
-                    }
+                    self.loadError = (error as? APIError)?.friendlyMessage ?? L10n.networkError
                 }
             }
         }
     }
 
-    func withdraw(amount: Double, channel: String) {
-        Task {
-            do {
-                let resp: APIResponse<EmptyResponse> = try await APIClient.shared.request(
-                    "/wallet/withdraw",
-                    method: "POST",
-                    body: ["amount": amount, "channel": channel, "account": "user_account"]
-                )
-                guard resp.code == 0 else {
-                    await MainActor.run { self.loadError = resp.message.isEmpty ? L10n.walletWithdrawFailed : resp.message }
-                    return
-                }
-                await load()
-            } catch {
-                await MainActor.run {
-                    self.loadError = L10n.walletWithdrawFailed
+    func fetchPackages() async {
+        do {
+            let resp: APIResponse<[QuotaPackage]> = try await APIClient.shared.request(
+                "/wallet/quota-packages",
+                method: "GET"
+            )
+            await MainActor.run {
+                if resp.code == 0, let list = resp.data {
+                    self.packages = list
                 }
             }
+        } catch {
+            // 套餐拉取失败不阻塞钱包展示
         }
     }
 
-    func recharge(amount: Double) {
-        Task {
-            do {
-                print("[WalletVM] recharge amount=\(amount), token=\(TokenStorage.shared.token ?? "nil")")
-                let resp: APIResponse<WalletData> = try await APIClient.shared.request(
-                    "/wallet/recharge",
-                    method: "POST",
-                    body: ["amount": amount]
-                )
-                print("[WalletVM] recharge resp code=\(resp.code), msg=\(resp.message)")
-                guard resp.code == 0 else {
-                    await MainActor.run { self.loadError = resp.message.isEmpty ? L10n.walletRechargeFailed : resp.message }
-                    return
-                }
-                await MainActor.run {
-                    if let data = resp.data {
-                        self.balance = data.balance
-                        self.frozenBalance = data.frozenBalance
-                        self.totalEarned = data.totalEarned
-                        self.canWithdraw = data.canWithdraw
-                    } else {
-                        self.balance += amount
-                    }
-                    self.loadError = nil
-                }
-            } catch {
-                print("[WalletVM] recharge error: \(error)")
-                await MainActor.run {
-                    self.loadError = L10n.walletRechargeFailed + ": \(error.localizedDescription)"
-                }
+    /// 购买套餐：先创建后端订单，再走 StoreKit 支付，最后后端确认发放额度
+    func purchase(_ pkg: QuotaPackage) async {
+        await MainActor.run { isPurchasing = true; loadError = nil }
+        do {
+            // 1. 创建订单（channel=apple）
+            let createResp: APIResponse<RechargeOrder> = try await APIClient.shared.request(
+                "/wallet/quota/order",
+                method: "POST",
+                body: ["package_id": pkg.id, "channel": "apple"]
+            )
+            guard let order = createResp.data else {
+                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: createResp.message])
+            }
+            // 2. StoreKit 支付（商品 SKU 与套餐 ID 一致）
+            _ = try await StoreKitManager.shared.purchase(productSKU: pkg.id, orderID: order.id)
+            // 3. 后端已确认并放量，刷新钱包
+            await load()
+            await MainActor.run { isPurchasing = false }
+        } catch {
+            await MainActor.run {
+                isPurchasing = false
+                loadError = error.localizedDescription
             }
         }
     }
 }
 
 struct TransactionListView: View {
+    @ObservedObject private var lang = LanguageManager.shared
     var body: some View {
         List {
             ForEach(0..<5, id: \.self) { _ in
@@ -361,6 +277,8 @@ struct WalletData: Codable {
     let totalEarned: Double
     let totalSpent: Double
     let canWithdraw: Bool
+    let publishQuota: Int
+    let usedQuota: Int
 
     enum CodingKeys: String, CodingKey {
         case balance
@@ -368,5 +286,7 @@ struct WalletData: Codable {
         case frozenBalance = "frozen_balance"
         case totalEarned = "total_earned"
         case totalSpent = "total_spent"
+        case publishQuota = "publish_quota"
+        case usedQuota = "used_quota"
     }
 }

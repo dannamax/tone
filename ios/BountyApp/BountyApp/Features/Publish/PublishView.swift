@@ -4,6 +4,7 @@ import CoreLocation
 
 struct PublishView: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = PublishViewModel()
     @Environment(\.dismiss) var dismiss
     /// 发布前确认弹窗（目标地址仍采用当前位置时）
@@ -47,65 +48,20 @@ struct PublishView: View {
                             }
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text(L10n.publishBountyAmount)
+                            Text(L10n.publishQuotaHint)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.bountyText)
                             Spacer()
-                            Picker(L10n.publishCurrency, selection: $vm.currency) {
-                                Text(L10n.publishCurrencyCNY).tag("CNY")
-                                Text(L10n.publishCurrencyUSD).tag("USD")
-                            }
-                            .pickerStyle(.segmented)
-                            .frame(width: 120)
+                            Text(L10n.publishQuotaCost)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.bountyGold)
                         }
-                        HStack {
-                            Text(vm.currencySymbol)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.bountyDark)
-            TextField(L10n.publishAmountPlaceholder, value: $vm.bounty, format: .number)
-                .keyboardType(.decimalPad)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.bountyGold)
-                .accessibilityIdentifier("publishBountyField")
-                        }
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(12)
+                        Text(L10n.publishQuotaDesc)
+                            .font(.system(size: 12))
+                            .foregroundColor(.bountyGray)
                     }
-
-                    VStack(spacing: 8) {
-                        HStack {
-                            Text(L10n.publishBountyTotal)
-                                .foregroundColor(.bountyTextSecondary)
-                            Spacer()
-                            Text("\(vm.currencySymbol)\(String(format: "%.2f", vm.bounty))")
-                        }
-                        HStack {
-                            Text(L10n.publishServiceFee)
-                                .foregroundColor(.bountyTextSecondary)
-                            Spacer()
-                            Text("\(vm.currencySymbol)\(String(format: "%.2f", vm.fee))")
-                        }
-                        Divider()
-                        HStack {
-                            Text(L10n.publishTotalPay)
-                                .font(.system(size: 16, weight: .semibold))
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("\(vm.currencySymbol)\(String(format: "%.2f", vm.total))")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.bountyGold)
-                                if vm.currency == "USD" {
-                                    Text(String(format: L10n.publishApproxCNY, vm.totalCNY))
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.bountyGray)
-                                }
-                            }
-                        }
-                    }
-                    .font(.system(size: 14))
                     .padding()
                     .background(Color.white)
                     .cornerRadius(12)
@@ -193,7 +149,7 @@ struct PublishView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                     }
-                    Button(L10n.publishPayBtn + " \(vm.currencySymbol)\(String(format: "%.2f", vm.total))") {
+                    Button(L10n.publishSubmitBtn) {
                         if vm.isLocationAutoFilled {
                             // 目标地址仍采用发布人当前位置，发布前需确认
                             showLocationConfirm = true
@@ -218,7 +174,6 @@ struct PublishView: View {
             } message: {
                 Text(L10n.publishConfirmMsg + "\n\(vm.targetAddr.isEmpty ? "(\(String(format: "%.4f", vm.targetLat)), \(String(format: "%.4f", vm.targetLng)))" : vm.targetAddr)")
             }
-            .onAppear { vm.fetchExchangeRate() }
         }
     }
 
@@ -244,15 +199,6 @@ struct PublishView: View {
     }
 }
 
-/// Response model for /api/v1/config/exchange-rate
-struct ExchangeRateData: Codable {
-    let usdToCny: Double
-
-    enum CodingKeys: String, CodingKey {
-        case usdToCny = "usd_to_cny"
-    }
-}
-
 class PublishViewModel: ObservableObject {
     @Published var title = ""
     @Published var description = ""
@@ -266,37 +212,10 @@ class PublishViewModel: ObservableObject {
     @Published var isLocationAutoFilled = false
     @Published var radius = 3000
     @Published var timeLimit = 30
-    @Published var bounty: Double = 10
-    @Published var currency: String = "CNY"
+    // 后端仍需要 bounty/currency 字段；使用固定默认值，UI 不再展示金额。
+    private let bounty: Double = 10
+    private let currency: String = "CNY"
     @Published var publishError: String?
-
-    @Published var exchangeRateUSDToCNY: Double = 7.2
-
-    var currencySymbol: String { currency == "USD" ? "$" : "¥" }
-    var exchangeRate: Double { currency == "USD" ? exchangeRateUSDToCNY : 1.0 }
-    var fee: Double { bounty * 0.1 }
-    var total: Double { bounty + fee }
-    var totalCNY: Double { total * exchangeRate }
-
-    /// Fetch the latest USD→CNY exchange rate from the backend.
-    func fetchExchangeRate() {
-        Task {
-            do {
-                let resp: APIResponse<ExchangeRateData> = try await APIClient.shared.request(
-                    "/config/exchange-rate",
-                    method: "GET",
-                    requiresAuth: false
-                )
-                if resp.code == 0, let data = resp.data {
-                    await MainActor.run {
-                        self.exchangeRateUSDToCNY = data.usdToCny
-                    }
-                }
-            } catch {
-                print("[PublishVM] Failed to fetch exchange rate, using default: \(error)")
-            }
-        }
-    }
 
     /// 将当前已填入的 targetLat/targetLng 反向解析为地址（用于自动采用当前位置后填充地址文本）
     func reverseGeocodeCurrentLocation() {
@@ -367,7 +286,7 @@ class PublishViewModel: ObservableObject {
             publishError = nil
             return true
         } catch APIError.requestFailed(let code) where code == 402 {
-            publishError = L10n.publishBalanceLow
+            publishError = L10n.publishQuotaLow
             return false
         } catch APIError.requestFailed(let code) where code == 400 {
             publishError = L10n.publishBadParams

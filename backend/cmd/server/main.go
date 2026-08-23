@@ -24,6 +24,7 @@ import (
 	"seeker/pkg/email"
 	"seeker/pkg/i18n"
 	"seeker/pkg/jwt"
+	"seeker/pkg/appleiap"
 )
 
 // toFloat 将 SQLite 传入的参数安全转为 float64。
@@ -156,11 +157,14 @@ func main() {
 	subSvc := service.NewSubmissionService(submissionRepo)
 	paySvc := service.NewPaymentService(userRepo, taskRepo, txRepo, notifyRepo, hub)
 	walletSvc := service.NewWalletService(userRepo, txRepo, notifyRepo)
+	rechargeRepo := repository.NewRechargeRepo(db)
+	quotaSvc := service.NewQuotaService(rechargeRepo, userRepo, txRepo, appleiap.NewVerifier(cfg.Apple.Password))
 
 	// --- Handlers ---
-	authHandler := handler.NewAuthHandler(authSvc)
+	authHandler := handler.NewAuthHandler(authSvc, userRepo)
 	taskHandler := handler.NewTaskHandler(taskSvc, subSvc, paySvc, messageRepo)
 	walletHandler := handler.NewWalletHandler(walletSvc, userRepo, txRepo, notifyRepo)
+	quotaHandler := handler.NewQuotaHandler(quotaSvc)
 	uploadHandler := handler.NewUploadHandler("uploads")
 	configH := handler.NewConfigHandler(cfg)
 
@@ -206,6 +210,11 @@ func main() {
 		api.POST("/wallet/recharge", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.Recharge)
 		api.POST("/wallet/withdraw", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.Withdraw)
 		api.GET("/wallet/transactions", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.GetTransactions)
+		// 发布额度（方案1）
+		api.GET("/wallet/quota-packages", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.Packages)
+		api.POST("/wallet/quota/order", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.CreateOrder)
+		api.POST("/wallet/quota/confirm-apple", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.ConfirmApple)
+		api.GET("/wallet/quota/order/:id", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.GetOrder)
 		api.GET("/notifications", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.GetNotifications)
 		api.POST("/notifications/:id/read", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.MarkRead)
 		api.POST("/notifications/read-all", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.ReadAllNotifications)

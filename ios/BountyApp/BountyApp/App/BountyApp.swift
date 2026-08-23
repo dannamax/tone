@@ -11,6 +11,8 @@ struct SeekerApp: App {
             UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
             UserDefaults.standard.removeObject(forKey: "auth_token")
             UserDefaults.standard.removeObject(forKey: "user_json")
+            // 清理持久化的语言选择，避免连续运行时语言状态残留导致 onboarding 文案不一致
+            UserDefaults.standard.removeObject(forKey: "app_language")
         }
 
         // 强制全局窗口背景与应用主题色一致，避免刘海/Home Indicator 区域

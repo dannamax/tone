@@ -13,6 +13,7 @@ const (
 	StatusDisputed  TaskStatus = "disputed"
 	StatusRefunded  TaskStatus = "refunded"
 	StatusReleased  TaskStatus = "released"
+	StatusCancelled TaskStatus = "cancelled"
 )
 
 type Task struct {

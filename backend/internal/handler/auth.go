@@ -2,6 +2,7 @@ package handler
 
 import (
 	"seeker/internal/middleware"
+	"seeker/internal/repository"
 	"seeker/internal/service"
 	"seeker/pkg/i18n"
 	"seeker/pkg/response"
@@ -11,10 +12,11 @@ import (
 
 type AuthHandler struct {
 	authSvc *service.AuthService
+	userRepo *repository.UserRepo
 }
 
-func NewAuthHandler(authSvc *service.AuthService) *AuthHandler {
-	return &AuthHandler{authSvc: authSvc}
+func NewAuthHandler(authSvc *service.AuthService, userRepo *repository.UserRepo) *AuthHandler {
+	return &AuthHandler{authSvc: authSvc, userRepo: userRepo}
 }
 
 func (h *AuthHandler) SendCode(c *gin.Context) {
@@ -66,5 +68,10 @@ func (h *AuthHandler) RegisterOrLogin(c *gin.Context) {
 
 func (h *AuthHandler) GetProfile(c *gin.Context) {
 	userID := middleware.GetUserID(c)
-	response.Success(c, gin.H{"user_id": userID})
+	user, err := h.userRepo.FindByID(c.Request.Context(), userID)
+	if err != nil {
+		response.Unauthorized(c, err.Error())
+		return
+	}
+	response.Success(c, user)
 }

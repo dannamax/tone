@@ -17,6 +17,7 @@ type Config struct {
 	JWT       JWTConfig
 	Email     EmailConfig
 	Exchange  ExchangeRateConfig
+	Apple     AppleConfig
 }
 
 // ...
@@ -96,8 +97,15 @@ func (c SMTPChannelConfig) Enabled() bool {
 	return c.Host != "" && c.Port != 0 && c.From != ""
 }
 
-type EmailConfig struct {
-	// Provider selects the top-level mode: "smtp" (real send via configured
+// AppleConfig 用于校验 Apple In-App Purchase 回执。
+//   - Password: App Store 共享密钥（非订阅 IAP 可留空）
+//   - Env: "auto"（production 失败回退 sandbox，推荐）| "production" | "sandbox"
+type AppleConfig struct {
+	Password string
+	Env      string
+}
+
+type EmailConfig struct {	// Provider selects the top-level mode: "smtp" (real send via configured
 	// channels) or "mock" (console logging only, for dev/CI).
 	Provider string
 	// Domestic channel: used for Chinese mailbox providers (qq/163/126/...).
@@ -171,6 +179,10 @@ func Load() *Config {
 		},
 		Exchange: ExchangeRateConfig{
 			USDToCNY: getEnvFloat("EXCHANGE_USD_CNY", 7.2),
+		},
+		Apple: AppleConfig{
+			Password: getEnv("APPLE_IAP_PASSWORD", ""),
+			Env:      getEnv("APPLE_IAP_ENV", "auto"),
 		},
 	}
 }

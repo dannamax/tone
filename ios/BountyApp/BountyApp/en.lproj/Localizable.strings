@@ -1,5 +1,5 @@
 /* General */
-"app_name" = "Seeker";
+"app_name" = "SeekerHub";
 "app_slogan" = "Post bounties, get tasks done";
 "ok" = "OK";
 "cancel" = "Cancel";
@@ -19,9 +19,10 @@
 "login_email_placeholder" = "Email address";
 "login_code_placeholder" = "Verification code";
 "login_get_code" = "Get Code";
+"login_resend_code" = "Resend code";
 "login_register" = "Log In / Sign Up";
 "login_verify" = "Verify & Login";
-"login_retry_after" = "Retry in %ds";
+"login_retry_after" = "Resend code (%ds)";
 "login_error_title" = "Notice";
 "login_agreement_hint" = "By continuing, you agree to the Privacy Policy & Terms of Service";
 "login_invalid_email" = "Please enter a valid email address";
@@ -81,10 +82,12 @@
 "task_chat_empty" = "No messages yet";
 "task_claim" = "Claim Task";
 "task_claiming" = "Claiming...";
-"task_publish_confirm" = "Confirm & Pay";
+"task_publish_confirm" = "Confirm & Publish";
 "task_publishing" = "Publishing...";
 "task_balance_low" = "Insufficient balance";
 "task_recharge_hint" = "Please recharge first";
+"task_quota_low" = "Not enough publish quota";
+"task_quota_hint" = "Purchase quota in Wallet";
 "task_confirm_pass" = "Confirm completion";
 "task_request_more" = "Request more evidence";
 "task_sender_pub" = "Publisher";
@@ -136,12 +139,17 @@
 "publish_confirm_edit" = "Edit";
 "publish_confirm_msg" = "Are you sure you want to publish this task?";
 "publish_pay_btn" = "Pay & Publish";
+"publish_quota_hint" = "Publish Cost";
+"publish_quota_cost" = "1 Quota";
+"publish_quota_desc" = "Publishing a task consumes 1 publish quota.";
+"publish_submit_btn" = "Publish Task";
 "publish_need_login" = "Please log in first";
 "publish_need_location" = "Please enable location permissions";
 "publish_fail" = "Publish failed";
 "publish_success" = "Task published!";
 "publish_success_pending" = "Task is under review";
 "publish_balance_low" = "Insufficient balance for bounty";
+"publish_quota_low" = "Not enough publish quota. Please purchase more in Wallet.";
 "publish_bad_params" = "Please fill in all fields";
 "publish_expired" = "Login expired, please log in again";
 "publish_network_error" = "Network error, please try again";
@@ -197,6 +205,22 @@
 "wallet_recharge_failed" = "Recharge failed";
 "wallet_auth_expired" = "Login expired";
 "wallet_bounty" = "Bounty";
+
+/* Publish Quota (方案1) */
+"quota_remaining_title" = "Remaining Publishing Quota";
+"quota_used_fmt" = "Used: %d";
+"quota_buy_button" = "Buy Quota";
+"quota_packages_title" = "Buy Publishing Quota";
+"quota_loading" = "Loading packages...";
+"quota_package_count_fmt" = "%d tasks";
+"quota_purchasing" = "Processing purchase...";
+"common_close" = "Close";
+
+/* StoreKit / Apple IAP */
+"store_product_not_found" = "Product not available";
+"store_user_cancelled" = "Purchase cancelled";
+"store_pending" = "Purchase pending approval";
+"store_unknown" = "Purchase failed";
 
 /* Profile */
 "profile_title" = "Profile";
@@ -262,7 +286,7 @@
 "review_notes" = "Notes";
 "review_no_submission" = "No submission";
 "review_dispute" = "Dispute";
-"review_confirm_pay" = "Confirm & Pay";
+"review_confirm_pay" = "Confirm Complete";
 "review_dispute_title" = "Dispute Task";
 "review_dispute_reason" = "Reason";
 "review_dispute_submit" = "Submit Dispute";

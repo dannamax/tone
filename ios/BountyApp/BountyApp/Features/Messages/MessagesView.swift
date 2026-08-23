@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MessagesView: View {
+    @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = MessagesViewModel()
     @State private var selectedNotif: NotificationItem?
 

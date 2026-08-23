@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReviewView: View {
     let taskID: String
+    @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = ReviewViewModel()
     @State private var showDisputeSheet = false
     @State private var disputeReason = ""

@@ -6,6 +6,7 @@ import Network
 /// 用于定位「真机连不上后端」到底是 host 错误还是网络不通（跨网段/客户端隔离）。
 /// 上架（PRODUCTION）构建中整个文件被剔除，不会暴露给普通用户。
 struct ServerSettingsView: View {
+    @ObservedObject private var lang = LanguageManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var hostInput: String = ""
     @State private var testResult: String = L10n.serverNotTested

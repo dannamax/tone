@@ -62,6 +62,10 @@ func (h *TaskHandler) Publish(c *gin.Context) {
 
 	task, err := h.taskSvc.Publish(c.Request.Context(), userID, &req)
 	if err != nil {
+		if taskErr, ok := err.(*service.TaskError); ok && taskErr.Code == service.ErrInsufficientQuota {
+			response.PaymentRequired(c, taskErr.Message)
+			return
+		}
 		response.BadRequest(c, err.Error())
 		return
 	}
@@ -76,18 +80,8 @@ func (h *TaskHandler) Publish(c *gin.Context) {
 }
 
 func (h *TaskHandler) Activate(c *gin.Context) {
-	taskID := c.Param("id")
-	userID := middleware.GetUserID(c)
-
-	if err := h.taskSvc.ActivateTask(c.Request.Context(), userID, taskID); err != nil {
-		if taskSvcErr, ok := err.(*service.TaskError); ok && taskSvcErr.Code == service.ErrInsufficientBalance {
-			response.PaymentRequired(c, err.Error())
-			return
-		}
-		response.BadRequest(c, err.Error())
-		return
-	}
-
+	// 方案1（额度制）：任务在 Publish 时已直接发布，无需二次激活。
+	// 保留该接口以兼容旧版前端调用，直接返回成功。
 	response.SuccessWithMessage(c, i18n.T(i18n.LanguageFromRequest(c.Request), "task_published"), nil)
 }
 
@@ -180,13 +174,35 @@ func (h *TaskHandler) Dispute(c *gin.Context) {
 func (h *TaskHandler) Abandon(c *gin.Context) {
 	taskID := c.Param("id")
 	userID := middleware.GetUserID(c)
+	lang := i18n.LanguageFromRequest(c.Request)
 
+	// 先查任务，区分发布人撤回 / 接单人放弃
+	task, err := h.taskSvc.GetTask(c.Request.Context(), taskID)
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	if task == nil {
+		response.NotFound(c, i18n.T(lang, "task_not_found"))
+		return
+	}
+
+	if task.PublisherID == userID {
+		// 发布人撤回自己发布的任务（回收额度）
+		if err := h.paySvc.CancelByPublisher(c.Request.Context(), taskID, userID); err != nil {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		response.SuccessWithMessage(c, i18n.T(lang, "task_cancelled_ok"), nil)
+		return
+	}
+
+	// 接单人放弃已认领的任务
 	if err := h.paySvc.AbandonTask(c.Request.Context(), taskID, userID); err != nil {
 		response.BadRequest(c, err.Error())
 		return
 	}
-
-	response.SuccessWithMessage(c, i18n.T(i18n.LanguageFromRequest(c.Request), "task_abandoned_ok"), nil)
+	response.SuccessWithMessage(c, i18n.T(lang, "task_abandoned_ok"), nil)
 }
 
 func (h *TaskHandler) MyTasks(c *gin.Context) {

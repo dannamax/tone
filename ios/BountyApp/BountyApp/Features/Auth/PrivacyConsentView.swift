@@ -3,6 +3,7 @@ import SwiftUI
 /// GDPR / privacy consent view shown on first app launch.
 struct PrivacyConsentView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var lang = LanguageManager.shared
     @AppStorage("hasAcceptedPrivacyPolicy") private var hasAccepted = false
     @State private var showPolicy = false
     @State private var showTerms = false

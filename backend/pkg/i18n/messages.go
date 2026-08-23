@@ -8,6 +8,7 @@ var enMessages = map[string]string{
 	"image_data_invalid":        "Image data is invalid",
 	"code_expired":             "Verification code has expired, please request a new one",
 	"code_invalid":             "Verification code is incorrect",
+	"code_max_attempts":        "Too many failed attempts, please request a new verification code",
 	"rate_limited":             "Too many attempts, please try again later",
 	"email_send_failed":        "Failed to send verification code",
 	"code_sent":                "Verification code sent",
@@ -65,6 +66,14 @@ var enMessages = map[string]string{
 	"recharge_txn_failed":       "Failed to write recharge transaction record",
 	"recharge_simulated":        "Account recharge (simulated)",
 
+	// --- Publish Quota (方案1) ---
+	"package_not_found":         "Quota package not found",
+	"order_not_found":           "Recharge order not found",
+	"invalid_receipt":           "Invalid receipt",
+	"service_unavailable":       "Service temporarily unavailable",
+	"quota_spend_failed":        "Failed to consume publish quota",
+	"insufficient_quota":        "Insufficient publish quota, please recharge",
+
 	// --- Wallet / Withdraw ---
 	"withdraw_below_min":        "Withdrawal amount is below the minimum",
 	"frozen_not_available":      "Frozen balance is not available for withdrawal",
@@ -102,6 +111,7 @@ var enMessages = map[string]string{
 	"task_published":            "Task published, waiting for claimers",
 	"task_claimed_ok":           "Task claimed",
 	"task_abandoned_ok":         "Task abandoned",
+	"task_cancelled_ok":         "Task cancelled",
 	"evidence_submitted":        "Evidence submitted",
 	"evidence_submitted_msg":    "Evidence submitted, waiting for review",
 	"evidence_submitted_with_note": "Evidence submitted (note: %s), waiting for review",
@@ -129,6 +139,7 @@ var zhMessages = map[string]string{
 	"image_data_invalid":         "图片数据无效",
 	"code_expired":              "验证码已过期，请重新获取",
 	"code_invalid":              "验证码错误",
+	"code_max_attempts":         "尝试次数过多，请重新获取验证码",
 	"rate_limited":              "今日发送次数已达上限，请稍后再试",
 	"email_send_failed":         "验证码发送失败",
 	"code_sent":                 "验证码已发送",
@@ -186,6 +197,14 @@ var zhMessages = map[string]string{
 	"recharge_txn_failed":         "充值流水写入失败",
 	"recharge_simulated":          "账户充值（模拟）",
 
+	// --- Publish Quota (方案1) ---
+	"package_not_found":           "额度套餐不存在",
+	"order_not_found":             "充值订单不存在",
+	"invalid_receipt":             "凭证无效",
+	"service_unavailable":         "服务暂不可用",
+	"quota_spend_failed":          "消耗发布额度失败",
+	"insufficient_quota":          "发布额度不足，请充值",
+
 	// --- Wallet / Withdraw ---
 	"withdraw_below_min":          "提现金额低于最低限额",
 	"frozen_not_available":        "冻结余额不可用",
@@ -223,6 +242,7 @@ var zhMessages = map[string]string{
 	"task_published":              "任务已发布，等待猎人领取",
 	"task_claimed_ok":             "任务已领取",
 	"task_abandoned_ok":           "已放弃任务",
+	"task_cancelled_ok":           "已撤回任务",
 	"evidence_submitted":          "证据已提交",
 	"evidence_submitted_msg":      "证据已提交，等待审核",
 	"evidence_submitted_with_note": "证据已提交（备注：%s），等待审核",

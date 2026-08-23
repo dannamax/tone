@@ -3,6 +3,7 @@ import AVFoundation
 import CoreLocation
 
 struct CameraView: View {
+    @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = CameraViewModel()
     @Environment(\.dismiss) var dismiss
     @State private var note = ""

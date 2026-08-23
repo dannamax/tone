@@ -227,7 +227,7 @@ func (r *TaskRepo) FindPublishedByUser(ctx context.Context, userID string, page,
 	}
 	query := `SELECT id, publisher_id, title, description, target_lat, target_lng, target_addr, 
 			  radius, time_limit, bounty, fee, currency, status, claimer_id, claimed_at, submitted_at, confirmed_at, refunded_at, created_at, updated_at 
-			  FROM tasks WHERE publisher_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
+			  FROM tasks WHERE publisher_id = ? AND status <> 'cancelled' ORDER BY created_at DESC LIMIT ? OFFSET ?`
 	return r.listTasks(ctx, query, total, userID, size, (page-1)*size)
 }
 
@@ -241,6 +241,25 @@ func (r *TaskRepo) FindClaimedByUser(ctx context.Context, userID string, page, s
 			  radius, time_limit, bounty, fee, currency, status, claimer_id, claimed_at, submitted_at, confirmed_at, refunded_at, created_at, updated_at 
 			  FROM tasks WHERE claimer_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
 	return r.listTasks(ctx, query, total, userID, size, (page-1)*size)
+}
+
+// CancelByPublisher 仅允许发布人撤回自己"已发布且未被认领"的任务，并回收已用额度。
+func (r *TaskRepo) CancelByPublisher(ctx context.Context, taskID, publisherID string) error {
+	query := `UPDATE tasks SET status = ?, updated_at = ? WHERE id = ? AND publisher_id = ? AND status = 'published'`
+	result, err := r.db.ExecContext(ctx, query, model.StatusCancelled, time.Now(), taskID, publisherID)
+	if err != nil {
+		return err
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task not cancellable by publisher")
+	}
+	// 回收发布额度（used_quota - 1，publish_quota + 1）
+	if _, err := r.db.ExecContext(ctx,
+		`UPDATE users SET used_quota = used_quota - 1, publish_quota = publish_quota + 1, updated_at = ? 
+		 WHERE id = ? AND used_quota > 0`, time.Now(), publisherID); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *TaskRepo) Release(ctx context.Context, taskID string) error {

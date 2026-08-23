@@ -33,11 +33,22 @@ if [ "$1" = "--fresh" ]; then
 fi
 
 EMAIL="user1@example.com"
-echo "== 1. 发送验证码 =="
+echo "== 1. 发送验证码（生产级随机码，非固定码） =="
 curl -s -X POST $API/auth/send-code -H "Content-Type: application/json" -d "{\"email\":\"$EMAIL\"}" >/dev/null
 sleep 1
 CODE=$(grep -o "\[Auth\] Sending code to $EMAIL code=[0-9]*" "$LOG" | tail -1 | grep -o "[0-9]*$")
-[ -n "$CODE" ] && ok "验证码已生成($CODE)" || bad "验证码未生成"
+if [ -z "$CODE" ]; then
+  bad "验证码未生成"
+elif [ "$CODE" = "123456" ]; then
+  bad "验证码仍是固定码 123456（请确认未注入 MOCK_FIXED_CODE 且后端已重新编译）"
+else
+  # 校验：6 位数字、首位非 0
+  if echo "$CODE" | grep -Eq '^[1-9][0-9]{5}$'; then
+    ok "验证码已生成(随机码=$CODE)"
+  else
+    bad "验证码格式异常: $CODE"
+  fi
+fi
 
 echo "== 2. 登录 =="
 LOGIN=$(curl -s -X POST $API/auth/login -H "Content-Type: application/json" -d "{\"email\":\"$EMAIL\",\"code\":\"$CODE\",\"device_id\":\"e2e-device\"}")
@@ -78,6 +89,10 @@ P2="user2@example.com"
 curl -s -X POST $API/auth/send-code -H "Content-Type: application/json" -d "{\"email\":\"$P2\"}" >/dev/null
 sleep 1
 C2=$(grep -o "\[Auth\] Sending code to $P2 code=[0-9]*" "$LOG" | tail -1 | grep -o "[0-9]*$")
+if [ -z "$C2" ] || [ "$C2" = "123456" ]; then
+  bad "第二用户验证码未生成或仍为固定码($C2)"
+  C2=""
+fi
 T2K=$(curl -s -X POST $API/auth/login -H "Content-Type: application/json" -d "{\"email\":\"$P2\",\"code\":\"$C2\",\"device_id\":\"e2e-device-2\"}" | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['access_token'])")
 H2="Authorization: Bearer $T2K"
 curl -s -X POST $API/wallet/recharge -H "$H2" -H "Content-Type: application/json" -d '{"amount":100}' >/dev/null

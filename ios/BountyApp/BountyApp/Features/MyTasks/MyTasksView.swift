@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MyTasksView: View {
     @StateObject private var vm = MyTasksViewModel()
+    @ObservedObject private var lang = LanguageManager.shared
     @State private var selectedTab = 0
     @EnvironmentObject var appState: AppState
 

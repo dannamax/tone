@@ -31,9 +31,11 @@ func (s *WalletService) GetWalletInfo(ctx context.Context, userID string) (*mode
 	}
 
 	return &model.WalletInfo{
-		Balance:     user.Balance,
-		FrozenBal:   user.FrozenBal,
-		CanWithdraw: user.Balance >= model.MinWithdrawAmount,
+		Balance:      user.Balance,
+		FrozenBal:    user.FrozenBal,
+		PublishQuota: user.PublishQuota,
+		UsedQuota:    user.UsedQuota,
+		CanWithdraw:  user.Balance >= model.MinWithdrawAmount,
 	}, nil
 }
 

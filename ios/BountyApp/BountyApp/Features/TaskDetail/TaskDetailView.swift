@@ -6,6 +6,7 @@ import PhotosUI
 struct TaskDetailView: View {
     let taskID: String
     @EnvironmentObject var appState: AppState
+    @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = TaskDetailViewModel()
     @Environment(\.dismiss) var dismiss
 
@@ -335,10 +336,10 @@ struct TaskDetailView: View {
                     Divider()
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(L10n.taskBalanceLow)
+                            Text(L10n.taskQuotaLow)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.orange)
-                            Text(L10n.taskRechargeHint)
+                            Text(L10n.taskQuotaHint)
                                 .font(.system(size: 12))
                                 .foregroundColor(.bountyGray)
                         }

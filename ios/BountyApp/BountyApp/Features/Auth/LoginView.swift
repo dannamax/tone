@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var viewModel = LoginViewModel()
     #if !PRODUCTION
     @State private var showServerSettings = false
@@ -22,32 +23,36 @@ struct LoginView: View {
             // 避免 GeometryReader 限制安全区域传播。
             GeometryReader { geo in
                 ScrollViewReader { proxy in
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            headerView
-                                .opacity(isCompact ? 0 : 1)
-                                .frame(height: isCompact ? 0 : nil)
-                                .animation(.easeInOut(duration: 0.2), value: isCompact)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: isCompact ? 0 : geo.size.height * 0.18)
 
-                            VStack(alignment: .leading, spacing: 28) {
-                                emailSection
+                        headerView
+                            .opacity(isCompact ? 0 : 1)
+                            .frame(height: isCompact ? 0 : nil)
+                            .animation(.easeInOut(duration: 0.2), value: isCompact)
 
-                                if viewModel.showCodeField {
-                                    codeSection
-                                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                                }
+                        VStack(alignment: .leading, spacing: 28) {
+                            emailSection
+
+                            if viewModel.showCodeField {
+                                codeSection
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
                             }
-                            .padding(.horizontal, 24)
-                            .padding(.top, isCompact ? 16 : 8)
-
-                            Spacer(minLength: 24)
-
-                            bottomActions
-                                .padding(.horizontal, 24)
-                                .padding(.bottom, 16)
                         }
-                        .frame(minHeight: geo.size.height)
+                        .padding(.horizontal, 24)
+                        .padding(.top, isCompact ? 16 : 8)
+
+                        Spacer(minLength: 24)
+
+                        bottomActions
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 16)
+
+                        Spacer(minLength: 8)
                     }
+                    .frame(minHeight: geo.size.height)
+                }
                     .scrollDismissesKeyboard(.interactively)
                     .onChange(of: focusedField) { _ in
                         withAnimation(.easeOut(duration: 0.2)) {
@@ -157,7 +162,7 @@ struct LoginView: View {
                         if viewModel.isCountingDown {
                             Text(String(format: L10n.loginRetryAfter, viewModel.countdown))
                         } else {
-                            Text(L10n.loginGetCode)
+                            Text(viewModel.showCodeField ? L10n.loginResendCode : L10n.loginGetCode)
                         }
                     }
                     .font(.system(size: 14, weight: .semibold))
@@ -408,11 +413,13 @@ class LoginViewModel: ObservableObject {
                             nickname: tokenResp.user.nickname,
                             avatar: tokenResp.user.avatar,
                             balance: tokenResp.user.balance,
-                            frozenBalance: tokenResp.user.frozenBalance
+                            frozenBalance: tokenResp.user.frozenBalance,
+                            publishQuota: tokenResp.user.publishQuota,
+                            usedQuota: tokenResp.user.usedQuota
                         )
                         completion(user, tokenResp.accessToken)
                     } else {
-                        errorMessage = L10n.loginAuthFailed
+                        errorMessage = response.message ?? L10n.loginAuthFailed
                         showError = true
                     }
                 }
@@ -468,10 +475,14 @@ struct TokenUser: Codable {
     let avatar: String
     let balance: Double
     let frozenBalance: Double
+    let publishQuota: Int
+    let usedQuota: Int
 
     enum CodingKeys: String, CodingKey {
         case id, email, nickname, avatar, balance
         case frozenBalance = "frozen_balance"
+        case publishQuota = "publish_quota"
+        case usedQuota = "used_quota"
     }
 }
 

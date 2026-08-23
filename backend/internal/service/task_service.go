@@ -14,7 +14,7 @@ import (
 
 // 业务错误码
 const (
-	ErrInsufficientBalance = "INSUFFICIENT_BALANCE"
+	ErrInsufficientQuota = "INSUFFICIENT_QUOTA"
 )
 
 // TaskError 任务业务错误
@@ -57,13 +57,15 @@ func NewTaskService(
 
 func (s *TaskService) Publish(ctx context.Context, publisherID string, req *model.PublishTaskRequest) (*model.Task, error) {
 	fee := req.Bounty * model.PlatformFeeRate
-	totalLocal := req.Bounty + fee
-	totalCNY := model.ToCNY(totalLocal, req.Currency)
-	bountyCNY := model.ToCNY(req.Bounty, req.Currency)
 
 	user, err := s.userRepo.FindByID(ctx, publisherID)
 	if err != nil {
 		return nil, err
+	}
+
+	if user.PublishQuota < 1 {
+		return nil, NewTaskError(ErrInsufficientQuota,
+			i18n.TCtx(ctx, "insufficient_quota"))
 	}
 
 	task := &model.Task{
@@ -78,64 +80,18 @@ func (s *TaskService) Publish(ctx context.Context, publisherID string, req *mode
 		Bounty:      req.Bounty,
 		Fee:         fee,
 		Currency:    req.Currency,
+		Status:      model.StatusPublished, // 额度充足直接发布
 	}
 
-	if user.Balance >= totalCNY {
-		task.Status = model.StatusPublished
-		created, err := s.taskRepo.Create(ctx, task)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "task_create_failed"), err)
-		}
-		if err := s.userRepo.UpdateBalance(ctx, publisherID, -totalCNY, bountyCNY); err != nil {
-			return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "freeze_balance_failed"), err)
-		}
-		return created, nil
-	}
-
-	task.Status = model.StatusPending
 	created, err := s.taskRepo.Create(ctx, task)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "task_create_failed"), err)
 	}
+	// 消耗 1 个发布额度
+	if err := s.userRepo.DecQuota(ctx, publisherID, 1); err != nil {
+		return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "quota_spend_failed"), err)
+	}
 	return created, nil
-}
-
-func (s *TaskService) ActivateTask(ctx context.Context, publisherID, taskID string) error {
-	task, err := s.taskRepo.FindByID(ctx, taskID)
-	if err != nil {
-		return err
-	}
-	if task == nil {
-		return errors.New(i18n.TCtx(ctx, "task_not_found"))
-	}
-	if task.Status != model.StatusPending {
-		return errors.New(i18n.TCtx(ctx, "task_status_invalid"))
-	}
-	if task.PublisherID != publisherID {
-		return errors.New(i18n.TCtx(ctx, "task_not_permitted"))
-	}
-
-	totalCNY := model.ToCNY(task.Bounty+task.Fee, task.Currency)
-	bountyCNY := model.ToCNY(task.Bounty, task.Currency)
-
-	user, err := s.userRepo.FindByID(ctx, publisherID)
-	if err != nil {
-		return err
-	}
-	if user.Balance < totalCNY {
-		return NewTaskError(ErrInsufficientBalance,
-			i18n.TCtx(ctx, "insufficient_balance_detail", totalCNY, user.Balance))
-	}
-
-	if err := s.taskRepo.Activate(ctx, taskID); err != nil {
-		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "task_activate_failed"), err)
-	}
-
-	if err := s.userRepo.UpdateBalance(ctx, publisherID, -totalCNY, bountyCNY); err != nil {
-		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "freeze_balance_failed"), err)
-	}
-
-	return nil
 }
 
 func (s *TaskService) GetTask(ctx context.Context, taskID string) (*model.Task, error) {

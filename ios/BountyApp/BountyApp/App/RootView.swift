@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject private var lang = LanguageManager.shared
     @State private var selectedTab = 0
 
     /// Privacy consent is driven directly by the persistent UserDefault so that

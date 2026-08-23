@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS users (
     device_id       VARCHAR(128) NOT NULL DEFAULT '',
     balance         REAL NOT NULL DEFAULT 0,
     frozen_balance  REAL NOT NULL DEFAULT 0,
+    publish_quota   INTEGER NOT NULL DEFAULT 3,
+    used_quota      INTEGER NOT NULL DEFAULT 0,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -88,11 +90,30 @@ CREATE TABLE IF NOT EXISTS transactions (
     tx_type     VARCHAR(20) NOT NULL,
     tx_status   VARCHAR(20) NOT NULL DEFAULT 'pending',
     remark      VARCHAR(255) NOT NULL DEFAULT '',
+    order_id    TEXT REFERENCES recharge_orders(id),
+    quota_delta INTEGER NOT NULL DEFAULT 0,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_task ON transactions(task_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_from_user ON transactions(from_user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_transactions_to_user ON transactions(to_user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS recharge_orders (
+    id              TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL REFERENCES users(id),
+    package_id      TEXT NOT  NULL DEFAULT '',
+    channel         VARCHAR(20) NOT NULL,
+    amount          REAL NOT NULL,
+    currency        VARCHAR(10) NOT NULL DEFAULT 'CNY',
+    quota_granted   INTEGER NOT NULL DEFAULT 0,
+    status          VARCHAR(20) NOT NULL DEFAULT 'created',
+    gateway_order_id TEXT NOT NULL DEFAULT '',
+    receipt_data    TEXT NOT NULL DEFAULT '',
+    paid_at         DATETIME,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_recharge_orders_user ON recharge_orders(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_recharge_orders_gateway ON recharge_orders(channel, gateway_order_id);
 
 CREATE TABLE IF NOT EXISTS notifications (
     id          TEXT PRIMARY KEY,

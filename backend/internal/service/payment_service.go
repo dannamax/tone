@@ -146,6 +146,32 @@ func (s *PaymentService) AbandonTask(ctx context.Context, taskID, claimerID stri
 	return nil
 }
 
+// CancelByPublisher 允许发布人撤回自己已发布且未被认领的任务，并自动回收发布额度。
+func (s *PaymentService) CancelByPublisher(ctx context.Context, taskID, publisherID string) error {
+	task, err := s.taskRepo.FindByID(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	if task == nil || task.PublisherID != publisherID {
+		return errors.New(i18n.TCtx(ctx, "not_publisher"))
+	}
+	if task.Status != model.StatusPublished {
+		return errors.New(i18n.TCtx(ctx, "task_status_invalid"))
+	}
+
+	if err := s.taskRepo.CancelByPublisher(ctx, taskID, publisherID); err != nil {
+		return err
+	}
+
+	lang := i18n.LanguageFromCtx(ctx)
+	s.notifyRepo.Create(ctx, publisherID, "task_cancelled",
+		i18n.T(lang, "notif_task_cancelled_title"),
+		i18n.T(lang, "notif_task_cancelled_body", task.Title),
+		taskID)
+
+	return nil
+}
+
 func (s *PaymentService) DisputeTask(ctx context.Context, taskID, publisherID, reason string) error {
 	task, err := s.taskRepo.FindByID(ctx, taskID)
 	if err != nil {
