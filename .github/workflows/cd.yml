@@ -52,7 +52,8 @@ jobs:
               exit 1
             fi
             # 停止当前服务并用 prev 镜像重新启动
-            docker compose -f deploy/docker-compose.prod.yml down --remove-orphans
             docker rm -f bountyapp 2>/dev/null || true
+            docker rm -f bountyapp-redis 2>/dev/null || true
+            docker container prune -f 2>/dev/null || true
             GIT_SHA=prev docker compose -f deploy/docker-compose.prod.yml up -d
             curl -fsS http://127.0.0.1:8080/healthz && echo " [OK] rollback done" || echo " [WARN] rollback healthz FAILED"

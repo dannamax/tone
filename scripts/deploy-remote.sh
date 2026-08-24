@@ -65,9 +65,13 @@ fi
 # 同时移除不属于本 compose 项目、但引用了本目录镜像的孤儿容器,
 # 避免 GitHub Actions 多次部署或手动清理后残留同名容器造成名称冲突。
 echo "==> 清理旧容器/孤儿容器 (GIT_SHA=$GIT_SHA)..."
-docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
-# 双保险: 显式移除仍可能存在的 bountyapp 容器 (名冲突根因)
+# 注意: 不要先用 `docker compose down`, 它会移除网络并留下 recreate 中间状态,
+# 反而导致后续 up 引用已删除容器 ID 报 'No such container'。
+# 直接显式 rm 目标容器 (固定 container_name=bountyapp / bountyapp-redis), 再 up。
 docker rm -f bountyapp 2>/dev/null || true
+docker rm -f bountyapp-redis 2>/dev/null || true
+# 清理 BuildKit 等停止的孤儿容器, 避免 GitHub Actions 构建阶段因同名/残留 builder 容器卡住
+docker container prune -f 2>/dev/null || true
 GIT_SHA="$GIT_SHA" docker compose -f "$COMPOSE_FILE" up -d --build --remove-orphans
 
 # ---------- 5. 健康检查（带重试，确认新版本生效）----------
