@@ -23,7 +23,14 @@
   5. 无 MIME/大小校验，有恶意上传风险。
   6. 多实例水平扩展时本地盘图片不共享。
 - **方案**：接入腾讯云 COS（或兼容 S3 的 MinIO）。`internal/service/storage.go` 提供统一接口（cos/minio/local 三后端），upload handler 改为传 COS 并返回绝对 URL；compose 去掉 `./uploads` bind mount；`.env.example` / DEPLOY.md 补充 COS 配置。
-- **状态**：📋 已记录，待实施。
+- **状态**：✅ 已完成并验证（2026-08-24）。
+  - 新增 `internal/storage` 抽象层：`Storage` 接口 + `LocalStorage`(开发/CI) + `COSStorage`(生产)，引入 `github.com/tencentyun/cos-go-sdk-v5 v0.7.75`。
+  - `config.go` 的 `MinIOConfig` 替换为 `StorageConfig`（`STORAGE_BACKEND` 开关 + `COS_SECRET_ID/KEY/BUCKET/REGION`）。
+  - upload handler 改用 Storage 接口，返回完整 COS 公网 URL（对象级 `public-read`，桶保持私有）。
+  - HK `.env` 已配置 `STORAGE_BACKEND=cos` + COS 凭据（不提交 git）。
+  - 端到端验证：上传 1x1 PNG → 返回 `https://seekerhub-1301056533.cos.ap-hongkong.myqcloud.com/...png` → 公网 `curl` 返回 200。
+  - iOS `buildImageURL` 已兼容完整 http(s) URL，无需改动。
+  - ⚠️ **历史数据迁移提示**：迁移前已上传到 HK 本地 `/uploads/` 的旧图片，其 URL 为相对路径 `/uploads/xxx.jpg`，在 COS 模式下这些旧图片已无法访问（前端会拼成 `https://api.gotseeker.com/uploads/...` 但后端不再提供该静态路由对应的旧文件）。当前为早期发布阶段、历史图片量极少，影响可忽略；若需保留旧图，可脚本批量迁移至 COS。
 
 ### P1.2 上传接口缺 MIME/大小校验
 - 依赖 `PhotoUpload` model 限制（证据图 `max=3`），但 `/upload` 接口本身不限类型/大小。
