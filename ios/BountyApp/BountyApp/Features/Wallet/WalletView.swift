@@ -237,7 +237,7 @@ class WalletViewModel: ObservableObject {
                 throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: createResp.message])
             }
             // 2. StoreKit 支付（商品 SKU 与套餐 ID 一致）
-            _ = try await StoreKitManager.shared.purchase(productSKU: pkg.id, orderID: order.id)
+            _ = try await StoreKitManager.shared.purchase(productSKU: pkg.appleProductID, orderID: order.id)
             // 3. 后端已确认并放量，刷新钱包
             await load()
             await MainActor.run { isPurchasing = false }

@@ -6,6 +6,12 @@ struct QuotaPackage: Codable, Identifiable {
     let price: Double
     let currency: String
     let quota: Int
+    let appleProductID: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, price, currency, quota
+        case appleProductID = "apple_product_id"
+    }
 
     var localizedPrice: String {
         currency.isEmpty ? "\(price)" : "\(price) \(currency)"
