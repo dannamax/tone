@@ -15,8 +15,8 @@ type QuotaPackage struct {
 // DefaultQuotaPackages 默认套餐（海外美元档位）
 // AppleProductID 需与 App Store Connect 中创建的 In-App Purchase 产品 ID 一致。
 var DefaultQuotaPackages = map[string]QuotaPackage{
-	"pkg_usd_2":  {ID: "pkg_usd_2", Name: "Starter", Price: 0.99, Currency: CurrencyUSD, Quota: 2, AppleProductID: "com.gotseeker.quota.starter"},
-	"pkg_usd_10": {ID: "pkg_usd_10", Name: "Pro", Price: 4.99, Currency: CurrencyUSD, Quota: 10, AppleProductID: "com.gotseeker.quota.pro"},
+	"pkg_usd_2":  {ID: "pkg_usd_2", Name: "Starter", Price: 0.99, Currency: CurrencyUSD, Quota: 2, AppleProductID: "pkg_usd_2"},
+	"pkg_usd_10": {ID: "pkg_usd_10", Name: "Pro", Price: 4.99, Currency: CurrencyUSD, Quota: 10, AppleProductID: "pkg_usd_10"},
 }
 
 // GetQuotaPackage 按 ID 取套餐，取不到返回 false
