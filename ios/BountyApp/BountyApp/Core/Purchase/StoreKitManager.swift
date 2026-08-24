@@ -36,11 +36,15 @@ final class StoreKitManager: ObservableObject {
             }
 
             // 4. 把 StoreKit 2 的 JWS 原文交给后端校验并发放额度
-            //    （transaction.jwsRepresentation 是 Apple 签名过的 signed transaction，
-            //     后端用 Apple 根证书本地验签，无需客户端自行判定支付结果。）
+            //    （transaction.jsonRepresentation 是 Apple 签名过的 signed transaction，
+            //     类型为 Data，其 UTF-8 内容即为 JWS 字符串；后端用 Apple 根证书本地验签。）
+            let jws = String(decoding: transaction.jsonRepresentation, as: UTF8.self)
+            guard !jws.isEmpty else {
+                throw StoreError.unknown
+            }
             let order = try await confirmWithBackend(
                 orderID: orderID,
-                jws: transaction.jwsRepresentation
+                jws: jws
             )
 
             // 5. 完成交易，告知 StoreKit 已处理

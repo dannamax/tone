@@ -419,7 +419,7 @@ class LoginViewModel: ObservableObject {
                         )
                         completion(user, tokenResp.accessToken)
                     } else {
-                        errorMessage = response.message ?? L10n.loginAuthFailed
+                        errorMessage = response.message
                         showError = true
                     }
                 }
