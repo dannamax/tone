@@ -33,7 +33,7 @@ services:
     container_name: bountyapp
     restart: unless-stopped
     env_file:
-      - .env
+      - ../.env
     environment:
       - SERVER_PORT=8080
       - CODE_STORE=redis
