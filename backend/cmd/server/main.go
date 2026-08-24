@@ -245,6 +245,7 @@ func main() {
 	health := func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "ok",
+			"service": "bountyapp",
 			"driver":  cfg.Database.Driver,
 			"version": Version,
 		})
