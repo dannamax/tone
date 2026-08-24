@@ -32,7 +32,7 @@ VER=$(grep -o '"version":"[^"]*"' /tmp/h.txt | cut -d'"' -f4)
 echo "    线上版本: ${VER:-unknown}"
 
 # 2. 发码
-code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/auth/send-code" \
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/auth/send-code" \
   -H 'Content-Type: application/json' \
   -d "{\"email\":\"$EMAIL\",\"country_code\":\"CN\",\"phone\":\"$PASSPORT\"}")
 check "send-code 200" "$([ "$code" = "200" ] && echo 0 || echo 1)"
@@ -49,7 +49,7 @@ fi
 [ -n "$CODE" ] || { echo "  [SKIP] 无验证码，后续步骤跳过"; exit 0; }
 
 # 4. 注册/登录拿 token
-resp=$(curl -s -X POST "$BASE/auth/verify" -H 'Content-Type: application/json' \
+resp=$(curl -s -X POST "$BASE/api/v1/auth/verify" -H 'Content-Type: application/json' \
   -d "{\"email\":\"$EMAIL\",\"code\":\"$CODE\",\"password\":\"$PASS\",\"country_code\":\"CN\",\"phone\":\"$PASSPORT\"}")
 TOKEN=$(echo "$resp" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
 check "verify 返回 token" "$([ -n "$TOKEN" ] && echo 0 || echo 1)"
@@ -57,18 +57,18 @@ echo "    $resp" | head -c 200; echo
 
 # 5. 发布任务
 TITLE="smoke_$TS"
-pub=$(curl -s -X POST "$BASE/tasks" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+pub=$(curl -s -X POST "$BASE/api/v1/tasks" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d "{\"title\":\"$TITLE\",\"description\":\"e2e smoke\",\"bounty\":10,\"currency\":\"CNY\",\"lat\":22.3,\"lng\":114.2,\"radius\":5000}")
 TID=$(echo "$pub" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 check "发布任务成功" "$([ -n "$TID" ] && echo 0 || echo 1)"
 echo "    task_id=$TID"
 
 # 6. 广场可见
-sq=$(curl -s "$BASE/tasks/square?lat=22.3&lng=114.2&radius=10000")
+sq=$(curl -s "$BASE/api/v1/tasks/square?lat=22.3&lng=114.2&radius=10000")
 check "广场返回数据" "$(echo "$sq" | grep -q "$TITLE" && echo 0 || echo 1)"
 
 # 7. 取消任务（验证 abandon 链路）
-cc=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/tasks/$TID/cancel" -H "Authorization: Bearer $TOKEN")
+cc=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$TID/cancel" -H "Authorization: Bearer $TOKEN")
 check "cancel 200" "$([ "$cc" = "200" ] && echo 0 || echo 1)"
 
 echo ""
