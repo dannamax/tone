@@ -73,7 +73,7 @@ check "发布任务成功" "$([ -n "$TID" ] && echo 0 || echo 1)"
 echo "    task_id=$TID"
 
 # 6. 广场可见
-sq=$(curl -s "$BASE/api/v1/tasks/square?lat=22.3&lng=114.2&radius=10000")
+sq=$(curl -s "$BASE/api/v1/tasks/square?lat=22.3&lng=114.2&radius=10000" -H "Authorization: Bearer $TOKEN")
 check "广场返回数据" "$(echo "$sq" | grep -q "$TITLE" && echo 0 || echo 1)"
 
 # 7. 取消任务（验证 abandon 链路）
