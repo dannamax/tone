@@ -64,6 +64,6 @@
 **发布前仍建议人工核对（iOS 端）**：
 - [x] App Store 隐私清单（PrivacyInfo.xcprivacy）齐备 ✅ 已核对（2026-08-24）：覆盖 NSLocation/NSCamera/NSUserDefaults/NSFileManager 访问 API + Email/Phone/Location/UserContent/Photos/DeviceID 数据类型，Tracking=false；图片用 PHPicker 不触发额外声明；无第三方 SDK 需补充。仅需确认 UserDefaults 是否用 App Group（否则用 CA92.1 正确）
 - [x] 隐私政策/服务条款页面可公网访问（已修复：HK `/opt/bountyapp/www` 缺失 + caddy 自签证书缺失导致 nginx reload 失败；2026-08-24 已部署并验证 `https://gotseeker.com/privacy` `/terms` 均 200）
-- [ ] Apple 登录/邮箱登录合规（GDPR 同意流已存在）
-- [ ] 真机 HTTPS 连通（Info.plist `BackendBaseHost` 指向 `https://129.226.138.231`）
-- [ ] IAP 沙盒购买回归
+- [x] Apple 登录/邮箱登录合规（✅ 已核对：App 仅用自建邮箱验证码登录，无第三方 SSO，依 Apple Guideline 4.8/5.1.1 不强制提供 Sign in with Apple；GDPR 同意流 `PrivacyConsentView` 已存在，首次启动弹窗且 `interactiveDismissDisabled`；2026-08-24 修复：① 同意页内的隐私/条款链接由占位 `WebViewPlaceholder` 改为真实 `WKWebView` 加载 `gotseeker.com` 页面；② 拒绝时由 `exit(0)` 改为停留同意页并提示「必须接受才能继续使用」，避免被审质疑强制退出）
+- [x] 真机 HTTPS 连通（✅ 已核对：Info.plist `BackendBaseHost = https://api.gotseeker.com`（域名+有效 Let's Encrypt 证书，此前 e2e 验证 200）；`PrivacyPolicyURL`/`TermsOfServiceURL` 指向 `gotseeker.com`；无 ATS 例外、不依赖 IP 自签证书，全部标准 HTTPS）
+- [~] IAP 沙盒购买回归（⚠️ 代码就绪：后端 `pkg/appleiap/verify.go` 已正确实现 production 优先 + sandbox 回退 status 21007 + product_id 匹配校验，无需改代码；但需在真机用沙盒测试账号实际购买一次做端到端回归——此项为人工真机测试，非静态核对可完成，建议在提审前用 TestFlight 沙盒账号验证）

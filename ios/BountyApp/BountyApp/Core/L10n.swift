@@ -350,6 +350,8 @@ enum L10n {
     static var privacyConsentBody = localized("privacy_consent_body")
     static var privacyConsentAgree = localized("privacy_consent_agree")
     static var privacyConsentDisagree = localized("privacy_consent_disagree")
+    static var privacyConsentRequired = localized("privacy_consent_required")
+    static var webviewInvalidUrl = localized("webview_invalid_url")
 
     // MARK: - Country Picker
     static var countryPickerTitle = localized("country_picker_title")

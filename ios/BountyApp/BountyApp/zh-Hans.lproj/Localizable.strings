@@ -300,6 +300,8 @@
 "privacy_consent_body" = "我们重视您的隐私。Seeker 仅收集提供服务所必需的最小范围数据。请查看我们的《隐私政策》和《用户协议》。";
 "privacy_consent_agree" = "我同意";
 "privacy_consent_disagree" = "不同意";
+"privacy_consent_required" = "您必须接受《隐私政策》和《用户协议》才能继续使用 Seeker。";
+"webview_invalid_url" = "无法打开页面：%@";
 
 /* Country Picker */
 "country_picker_title" = "选择国家/地区";
