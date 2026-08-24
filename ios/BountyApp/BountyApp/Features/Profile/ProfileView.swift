@@ -4,6 +4,18 @@ struct ProfileView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject private var lang = LanguageManager.shared
     @State private var showLogoutConfirm = false
+    @State private var showTermsSheet = false
+    @State private var showPrivacySheet = false
+
+    private func openHelpAndFeedback() {
+        let supportEmail = "support@gotseeker.com"
+        let subject = "[SeekerHub] App Feedback"
+        let body = "App Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")\n"
+        let mailto = "mailto:\(supportEmail)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "")"
+        if let url = URL(string: mailto), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -111,15 +123,21 @@ struct ProfileView: View {
 
                         Divider().padding(.leading, 52)
 
-                        ProfileRow(icon: "questionmark.circle", title: L10n.profileHelp, color: .bountyInfo) {}
+                        ProfileRow(icon: "questionmark.circle", title: L10n.profileHelp, color: .bountyInfo) {
+                            openHelpAndFeedback()
+                        }
 
                         Divider().padding(.leading, 52)
 
-                        ProfileRow(icon: "doc.text", title: L10n.profileTerms, color: .bountyGray) {}
+                        ProfileRow(icon: "doc.text", title: L10n.profileTerms, color: .bountyGray) {
+                            showTermsSheet = true
+                        }
 
                         Divider().padding(.leading, 52)
 
-                        ProfileRow(icon: "shield.checkered", title: L10n.profilePrivacy, color: .bountyGray) {}
+                        ProfileRow(icon: "shield.checkered", title: L10n.profilePrivacy, color: .bountyGray) {
+                            showPrivacySheet = true
+                        }
                     }
                     .cornerRadius(12)
 
@@ -139,6 +157,12 @@ struct ProfileView: View {
             }
             .background(Color.bountyBg)
             .navigationTitle(L10n.profileTitle)
+            .sheet(isPresented: $showTermsSheet) {
+                WebViewPlaceholder(title: L10n.profileTerms, url: AppConfig.termsOfServiceURL)
+            }
+            .sheet(isPresented: $showPrivacySheet) {
+                WebViewPlaceholder(title: L10n.profilePrivacy, url: AppConfig.privacyPolicyURL)
+            }
         }
         .confirmationDialog(L10n.profileLogoutConfirm, isPresented: $showLogoutConfirm, titleVisibility: .visible) {
             Button(L10n.profileLogoutAction, role: .destructive) {

@@ -154,73 +154,6 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var submissionSection: some View {
-        // claimed 状态且是接单人 → 提交证据入口
-        if let task = vm.task, task.status == "claimed" && isClaimer {
-            VStack(spacing: 10) {
-                // 文字输入
-                TextEditor(text: $vm.submitNote)
-                    .frame(minHeight: 80, maxHeight: 120)
-                    .font(.system(size: 14))
-                    .padding(8)
-                    .background(Color.white)
-                    .cornerRadius(10)
-
-                // 已选图片预览
-                if !vm.selectedImages.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(vm.selectedImages.indices, id: \.self) { i in
-                                ZStack(alignment: .topTrailing) {
-                                    Image(uiImage: vm.selectedImages[i])
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 72, height: 72)
-                                        .cornerRadius(8)
-                                    Button { vm.selectedImages.remove(at: i) } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(.white).background(Circle().fill(Color.black.opacity(0.5)))
-                                    }.padding(2)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                HStack(spacing: 10) {
-                    // 选择图片
-                    Button { vm.showPhotoPicker = true } label: {
-                        Label(L10n.taskAddPhoto, systemImage: "photo.on.rectangle")
-                            .font(.system(size: 13))
-                    }
-                    .buttonStyle(.bordered)
-
-                    Spacer()
-
-                    // 提交证据按钮
-                    Button {
-                        vm.submitEvidence(taskID: taskID) { msg in
-                            appState.showToast(msg)
-                        }
-                    } label: {
-                        if vm.isSubmitting {
-                            ProgressView().tint(.white)
-                        } else {
-                            Label(L10n.taskSubmitEvidence, systemImage: "paperplane.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                        }
-                    }
-                    .bountyButton(color: .bountySuccess)
-                    .disabled(vm.isSubmitting)
-                }
-            }
-            .padding(12)
-            .background(Color.white)
-            .cornerRadius(14)
-            .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-        }
-
         // submitted 状态展示提交证据
         if let task = vm.task, task.status == "submitted" || task.status == "completed" || task.status == "disputed" {
             if let sub = vm.submission {
@@ -448,6 +381,24 @@ struct TaskDetailView: View {
                         .background(Color.white)
                         .cornerRadius(18)
                         .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.bountyGray.opacity(0.3)))
+
+                    // 提交完成凭证按钮（仅接单人且任务进行中显示）
+                    if task.status == "claimed" && isClaimer {
+                        Button {
+                            vm.submitEvidenceFromChat(taskID: taskID) { msg in
+                                appState.showToast(msg)
+                            }
+                        } label: {
+                            if vm.isSubmitting {
+                                ProgressView().tint(.bountySuccess)
+                            } else {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.bountySuccess)
+                            }
+                        }
+                        .disabled(vm.isSubmitting)
+                    }
 
                     // 发送按钮
                     Button {
@@ -770,14 +721,26 @@ class TaskDetailViewModel: ObservableObject {
     }
 
     func submitEvidence(taskID: String, onError: @escaping (String) -> Void) {
+        submitEvidence(taskID: taskID, note: submitNote, images: selectedImages, onError: onError)
+    }
+
+    /// 从聊天输入区提交完成凭证（UI 简化后的入口）
+    func submitEvidenceFromChat(taskID: String, onError: @escaping (String) -> Void) {
+        let note = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        submitEvidence(taskID: taskID, note: note, images: pendingImages) { msg in
+            self.inputText = ""
+            self.pendingImages = []
+            onError(msg)
+        }
+    }
+
+    private func submitEvidence(taskID: String, note: String, images: [UIImage], onError: @escaping (String) -> Void) {
         Task { @MainActor in
             isSubmitting = true
 
-            let note = submitNote.trimmingCharacters(in: .whitespacesAndNewlines)
-
             // 上传图片
             var urls: [String] = []
-            for image in selectedImages {
+            for image in images {
                 if let data = image.jpegData(compressionQuality: 0.75) {
                     let b64 = data.base64EncodedString()
                     do {
