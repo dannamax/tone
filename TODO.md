@@ -62,7 +62,7 @@
 | CI/CD 自动部署 | ✅ | push → CI → CD(HK) |
 
 **发布前仍建议人工核对（iOS 端）**：
-- [ ] App Store 隐私清单（PrivacyInfo.xcprivacy）齐备
+- [x] App Store 隐私清单（PrivacyInfo.xcprivacy）齐备 ✅ 已核对（2026-08-24）：覆盖 NSLocation/NSCamera/NSUserDefaults/NSFileManager 访问 API + Email/Phone/Location/UserContent/Photos/DeviceID 数据类型，Tracking=false；图片用 PHPicker 不触发额外声明；无第三方 SDK 需补充。仅需确认 UserDefaults 是否用 App Group（否则用 CA92.1 正确）
 - [ ] 隐私政策/服务条款页面可公网访问（nginx 已配 gotseeker.com 静态页）
 - [ ] Apple 登录/邮箱登录合规（GDPR 同意流已存在）
 - [ ] 真机 HTTPS 连通（Info.plist `BackendBaseHost` 指向 `https://129.226.138.231`）
