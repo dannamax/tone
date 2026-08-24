@@ -60,7 +60,7 @@ fi
 # 4. 注册/登录拿 token（端点为 /auth/login，需 device_id）
 resp=$(curl -s -X POST "$BASE/api/v1/auth/login" -H 'Content-Type: application/json' \
   -d "{\"email\":\"$EMAIL\",\"code\":\"$CODE\",\"device_id\":\"e2e-smoke-$TS\"}")
-TOKEN=$(echo "$resp" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
+TOKEN=$(echo "$resp" | grep -o '"access_token":"[^"]*"' | head -1 | cut -d'"' -f4)
 check "login 返回 token" "$([ -n "$TOKEN" ] && echo 0 || echo 1)"
 echo "    $resp" | head -c 200; echo
 
