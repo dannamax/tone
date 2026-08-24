@@ -41,7 +41,12 @@ type CreateRechargeRequest struct {
 }
 
 // 支付回调/校验通用请求（Apple IAP 用）
+//
+// StoreKit 2 路径：客户端发送 transaction 的 JWS 原文（transaction.jwsRepresentation），
+// 由后端本地验签（pkg/appleiap 用 Apple 根证书校验签名链 + productId 匹配）。
+// 为兼容旧链路，receipt_data 仍保留（legacy verifyReceipt 回退）。
 type AppleVerifyRequest struct {
 	OrderID     string `json:"order_id" binding:"required"`
-	ReceiptData string `json:"receipt_data" binding:"required"`
+	ReceiptData string `json:"receipt_data"`
+	JWS         string `json:"jws"` // StoreKit 2: signed transaction JWS (transaction.jwsRepresentation)
 }

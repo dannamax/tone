@@ -69,9 +69,11 @@ func (s *QuotaService) redeem(ctx context.Context, order *model.RechargeOrder) e
 // ConfirmAppleIAP 校验 Apple 回执并发放额度（步骤3核心）
 // 流程：
 //  1. 查订单，确认存在且属于当前用户（用户归属由 handler 校验）。
-//  2. 调用 Apple verifyReceipt 校验 receiptData，得到与套餐匹配的 transaction_id。
-//  3. 用 transaction_id 作为 GatewayOrderID 幂等发放额度（MarkPaid 已按该键去重）。
-func (s *QuotaService) ConfirmAppleIAP(ctx context.Context, orderID, receiptData, _ string) (*model.RechargeOrder, error) {
+//  2. 优先用 StoreKit 2 的 JWS（transaction.jwsRepresentation）本地验签：
+//     验签证书链（Apple 根证书信任锚）+ 验签名 + 校验 productId 匹配。
+//  3. 若无 JWS，回退到 legacy verifyReceipt（receipt_data）。
+//  4. 用 transaction_id 作为 GatewayOrderID 幂等发放额度（MarkPaid 已按该键去重）。
+func (s *QuotaService) ConfirmAppleIAP(ctx context.Context, orderID, receiptData, jws string) (*model.RechargeOrder, error) {
 	order, err := s.rechargeRepo.FindByID(ctx, orderID)
 	if err != nil {
 		return nil, err
@@ -89,17 +91,27 @@ func (s *QuotaService) ConfirmAppleIAP(ctx context.Context, orderID, receiptData
 		return nil, fmt.Errorf("%s: %s", i18n.TCtx(ctx, "package_not_found"), order.PackageID)
 	}
 
-	if s.verifier == nil {
+	gatewayTxID := ""
+
+	// 主路径：StoreKit 2 JWS 本地验签。
+	if jws != "" {
+		claims, verr := appleiap.VerifyJWS(jws, pkg.AppleProductID)
+		if verr != nil {
+			return nil, fmt.Errorf("%s: %v", i18n.TCtx(ctx, "invalid_receipt"), verr)
+		}
+		gatewayTxID = claims.TransactionID
+	} else if receiptData != "" && s.verifier != nil {
+		// 回退路径：legacy verifyReceipt。
+		res, verr := s.verifier.Verify(ctx, receiptData, pkg.AppleProductID)
+		if verr != nil {
+			return nil, fmt.Errorf("%s: %v", i18n.TCtx(ctx, "invalid_receipt"), verr)
+		}
+		gatewayTxID = res.TransactionID
+	} else {
 		return nil, fmt.Errorf("%s", i18n.TCtx(ctx, "service_unavailable"))
 	}
 
-	// 调苹果校验，要求回执中存在与套餐对应的 product_id 且未取消的交易。
-	res, err := s.verifier.Verify(ctx, receiptData, pkg.AppleProductID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %v", i18n.TCtx(ctx, "invalid_receipt"), err)
-	}
-
-	order.GatewayOrderID = res.TransactionID
+	order.GatewayOrderID = gatewayTxID
 	if err := s.redeem(ctx, order); err != nil {
 		return nil, err
 	}

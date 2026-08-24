@@ -47,7 +47,9 @@ func (h *QuotaHandler) CreateOrder(c *gin.Context) {
 }
 
 // ConfirmApple 校验 Apple IAP 并发放额度
-// POST /wallet/quota/confirm-apple  body: {order_id, receipt_data, gateway_tx_id}
+// POST /wallet/quota/confirm-apple  body: {order_id, jws, receipt_data?}
+//   - jws: StoreKit 2 transaction.jwsRepresentation（优先，本地验签）
+//   - receipt_data: legacy verifyReceipt 回退（可选）
 func (h *QuotaHandler) ConfirmApple(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	lang := i18n.LanguageFromRequest(c.Request)
@@ -57,9 +59,8 @@ func (h *QuotaHandler) ConfirmApple(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": i18n.T(lang, "invalid_params")})
 		return
 	}
-	gatewayTxID := c.PostForm("gateway_tx_id")
 
-	order, err := h.quotaSvc.ConfirmAppleIAP(c.Request.Context(), req.OrderID, req.ReceiptData, gatewayTxID)
+	order, err := h.quotaSvc.ConfirmAppleIAP(c.Request.Context(), req.OrderID, req.ReceiptData, req.JWS)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": err.Error()})
 		return

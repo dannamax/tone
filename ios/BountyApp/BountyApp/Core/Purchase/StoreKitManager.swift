@@ -35,10 +35,12 @@ final class StoreKitManager: ObservableObject {
                 throw error
             }
 
-            // 4. 交给后端校验并发放额度（transaction.id 作为幂等键）
+            // 4. 把 StoreKit 2 的 JWS 原文交给后端校验并发放额度
+            //    （transaction.jwsRepresentation 是 Apple 签名过的 signed transaction，
+            //     后端用 Apple 根证书本地验签，无需客户端自行判定支付结果。）
             let order = try await confirmWithBackend(
                 orderID: orderID,
-                gatewayTxID: String(transaction.id)
+                jws: transaction.jwsRepresentation
             )
 
             // 5. 完成交易，告知 StoreKit 已处理
@@ -54,10 +56,10 @@ final class StoreKitManager: ObservableObject {
         }
     }
 
-    private func confirmWithBackend(orderID: String, gatewayTxID: String) async throws -> RechargeOrder {
+    private func confirmWithBackend(orderID: String, jws: String) async throws -> RechargeOrder {
         let body: [String: Any] = [
             "order_id": orderID,
-            "gateway_tx_id": gatewayTxID
+            "jws": jws
         ]
         let resp: APIResponse<RechargeOrder> = try await APIClient.shared.request(
             "/wallet/quota/confirm-apple",
