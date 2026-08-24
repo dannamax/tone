@@ -61,9 +61,13 @@ else
 fi
 
 # ---------- 4. 构建并零停机重启（健康检查通过后接管）----------
-# 先清理 compose 内部可能不一致的 orphan 容器状态，再构建启动
-echo "==> 清理旧容器状态并构建启动 (GIT_SHA=$GIT_SHA)..."
-docker compose -f "$COMPOSE_FILE" rm -f app 2>/dev/null || true
+# 彻底清理: down 会停止并移除当前项目所有容器/网络; --remove-orphans
+# 同时移除不属于本 compose 项目、但引用了本目录镜像的孤儿容器,
+# 避免 GitHub Actions 多次部署或手动清理后残留同名容器造成名称冲突。
+echo "==> 清理旧容器/孤儿容器 (GIT_SHA=$GIT_SHA)..."
+docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
+# 双保险: 显式移除仍可能存在的 bountyapp 容器 (名冲突根因)
+docker rm -f bountyapp 2>/dev/null || true
 GIT_SHA="$GIT_SHA" docker compose -f "$COMPOSE_FILE" up -d --build --remove-orphans
 
 # ---------- 5. 健康检查（带重试，确认新版本生效）----------
