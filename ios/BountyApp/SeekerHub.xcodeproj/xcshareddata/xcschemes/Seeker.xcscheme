@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "1430"
-   version = "1.7">
+   version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
-      buildImplicitDependencies = "YES"
-      runPostActionsOnFailure = "NO">
+      buildImplicitDependencies = "YES">
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -16,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "ACC8D9C7F5DA0149FD2A7320"
-               BuildableName = "Seeker.app"
+               BuildableName = "SeekerHub.app"
                BlueprintName = "Seeker"
                ReferencedContainer = "container:SeekerHub.xcodeproj">
             </BuildableReference>
@@ -27,32 +26,28 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      onlyGenerateCoverageForSpecifiedTargets = "NO">
+      shouldUseLaunchSchemeArgsEnv = "YES">
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "ACC8D9C7F5DA0149FD2A7320"
-            BuildableName = "Seeker.app"
+            BuildableName = "SeekerHub.app"
             BlueprintName = "Seeker"
             ReferencedContainer = "container:SeekerHub.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
          <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
+            skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "47E2694A983577B5CCB2219A"
-               BuildableName = "SeekerUITests.bundle"
+               BuildableName = "SeekerHub.xctest"
                BlueprintName = "SeekerUITests"
                ReferencedContainer = "container:SeekerHub.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
-      <CommandLineArguments>
-      </CommandLineArguments>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -69,13 +64,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "ACC8D9C7F5DA0149FD2A7320"
-            BuildableName = "Seeker.app"
+            BuildableName = "SeekerHub.app"
             BlueprintName = "Seeker"
             ReferencedContainer = "container:SeekerHub.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -88,13 +81,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "ACC8D9C7F5DA0149FD2A7320"
-            BuildableName = "Seeker.app"
+            BuildableName = "SeekerHub.app"
             BlueprintName = "Seeker"
             ReferencedContainer = "container:SeekerHub.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-      </CommandLineArguments>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

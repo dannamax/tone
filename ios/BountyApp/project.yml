@@ -51,7 +51,7 @@ targets:
               - gotseeker
 
   SeekerUITests:
-    type: bundle
+    type: bundle.ui-testing
     platform: iOS
     testTarget: Seeker
     buildSettings:
