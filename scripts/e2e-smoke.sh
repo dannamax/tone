@@ -37,22 +37,26 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/auth/send-co
   -d "{\"email\":\"$EMAIL\",\"country_code\":\"CN\",\"phone\":\"$PASSPORT\"}")
 check "send-code 200" "$([ "$code" = "200" ] && echo 0 || echo 1)"
 
-# 3. 取验证码（依赖部署环境 CODE_STORE=redis；从 redis 读，兜底提示手动填）
+# 3. 取验证码（依赖部署环境 CODE_STORE=redis；redis key 前缀 seeker:code:<email>）
+#    优先用 docker redis 容器取（HK 部署场景），兜底本机 redis-cli，再兜底手动输入
 CODE=""
-if command -v redis-cli >/dev/null 2>&1; then
-  CODE=$(redis-cli --no-auth-warning get "code:$EMAIL" 2>/dev/null || true)
+if command -v docker >/dev/null 2>&1; then
+  CODE=$(docker exec bountyapp-redis redis-cli get "seeker:code:$EMAIL" 2>/dev/null | tr -d '\r' || true)
+fi
+if [ -z "$CODE" ] && command -v redis-cli >/dev/null 2>&1; then
+  CODE=$(redis-cli --no-auth-warning get "seeker:code:$EMAIL" 2>/dev/null | tr -d '\r' || true)
 fi
 if [ -z "$CODE" ]; then
-  echo "  [INFO] 无法自动获取验证码（非本机 redis 或未安装 redis-cli）。"
+  echo "  [INFO] 无法自动获取验证码（非 HK 本机/无 redis）。"
   echo -n "  请手动输入验证码: "; read -r CODE
 fi
 [ -n "$CODE" ] || { echo "  [SKIP] 无验证码，后续步骤跳过"; exit 0; }
 
-# 4. 注册/登录拿 token
-resp=$(curl -s -X POST "$BASE/api/v1/auth/verify" -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$EMAIL\",\"code\":\"$CODE\",\"password\":\"$PASS\",\"country_code\":\"CN\",\"phone\":\"$PASSPORT\"}")
+# 4. 注册/登录拿 token（端点为 /auth/login，需 device_id）
+resp=$(curl -s -X POST "$BASE/api/v1/auth/login" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$EMAIL\",\"code\":\"$CODE\",\"device_id\":\"e2e-smoke-$TS\"}")
 TOKEN=$(echo "$resp" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
-check "verify 返回 token" "$([ -n "$TOKEN" ] && echo 0 || echo 1)"
+check "login 返回 token" "$([ -n "$TOKEN" ] && echo 0 || echo 1)"
 echo "    $resp" | head -c 200; echo
 
 # 5. 发布任务
