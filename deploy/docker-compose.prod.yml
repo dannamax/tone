@@ -48,14 +48,13 @@ services:
       - appdata:/app/data       # 数据库持久化
       - ./uploads:/app/uploads  # 上传文件持久化
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
-      interval: 10s
+      interval: 5s
       timeout: 3s
-      retries: 5
-      start_period: 15s
+      retries: 12
+      start_period: 10s
 
 volumes:
   redisdata:
