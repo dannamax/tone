@@ -58,6 +58,9 @@ func (s *COSStorage) Save(key string, data []byte, contentType string) (string, 
 	opt := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			ContentType: contentType,
+			// 任务/头像图片需公网可读（前端 AsyncImage 直链加载），
+			// 故对象级设为公有读，桶本身保持私有。
+			XOptionHeader: &http.Header{"x-cos-acl": []string{"public-read"}},
 		},
 	}
 	// PutFromFile-style upload via reader.
