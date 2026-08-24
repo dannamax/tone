@@ -13,7 +13,7 @@ type Config struct {
 	Database  DatabaseConfig
 	Redis     RedisConfig
 	CodeStore CodeStoreConfig
-	MinIO     MinIOConfig
+	Storage   StorageConfig
 	JWT       JWTConfig
 	Email     EmailConfig
 	Exchange  ExchangeRateConfig
@@ -68,12 +68,18 @@ type CodeStoreConfig struct {
 	Kind string // "memory" | "redis"
 }
 
-type MinIOConfig struct {
-	Endpoint  string
-	AccessKey string
-	SecretKey string
-	Bucket    string
-	UseSSL    bool
+// StorageConfig selects the object-storage backend for uploaded images.
+//   - Backend "local": store on local disk (development / CI)
+//   - Backend "cos":   store in Tencent Cloud Object Storage (production)
+type StorageConfig struct {
+	Backend   string // "local" | "cos"
+	LocalDir  string // used when Backend == "local"
+	LocalBase string // public base path for local, e.g. "/uploads"
+
+	COSSecretID  string // Tencent Cloud API SecretId (production only, via env)
+	COSSecretKey string // Tencent Cloud API SecretKey (production only, via env)
+	COSBucket    string // bucket name, e.g. "seekerhub-1301056533"
+	COSRegion    string // bucket region, e.g. "ap-hongkong"
 }
 
 type JWTConfig struct {
@@ -147,12 +153,14 @@ func Load() *Config {
 		CodeStore: CodeStoreConfig{
 			Kind: getEnv("CODE_STORE", "memory"),
 		},
-		MinIO: MinIOConfig{
-			Endpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
-			AccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-			SecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin123"),
-			Bucket:    getEnv("MINIO_BUCKET", "seeker-photos"),
-			UseSSL:    false,
+		Storage: StorageConfig{
+			Backend:     getEnv("STORAGE_BACKEND", "local"),
+			LocalDir:    getEnv("STORAGE_LOCAL_DIR", "uploads"),
+			LocalBase:   getEnv("STORAGE_LOCAL_BASE", "/uploads"),
+			COSSecretID: getEnv("COS_SECRET_ID", ""),
+			COSSecretKey: getEnv("COS_SECRET_KEY", ""),
+			COSBucket:    getEnv("COS_BUCKET", ""),
+			COSRegion:    getEnv("COS_REGION", ""),
 		},
 		JWT: JWTConfig{
 			Secret:     getEnv("JWT_SECRET", "seeker-secret-key-change-in-production"),

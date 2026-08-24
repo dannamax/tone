@@ -3,12 +3,12 @@ package handler
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 
 	"seeker/internal/model"
+	"seeker/internal/storage"
 	"seeker/pkg/i18n"
 	"seeker/pkg/response"
 
@@ -17,12 +17,11 @@ import (
 )
 
 type UploadHandler struct {
-	uploadDir string
+	store storage.Storage
 }
 
-func NewUploadHandler(uploadDir string) *UploadHandler {
-	os.MkdirAll(uploadDir, 0755)
-	return &UploadHandler{uploadDir: uploadDir}
+func NewUploadHandler(store storage.Storage) *UploadHandler {
+	return &UploadHandler{store: store}
 }
 
 func (h *UploadHandler) Upload(c *gin.Context) {
@@ -51,22 +50,24 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 		return
 	}
 
+	contentType := "image/jpeg"
 	ext := ".jpg"
 	// 简单检测 PNG 头部
 	if len(data) > 4 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
 		ext = ".png"
+		contentType = "image/png"
+	} else if len(data) > 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
+		// JPEG 起始标记，保持默认
 	}
 
-	filename := fmt.Sprintf("%s_%d%s", uuid.NewString(), time.Now().UnixNano(), ext)
-	fullPath := filepath.Join(h.uploadDir, filename)
-
-	if err := os.WriteFile(fullPath, data, 0644); err != nil {
+	key := fmt.Sprintf("%s_%d%s", uuid.NewString(), time.Now().UnixNano(), ext)
+	url, err := h.store.Save(path.Base(key), data, contentType)
+	if err != nil {
+		fmt.Printf("[Upload] save failed: %v\n", err)
 		response.InternalError(c, i18n.T(lang, "upload_failed"))
 		return
 	}
 
-	url := "/uploads/" + filename
-	fmt.Printf("[Upload] saved %s (%d bytes)\n", filename, len(data))
-
+	fmt.Printf("[Upload] saved %s (%d bytes) -> %s\n", key, len(data), url)
 	response.Success(c, model.UploadImageResponse{URL: url})
 }

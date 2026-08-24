@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"seeker/internal/middleware"
 	"seeker/internal/repository"
 	"seeker/internal/service"
+	"seeker/internal/storage"
 	"seeker/internal/websocket"
 	"seeker/pkg/discovery"
 	"seeker/pkg/email"
@@ -169,7 +171,26 @@ func main() {
 	taskHandler := handler.NewTaskHandler(taskSvc, subSvc, paySvc, messageRepo)
 	walletHandler := handler.NewWalletHandler(walletSvc, userRepo, txRepo, notifyRepo)
 	quotaHandler := handler.NewQuotaHandler(quotaSvc)
-	uploadHandler := handler.NewUploadHandler("uploads")
+	// --- Object storage backend ---
+	var store storage.Storage
+	switch cfg.Storage.Backend {
+	case "cos":
+		cosStore, err := storage.NewCOSStorage(
+			cfg.Storage.COSSecretID,
+			cfg.Storage.COSSecretKey,
+			cfg.Storage.COSBucket,
+			cfg.Storage.COSRegion,
+		)
+		if err != nil {
+			log.Fatalf("init COS storage failed: %v", err)
+		}
+		store = cosStore
+		fmt.Printf("[storage] backend=cos bucket=%s region=%s\n", cfg.Storage.COSBucket, cfg.Storage.COSRegion)
+	default:
+		store = storage.NewLocalStorage(cfg.Storage.LocalDir, cfg.Storage.LocalBase)
+		fmt.Printf("[storage] backend=local dir=%s\n", cfg.Storage.LocalDir)
+	}
+	uploadHandler := handler.NewUploadHandler(store)
 	configH := handler.NewConfigHandler(cfg)
 
 	// --- Router ---
