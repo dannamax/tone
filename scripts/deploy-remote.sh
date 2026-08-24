@@ -43,6 +43,12 @@ if [ ! -f "$DEPLOY_DIR/.env" ]; then
 fi
 echo "==> .env 已存在，保留机器本地配置（不覆盖）。"
 
+# ---------- 2.5 同步静态页到 nginx root（幂等，保留 /opt/bountyapp/www 之外的内容）----------
+echo "==> 同步隐私/条款静态页到 /opt/bountyapp/www ..."
+mkdir -p /opt/bountyapp/www
+cp -f "$DEPLOY_DIR/scripts/www/privacy.html" /opt/bountyapp/www/ 2>/dev/null || true
+cp -f "$DEPLOY_DIR/scripts/www/terms.html" /opt/bountyapp/www/ 2>/dev/null || true
+
 # ---------- 3. 保留上一个镜像用于回滚 ----------
 # 当前线上运行的是 bountyapp:latest（上一次部署产物），先打 :prev 备份
 echo "==> 标记上一个镜像为 :prev ..."

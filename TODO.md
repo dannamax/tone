@@ -63,7 +63,7 @@
 
 **发布前仍建议人工核对（iOS 端）**：
 - [x] App Store 隐私清单（PrivacyInfo.xcprivacy）齐备 ✅ 已核对（2026-08-24）：覆盖 NSLocation/NSCamera/NSUserDefaults/NSFileManager 访问 API + Email/Phone/Location/UserContent/Photos/DeviceID 数据类型，Tracking=false；图片用 PHPicker 不触发额外声明；无第三方 SDK 需补充。仅需确认 UserDefaults 是否用 App Group（否则用 CA92.1 正确）
-- [ ] 隐私政策/服务条款页面可公网访问（nginx 已配 gotseeker.com 静态页）
+- [x] 隐私政策/服务条款页面可公网访问（已修复：HK `/opt/bountyapp/www` 缺失 + caddy 自签证书缺失导致 nginx reload 失败；2026-08-24 已部署并验证 `https://gotseeker.com/privacy` `/terms` 均 200）
 - [ ] Apple 登录/邮箱登录合规（GDPR 同意流已存在）
 - [ ] 真机 HTTPS 连通（Info.plist `BackendBaseHost` 指向 `https://129.226.138.231`）
 - [ ] IAP 沙盒购买回归
