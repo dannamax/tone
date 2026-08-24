@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS users (
     device_id       VARCHAR(128) NOT NULL DEFAULT '',
     balance         REAL NOT NULL DEFAULT 0,
     frozen_balance  REAL NOT NULL DEFAULT 0,
+    total_earned    REAL NOT NULL DEFAULT 0,
+    total_spent     REAL NOT NULL DEFAULT 0,
     publish_quota   INTEGER NOT NULL DEFAULT 3,
     used_quota      INTEGER NOT NULL DEFAULT 0,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

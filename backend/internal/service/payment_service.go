@@ -58,12 +58,21 @@ func (s *PaymentService) ConfirmTask(ctx context.Context, taskID, publisherID st
 
 	bountyCNY := model.ToCNY(task.Bounty, task.Currency)
 
-	if err := s.userRepo.UpdateBalance(ctx, publisherID, -bountyCNY, -bountyCNY); err != nil {
+	// 余额不足校验：确认扣款前检查发布人可用余额是否足够
+	publisher, err := s.userRepo.FindByID(ctx, publisherID)
+	if err != nil {
+		return err
+	}
+	if publisher == nil || publisher.Balance < bountyCNY {
+		return errors.New(i18n.TCtx(ctx, "insufficient_funds"))
+	}
+
+	if err := s.userRepo.UpdateBalance(ctx, publisherID, -bountyCNY, -bountyCNY, bountyCNY, 0); err != nil {
 		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "unfreeze_deduct_failed"), err)
 	}
 
 	if claimerID != "" {
-		if err := s.userRepo.UpdateBalance(ctx, claimerID, bountyCNY, 0); err != nil {
+		if err := s.userRepo.UpdateBalance(ctx, claimerID, bountyCNY, 0, 0, bountyCNY); err != nil {
 			return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "bounty_payout_failed"), err)
 		}
 	}
@@ -102,7 +111,7 @@ func (s *PaymentService) Recharge(ctx context.Context, userID string, amount flo
 		return errors.New(i18n.TCtx(ctx, "recharge_min_amount"))
 	}
 
-	if err := s.userRepo.UpdateBalance(ctx, userID, amount, 0); err != nil {
+	if err := s.userRepo.UpdateBalance(ctx, userID, amount, 0, 0, 0); err != nil {
 		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "recharge_failed"), err)
 	}
 
@@ -223,7 +232,7 @@ func (s *PaymentService) RefundTask(ctx context.Context, taskID, publisherID str
 	bountyCNY := model.ToCNY(task.Bounty, task.Currency)
 	refundAmount := task.Bounty + task.Fee
 	refundAmountCNY := model.ToCNY(refundAmount, task.Currency)
-	if err := s.userRepo.UpdateBalance(ctx, publisherID, refundAmountCNY, -bountyCNY); err != nil {
+	if err := s.userRepo.UpdateBalance(ctx, publisherID, refundAmountCNY, -bountyCNY, 0, 0); err != nil {
 		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "refund_failed"), err)
 	}
 

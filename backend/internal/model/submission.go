@@ -25,7 +25,7 @@ type Photo struct {
 }
 
 type SubmitEvidenceRequest struct {
-	TaskID    string        `json:"task_id" binding:"required"`
+	TaskID    string        `json:"task_id,omitempty"`
 	Photos    []PhotoUpload `json:"photos" binding:"omitempty,max=3"`
 	Note      *string       `json:"note,omitempty" binding:"omitempty,max=200"`
 	SubmitLat float64       `json:"submit_lat"`

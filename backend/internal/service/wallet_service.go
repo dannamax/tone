@@ -33,6 +33,8 @@ func (s *WalletService) GetWalletInfo(ctx context.Context, userID string) (*mode
 	return &model.WalletInfo{
 		Balance:      user.Balance,
 		FrozenBal:    user.FrozenBal,
+		TotalEarned:  user.TotalEarned,
+		TotalSpent:   user.TotalSpent,
 		PublishQuota: user.PublishQuota,
 		UsedQuota:    user.UsedQuota,
 		CanWithdraw:  user.Balance >= model.MinWithdrawAmount,
@@ -51,7 +53,7 @@ func (s *WalletService) Withdraw(ctx context.Context, userID string, req *model.
 		return errors.New(i18n.TCtx(ctx, "withdraw_below_min", model.MinWithdrawAmount))
 	}
 
-	if err := s.userRepo.UpdateBalance(ctx, userID, -req.Amount, 0); err != nil {
+	if err := s.userRepo.UpdateBalance(ctx, userID, -req.Amount, 0, 0, 0); err != nil {
 		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "deduct_failed"), err)
 	}
 
@@ -76,7 +78,7 @@ func (s *WalletService) Recharge(ctx context.Context, userID string, amount floa
 		return errors.New(i18n.TCtx(ctx, "recharge_min_amount"))
 	}
 
-	if err := s.userRepo.UpdateBalance(ctx, userID, amount, 0); err != nil {
+	if err := s.userRepo.UpdateBalance(ctx, userID, amount, 0, 0, 0); err != nil {
 		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "recharge_failed"), err)
 	}
 

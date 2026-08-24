@@ -29,6 +29,15 @@ func RunMigrations(ctx context.Context, db *sql.DB, driver, migrationsDir string
 				return fmt.Errorf("兼容旧库添加 currency 列失败: %w", err)
 			}
 		}
+		// 兼容旧库：若 users 表缺少 total_earned/total_spent 列则自动补齐
+		for _, col := range []string{"total_earned", "total_spent"} {
+			q := fmt.Sprintf("ALTER TABLE users ADD COLUMN %s REAL NOT NULL DEFAULT 0", col)
+			if _, err := db.ExecContext(ctx, q); err != nil {
+				if !strings.Contains(err.Error(), "duplicate column name") {
+					return fmt.Errorf("兼容旧库添加 %s 列失败: %w", col, err)
+				}
+			}
+		}
 		fmt.Println("[Migration] ✓ sqlite_schema.sql")
 		return nil
 	}

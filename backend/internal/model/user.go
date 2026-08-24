@@ -10,6 +10,8 @@ type User struct {
 	DeviceID     string    `json:"device_id" db:"device_id"`
 	Balance      float64   `json:"balance" db:"balance"`
 	FrozenBal    float64   `json:"frozen_balance" db:"frozen_balance"`
+	TotalEarned  float64   `json:"total_earned" db:"total_earned"`
+	TotalSpent   float64   `json:"total_spent" db:"total_spent"`
 	PublishQuota int       `json:"publish_quota" db:"publish_quota"`
 	UsedQuota    int       `json:"used_quota" db:"used_quota"`
 	Role         string    `json:"role" db:"role"`

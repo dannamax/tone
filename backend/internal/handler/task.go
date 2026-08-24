@@ -293,3 +293,16 @@ func (h *TaskHandler) GetMessages(c *gin.Context) {
 	}
 	response.Paginated(c, msgs, int64(len(msgs)), 1, max(len(msgs), 1))
 }
+
+// Refund 争议后发布人确认退款，冻结金额退回发布人余额
+func (h *TaskHandler) Refund(c *gin.Context) {
+	taskID := c.Param("id")
+	userID := middleware.GetUserID(c)
+	lang := i18n.LanguageFromRequest(c.Request)
+
+	if err := h.paySvc.RefundTask(c.Request.Context(), taskID, userID); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	response.SuccessWithMessage(c, i18n.T(lang, "task_refund_ok"), nil)
+}

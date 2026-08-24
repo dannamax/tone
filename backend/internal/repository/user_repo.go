@@ -76,10 +76,10 @@ func (r *UserRepo) UpdateDevice(ctx context.Context, userID, deviceID string) er
 	return err
 }
 
-func (r *UserRepo) UpdateBalance(ctx context.Context, userID string, balanceDelta, frozenDelta float64) error {
-	query := `UPDATE users SET balance = balance + ?, frozen_balance = frozen_balance + ?, updated_at = ? WHERE id = ?`
+func (r *UserRepo) UpdateBalance(ctx context.Context, userID string, balanceDelta, frozenDelta, totalSpentDelta, totalEarnedDelta float64) error {
+	query := `UPDATE users SET balance = balance + ?, frozen_balance = frozen_balance + ?, total_spent = total_spent + ?, total_earned = total_earned + ?, updated_at = ? WHERE id = ?`
 	
-   _, err := r.db.ExecContext(ctx, query, balanceDelta, frozenDelta, time.Now(), userID)
+   _, err := r.db.ExecContext(ctx, query, balanceDelta, frozenDelta, totalSpentDelta, totalEarnedDelta, time.Now(), userID)
 	return err
 }
 
