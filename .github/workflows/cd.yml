@@ -1,0 +1,49 @@
+name: CD
+
+# 仅在 CI 工作流成功完成后触发，保证质量门禁（lint/vet/build/test）通过才部署
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to HK (from GitHub)
+    # 仅当 CI 的结果为 success 才部署
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch deployed commit SHA
+        id: sha
+        run: echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy via SSH
+        id: deploy
+        uses: appleboy/ssh-action@v1.2.0
+        continue-on-error: true
+        with:
+          host: ${{ secrets.HK_HOST }}
+          username: ${{ secrets.HK_USER }}
+          password: ${{ secrets.HK_PASSWORD }}
+          # 或改用密钥登录：key: ${{ secrets.HK_SSH_KEY }}
+          script: |
+            set -e
+            cd "${{ secrets.HK_DEPLOY_DIR }}"
+            bash scripts/deploy-remote.sh "${{ steps.sha.outputs.sha }}" "${{ secrets.HK_DEPLOY_DIR }}"
+
+      # 部署失败自动回滚到上一个版本
+      - name: Rollback on failure
+        if: ${{ failure() && steps.deploy.outcome == 'failure' }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HK_HOST }}
+          username: ${{ secrets.HK_USER }}
+          password: ${{ secrets.HK_PASSWORD }}
+          script: |
+            set -e
+            cd "${{ secrets.HK_DEPLOY_DIR }}"
+            echo "==> 部署失败，回滚到 :prev"
+            docker tag bountyapp:prev bountyapp:latest 2>/dev/null || true
+            docker compose -f deploy/docker-compose.prod.yml up -d
+            curl -fsS http://127.0.0.1:8080/healthz && echo " [OK] rollback done" || echo " [WARN] rollback healthz FAILED"

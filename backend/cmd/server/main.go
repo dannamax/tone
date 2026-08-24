@@ -27,6 +27,10 @@ import (
 	"seeker/pkg/appleiap"
 )
 
+// Version 由 CI 在编译时通过 -ldflags "-X main.Version=<git-sha>" 注入，
+// 供 /healthz 暴露线上实际运行的 commit，便于核对部署版本。
+var Version = "unknown"
+
 // toFloat 将 SQLite 传入的参数安全转为 float64。
 func toFloat(v interface{}) float64 {
 	switch n := v.(type) {
@@ -239,7 +243,11 @@ func main() {
 
 	// 健康检查（/healthz 与 /health 双路径，供负载均衡与部署脚本探测）
 	health := func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok", "driver": cfg.Database.Driver})
+		c.JSON(200, gin.H{
+			"status":  "ok",
+			"driver":  cfg.Database.Driver,
+			"version": Version,
+		})
 	}
 	r.GET("/health", health)
 	r.GET("/healthz", health)

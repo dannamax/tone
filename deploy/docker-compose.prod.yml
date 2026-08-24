@@ -1,0 +1,61 @@
+# ============================================================
+# HK 生产环境标准部署文件（单一事实来源）
+#
+# 由 GitHub Actions CD 工作流 (cd.yml) 在 HK 机器上从 GitHub 拉取后使用：
+#   cd /opt/bountyapp && docker compose -f deploy/docker-compose.prod.yml up -d --build
+#
+# 设计原则：
+#  - 代码唯一可信源 = GitHub main 分支（CI 通过后才部署）
+#  - 数据库 / 上传文件持久化到 named volume，重建容器不丢数据
+#  - .env 由机器本地维护（不进仓库、不被 CI 覆盖）
+#  - GIT_SHA 由 CI 注入，编译进 /healthz 可核对线上版本
+# ============================================================
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: bountyapp-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: ./backend
+      args:
+        GIT_SHA: ${GIT_SHA:-unknown}
+    image: bountyapp:${GIT_SHA:-latest}
+    container_name: bountyapp
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - SERVER_PORT=8080
+      - CODE_STORE=redis
+      - REDIS_ADDR=redis:6379
+      # SQLite 落到持久化 volume（而非容器可写层）
+      - DB_DRIVER=sqlite
+      - DB_NAME=/app/data/seekerdb.sqlite
+    ports:
+      - "8080:8080"
+    volumes:
+      - appdata:/app/data       # 数据库持久化
+      - ./uploads:/app/uploads  # 上传文件持久化
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  redisdata:
+  appdata:

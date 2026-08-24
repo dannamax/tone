@@ -1,41 +1,71 @@
 #!/usr/bin/env bash
+# ============================================================
+# deploy.sh — 本地触发 HK 部署（统一入口）
 #
-# BountyApp 一键发布脚本
-# 用法: ./scripts/deploy.sh root@<公网IP>
+# 标准 CI/CD 流程下，推荐直接 git push 由 GitHub Actions 自动部署。
+# 本脚本用于本地手动触发等价部署：SSH 到 HK 机器后，由其从 GitHub 拉取并部署。
+# 代码唯一可信源 = GitHub main（不会上传本地未提交改动）。
 #
-# 前置:
-#   - 本机可 ssh 到目标主机（密钥或密码）
-#   - 目标主机已安装 docker / docker-compose / caddy
-#   - 目标主机 /opt/bountyapp/.env 已配置好（含真实 SMTP/COS/JWT_SECRET）
+# 用法:
+#   ./scripts/deploy.sh                 # 部署到 hk.host.env 配置的机器
+#   ./scripts/deploy.sh rollback        # 回滚到上一个镜像
+#   ./scripts/deploy.sh status          # 健康检查 + 版本
+#   ./scripts/deploy.sh logs            # 跟随容器日志
 #
+# 前置: 已配置仓库根 hk.host.env（含 HK_HOST/HK_USER/HK_PASSWORD/HK_DEPLOY_DIR/HK_PORT）
+# ============================================================
 set -euo pipefail
 
-REMOTE="${1:?用法: deploy.sh root@<公网IP>}"
-REMOTE_DIR="/opt/bountyapp"
-LOCAL_BACKEND="$(cd "$(dirname "$0")/.." && pwd)/backend"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ -f "$ROOT/hk.host.env" ]; then source "$ROOT/hk.host.env"; fi
 
-echo "==> [1/4] 打包后端代码"
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
-git -C "$(cd "$(dirname "$0")/.." && pwd)" archive --format=tar.gz HEAD:backend -o "$TMP/backend.tar.gz" \
-  || tar --exclude='._*' --exclude='.DS_Store' -czf "$TMP/backend.tar.gz" -C "$(cd "$(dirname "$0")/.." && pwd)" backend
+HK_HOST="${HK_HOST:?请在 hk.host.env 配置 HK_HOST}"
+HK_USER="${HK_USER:-root}"
+HK_PASSWORD="${HK_PASSWORD:-}"
+HK_DEPLOY_DIR="${HK_DEPLOY_DIR:-/opt/bountyapp}"
+HK_PORT="${HK_PORT:-8080}"
+HK_AUTH="${HK_AUTH:-password}"
+HK_KEY="${HK_KEY:-}"
 
-echo "==> [2/4] 上传到 $REMOTE:$REMOTE_DIR"
-ssh "$REMOTE" "mkdir -p $REMOTE_DIR"
-scp "$TMP/backend.tar.gz" "$REMOTE:$REMOTE_DIR/backend.tar.gz"
-# 注意: 不覆盖 .env (保留云主机上的真实配置)
-# 解包时排除 macOS AppleDouble (._*) 并清理残留, 避免被当成迁移 SQL 执行
-ssh "$REMOTE" "cd $REMOTE_DIR && tar --exclude='._*' -xzf backend.tar.gz && rm -f backend.tar.gz ._*.sqlite* ._*.db && find . -name '._*' -delete && ls"
+REMOTE="$HK_USER@$HK_HOST"
+SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+if [ "$HK_AUTH" = "key" ] && [ -n "$HK_KEY" ]; then
+  SSH_OPTS=(-i "$HK_KEY" "${SSH_OPTS[@]}")
+  SSH=(ssh "${SSH_OPTS[@]}")
+else
+  SSH=(sshpass -p "$HK_PASSWORD" ssh "${SSH_OPTS[@]}")
+fi
 
-echo "==> [3/4] 远端重建容器 (保留上一个镜像用于回滚)"
-ssh "$REMOTE" "cd $REMOTE_DIR && \
-  docker tag bountyapp-app:latest bountyapp-app:prev 2>/dev/null || true && \
-  docker compose -f docker-compose.cloud.yml build && \
-  docker compose -f docker-compose.cloud.yml up -d"
+# ---------- 回滚 ----------
+if [ "${1:-}" = "rollback" ]; then
+  echo "==> 回滚到上一个镜像..."
+  "${SSH[@]}" "$REMOTE" "cd $HK_DEPLOY_DIR && docker tag bountyapp:prev bountyapp:latest 2>/dev/null || true && docker compose -f deploy/docker-compose.prod.yml up -d"
+  exit 0
+fi
 
-echo "==> [4/4] 健康检查"
-sleep 5
-ssh "$REMOTE" "curl -fsS http://127.0.0.1:8080/healthz && echo ' [local ok]' || echo ' [local FAIL]'"
+# ---------- 状态 ----------
+if [ "${1:-}" = "status" ]; then
+  "${SSH[@]}" "$REMOTE" "cd $HK_DEPLOY_DIR && docker compose -f deploy/docker-compose.prod.yml ps && echo '--- healthz ---' && curl -fsS http://127.0.0.1:$HK_PORT/healthz || echo 'healthz FAILED'"
+  exit 0
+fi
 
-echo "==> 完成。真机请访问 https://api.gotseeker.com (Caddy 自动 HTTPS)"
-echo "==> 回滚: ssh $REMOTE 'cd $REMOTE_DIR && docker tag bountyapp-app:prev bountyapp-app:latest && docker compose -f docker-compose.cloud.yml up -d'"
+# ---------- 日志 ----------
+if [ "${1:-}" = "logs" ]; then
+  "${SSH[@]}" "$REMOTE" "cd $HK_DEPLOY_DIR && docker compose -f deploy/docker-compose.prod.yml logs -f --tail=100 app"
+  exit 0
+fi
+
+# ---------- 部署：先确认本地已 push，再让 HK 从 GitHub 拉取 ----------
+DEPLOY_SHA="$(git -C "$ROOT" rev-parse HEAD)"
+echo "==> 本地 HEAD: $DEPLOY_SHA"
+echo "==> 确认已推送到 origin/main ..."
+git -C "$ROOT" fetch origin main >/dev/null 2>&1
+REMOTE_SHA="$(git -C "$ROOT" rev-parse origin/main)"
+if [ "$DEPLOY_SHA" != "$REMOTE_SHA" ]; then
+  echo "!! 本地 HEAD 与 origin/main 不一致，请先 'git push' 再部署。"
+  echo "   本地=$DEPLOY_SHA  远端=$REMOTE_SHA"
+  exit 1
+fi
+
+echo "==> 触发 HK 从 GitHub 拉取并部署..."
+"${SSH[@]}" "$REMOTE" "cd $HK_DEPLOY_DIR && bash scripts/deploy-remote.sh $DEPLOY_SHA $HK_DEPLOY_DIR"

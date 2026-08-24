@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend lint & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: backend/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: CGO_ENABLED=1 go build -o /tmp/seeker ./cmd/server
+
+      - name: Test
+        run: go test ./... -race -count=1
+
+  ios:
+    name: iOS build (smoke)
+    runs-on: macos-latest
+    if: false # 占位：Xcode 构建按需开启
+    steps:
+      - uses: actions/checkout@v4

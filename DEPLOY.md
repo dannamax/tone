@@ -1,125 +1,156 @@
-# BountyApp 云上发布流程
+# BountyApp 发布流程（标准 CI/CD）
 
-> 目标：本地开发完成后，一条命令把后端同步发布到云主机，真机 App 通过公网域名连通，跑通真实互联网场景验证。
-
----
-
-## 0. 整体架构
-
-```
-[ 你的 Mac 本地开发 ]
-   ├─ iOS (Xcode 模拟器) ── 连 http://127.0.0.1:8080
-   └─ Backend (go run)   ── 本地 8080，sqlite + memory
-
-            │  git push 后执行 ./scripts/deploy.sh
-            ▼
-
-[ 腾讯云 CVM 云主机 (公网 IP) ]
-   ├─ Caddy (HTTPS :443) ── 自动 Let's Encrypt 证书
-   └─ Docker: bountyapp (Go) ── :8080
-        ├─ SQLite 文件 (验证期) / 云 PostgreSQL (正式期)
-        ├─ COS (对象存储，替代 MinIO)
-        └─ 163 SMTP (发码)
-
-            │ 真机 TestFlight / Ad Hoc
-            ▼
-
-[ iPhone 真机 ] ── https://api.gotseeker.com ──> Caddy ──> bountyapp:8080
-```
-
-关键点：
-- **模拟器始终连本机**（`APIClient.swift` 中 `#if targetEnvironment(simulator)`）。
-- **上架构建连公网 HTTPS**：`productionBaseHost = "https://api.gotseeker.com"`（由 Info.plist 的 `BackendBaseHost` 注入，可改不重编译）。
-- iOS 端只需在 `PRODUCTION` 编译宏下打包，无需改代码逻辑。
+> 原则：**GitHub = 唯一可信代码源**。本地只开发并 `git push`，HK 机器始终从 GitHub 拉取部署。未 `push` 的代码不会上生产。
 
 ---
 
-## 1. 本地开发期（现状，无需改动）
+## 0. 流程总览
+
+```
+[ 本地 Mac 开发 ]
+   ├─ iOS 模拟器 ── 连 http://127.0.0.1:8080
+   └─ Backend go run ── 本地 8080 (sqlite + memory)
+
+        │ git push origin main
+        ▼
+
+[ GitHub: Actions ]
+   ├─ CI  : lint → vet → build → test   (质量门禁)
+   └─ CD  : CI 成功后 workflow_run 触发
+            → SSH 到 HK → git pull → docker compose build → up → healthz
+
+        │ 自动部署
+        ▼
+
+[ 腾讯云 HK CVM ]
+   ├─ Docker: bountyapp (Go)  ── :8080
+   │     ├─ SQLite 持久化 volume (appdata)  ← 重建不丢数据
+   │     └─ /healthz 返回 version=commit SHA
+   └─ Redis (验证码共享)
+
+        │ 真机
+        ▼
+[ iPhone ] ── https://api.gotseeker.com ──> bountyapp:8080
+```
+
+---
+
+## 1. 本地开发期（无变化）
 
 - 后端：`cd backend && go run ./cmd/server`，读本地 `.env`，sqlite + memory。
-- iOS：模拟器直接跑，连 `127.0.0.1:8080`。
-- 验证：`scripts/e2e.sh` / XCUITest 全功能测试。
+- iOS：模拟器连 `127.0.0.1:8080`。
 
 ---
 
-## 2. 云端发布（每次开发完同步）
+## 2. CI（push 即跑，失败阻断部署）
 
-### 2.1 前置（一次性）
-- 云主机已就绪（见 `TENCENT_CLOUD_SETUP.md`），已拿到公网 IP。
-- 域名 `api.gotseeker.com` 已 A 记录解析到该 IP，且已完成 ICP 备案。
-- 本机能 SSH 到云主机（`ssh root@<公网IP>`）。
-- 云主机已安装 Docker + Docker Compose + Caddy（脚本会自动装 Caddy）。
+`.github/workflows/ci.yml` 在每次 push/PR 到 main 时：
+1. `go vet ./...`
+2. `CGO_ENABLED=1 go build`
+3. `go test ./... -race`
 
-### 2.2 配置云主机环境变量
-在云主机创建 `/opt/bountyapp/.env`（内容与本地类似，但：
-- `EMAIL_PROVIDER=smtp` + 真实 163 配置
-- `DB_DRIVER=sqlite`（验证期）
-- `CODE_STORE=memory`
-- `MINIO_ENDPOINT/ACCESS_KEY/SECRET_KEY` → 改为腾讯云 COS 的 S3 兼容参数
-- `JWT_SECRET` → 改成强随机值（**务必改，否则有安全风险**）
-- `SERVER_PORT=8080`
+任一失败 → CD 不会被触发，保护生产。
 
-### 2.3 本地执行发布
+---
+
+## 3. CD（CI 通过后自动部署到 HK）
+
+`.github/workflows/cd.yml` 由 CI `workflow_run` 触发（仅 `conclusion == success`）：
+
+1. SSH 到 HK（`secrets.HK_*`）。
+2. 机器上执行 `scripts/deploy-remote.sh <sha>`：
+   - `git fetch origin main && git reset --hard origin/main`（唯一可信源）
+   - 确认 `.env` 存在（**绝不覆盖**机器本地敏感配置）
+   - 打上一个镜像 `:prev` 标签
+   - `docker compose -f deploy/docker-compose.prod.yml up -d --build`，注入 `GIT_SHA`
+   - 轮询 `healthz` 直到新版本生效
+3. 若部署失败 → 自动 `docker tag bountyapp:prev` 回滚。
+
+### 3.1 GitHub Secrets 配置（一次性）
+
+在仓库 **Settings → Secrets → Actions** 添加：
+
+| Secret | 说明 |
+|--------|------|
+| `HK_HOST` | HK 机器 IP / 域名（如 `129.226.138.231`） |
+| `HK_USER` | SSH 用户（如 `root`） |
+| `HK_PASSWORD` | SSH 密码（或用 `HK_SSH_KEY` 私钥） |
+| `HK_SSH_KEY` | （推荐）SSH 私钥，CD 改为 `key:` 注入 |
+| `HK_DEPLOY_DIR` | 机器部署目录（如 `/opt/bountyapp`） |
+| `HK_PORT` | 服务端口（如 `8080`） |
+
+> 不要把 `hk.host.env`（含 root 密码）提交进 git，它已被 `.gitignore` 忽略。CI 用 Secrets 注入，本地手动部署用 `hk.host.env`。
+
+### 3.2 HK 机器首次准备（一次性）
+
 ```bash
-# 在仓库根目录
-./scripts/deploy.sh root@<公网IP>
+# 在 HK 机器
+git clone <repo> /opt/bountyapp
+cd /opt/bountyapp
+# 复制真实 .env（切勿用占位符启动）
+cp backend/.env.example .env && vi .env   # 补全 JWT_SECRET / SMTP_* / MINIO_*
+# 安装 docker + compose
 ```
-脚本会做：
-1. `git archive` 打包后端代码传到云主机 `/opt/bountyapp`。
-2. 云主机 `docker compose build && docker compose up -d` 重建容器。
-3. 触发 Caddy 自动申请/续期 Let's Encrypt 证书。
-4. 健康检查 `https://api.gotseeker.com/healthz`。
 
-### 2.4 真机验证
-- Xcode 用 `PRODUCTION` 宏打包（或 TestFlight 外部测试）。
-- 真机打开 App → 注册/登录 → 发布任务 → 收验证码（真实 163 邮件）→ 全流程。
-- 中英文切换验证（i18n 已就绪）。
-
-### 2.5 Apple 开发者账号与 App ID 注册（上架前必须）
-
-> Personal Team（免费账号）只能真机调试，**不能**上架 App Store 或发 TestFlight。
-> 要发布必须加入 Apple Developer Program（99 美元/年）。
-
-1. **加入开发者计划**
-   - 登录 https://developer.apple.com/programs/ 用 Apple ID 订阅（个人/企业）。
-   - 企业账号（$299/年）适合内部分发，个人/组织（$99/年）可上 App Store。
-
-2. **在后台注册 App ID（Identifiers）**
-   - 进入 Certificates, Identifiers & Profiles → Identifiers → `+` → App IDs。
-   - 选 **App**，Bundle ID 选 **Explicit**，填 `com.gotseeker.app`（必须与 Xcode 的 `PRODUCT_BUNDLE_IDENTIFIER` 完全一致）。
-   - Capabilities 勾选用到的：Push Notifications（若上推送）、Sign in with Apple（若接入）、Associated Domains（若用 Universal Link）。
-   - 若用微信/支付宝等第三方登录 SDK，还需在其开放平台登记同一 Bundle ID。
-
-3. **创建签名证书与 Provisioning Profile**
-   - Certificates → `+` → Apple Distribution（发布用）。
-   - Profiles → `+` → App Store → 选上面 App ID → 选证书 → 生成并下载 `GotSeeker_AppStore.mobileprovision`。
-   - Xcode 登录该开发者账号后，General → Signing 选 Team = 你的组织，Provisioning Profile 选刚生成的。
-
-4. **Xcode 工程侧确认**
-   - Bundle ID：`com.gotseeker.app`（已统一改好，见前文）。
-   - 若之前用 Personal Team 报错 "not available"，换成付费 Team 后此 ID 即可正常注册。
-   - 真机调试也可在付费账号下用 Development Profile，无 7 天过期限制。
-
-5. **上架资料（提交审核前准备）**
-   - 隐私政策页：`https://gotseeker.com/privacy`（已改为 Info.plist 注入，需真实可访问）。
-   - 条款页：`https://gotseeker.com/terms`。
-   - 截图、描述、分级问卷、加密合规声明（用到 HTTPS/网络传输需回答）。
+> `JWT_SECRET` 务必固定且强随机，否则重启后已发 token 全部失效。
 
 ---
 
-## 3. 回滚
+## 4. 本地手动部署（等价 CD）
+
+标准流程是自动的；如需手动触发（等价行为，仍从 GitHub 拉取）：
+
 ```bash
-ssh root@<公网IP> "cd /opt/bountyapp && docker compose down && docker compose up -d"
+./scripts/deploy.sh                 # 先 git push，再触发 HK 拉取部署
+./scripts/deploy.sh status          # 查看容器 + 版本
+./scripts/deploy.sh logs            # 跟随日志
+./scripts/deploy.sh rollback        # 回滚到 :prev
 ```
-（deploy.sh 会保留上一个镜像 tag 用于回滚，详见脚本内注释。）
+
+> 手动部署前会校验本地 HEAD == origin/main，拒绝用未推送的改动上生产。
 
 ---
 
-## 4. 正式期升级（流量起来后）
+## 5. 部署后验证（e2e 冒烟）
+
+```bash
+./scripts/e2e-smoke.sh http://127.0.0.1:8080        # 针对 HK 本机
+./scripts/e2e-smoke.sh https://api.gotseeker.com    # 针对公网域名
+```
+
+测试数据使用 `e2e_smoke_` 前缀，清理仅删该前缀，不伤真实/demo 数据。
+
+---
+
+## 6. 版本核对
+
+任何时候核对线上跑的是哪个 commit：
+
+```bash
+curl https://api.gotseeker.com/healthz
+# {"status":"ok","driver":"sqlite","version":"<git-sha>"}
+```
+
+与 GitHub 最新 main SHA 比对即可确认“线上 = 最新代码”。
+
+---
+
+## 7. 回滚
+
+- **自动**：CD 部署失败自动回滚到 `:prev`。
+- **手动**：`./scripts/deploy.sh rollback`，或机器上
+  `docker tag bountyapp:prev bountyapp:latest && docker compose -f deploy/docker-compose.prod.yml up -d`。
+
+> 镜像按 `GIT_SHA` 不可变标记，可跨多次回退到任意历史版本（保留历史镜像即可）。
+
+---
+
+## 8. 正式期升级（流量起来后）
+
 | 项 | 验证期 | 正式期 |
 |----|--------|--------|
-| 数据库 | SQLite 文件 | 腾讯云 PostgreSQL（自动备份） |
-| 缓存 | memory | Redis（腾讯云 Redis） |
-| 对象存储 | COS | COS（同，开 CDN） |
-| 多实例 | 单容器 | 多容器 + Redis 共享 session |
-| 监控 | 无 | 云监控 + 日志服务 |
+| 数据库 | SQLite（volume 持久化） | 腾讯云 PostgreSQL（`DB_DRIVER=postgres`，改 `.env` 即可，无需改 compose） |
+| 缓存 | Redis（容器内） | 腾讯云 Redis |
+| 对象存储 | 本地 volume | 腾讯云 COS（开 CDN） |
+| 多实例 | 单容器 | 多容器 + Redis 共享 session（compose 已预留） |
+| 监控 | healthz | 云监控 + 日志服务 |
