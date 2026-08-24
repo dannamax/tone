@@ -67,7 +67,7 @@ echo "    $resp" | head -c 200; echo
 # 5. 发布任务
 TITLE="smoke_$TS"
 pub=$(curl -s -X POST "$BASE/api/v1/tasks" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d "{\"title\":\"$TITLE\",\"description\":\"e2e smoke\",\"bounty\":10,\"currency\":\"CNY\",\"target_lat\":22.3,\"target_lng\":114.2,\"radius\":5000,\"time_limit\":30}")
+  -d "{\"title\":\"$TITLE\",\"description\":\"e2e smoke\",\"bounty\":10,\"currency\":\"CNY\",\"target_lat\":22.3,\"target_lng\":114.2,\"target_addr\":\"HK\",\"radius\":5000,\"time_limit\":30}")
 TID=$(echo "$pub" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 check "发布任务成功" "$([ -n "$TID" ] && echo 0 || echo 1)"
 echo "    task_id=$TID"

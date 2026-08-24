@@ -53,7 +53,8 @@ func (h *TaskHandler) Publish(c *gin.Context) {
 		response.BadRequest(c, i18n.T(lang, "bad_request"))
 		return
 	}
-	if req.TargetAddr == "" || (req.TargetLat == 0 && req.TargetLng == 0) {
+	// 既无地址也无坐标才视为缺少位置信息（OR -> AND 语义修正）
+	if req.TargetAddr == "" && (req.TargetLat == 0 && req.TargetLng == 0) {
 		response.BadRequest(c, i18n.T(lang, "no_location"))
 		return
 	}
