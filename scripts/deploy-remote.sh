@@ -76,7 +76,7 @@ GIT_SHA="$GIT_SHA" docker compose -f "$COMPOSE_FILE" up -d --build --remove-orph
 
 # ---------- 5. 健康检查（带重试，确认新版本生效）----------
 echo "==> 等待服务就绪..."
-for i in $(seq 1 10); do
+for i in $(seq 1 20); do
   if curl -fsS "http://127.0.0.1:8080/healthz" >/dev/null 2>&1; then
     echo " [OK] backend up (version=$(curl -fsS http://127.0.0.1:8080/healthz | grep -o '"version":"[^"]*"'))"
     exit 0
