@@ -40,11 +40,16 @@ check "send-code 200" "$([ "$code" = "200" ] && echo 0 || echo 1)"
 # 3. 取验证码（依赖部署环境 CODE_STORE=redis；redis key 前缀 seeker:code:<email>）
 #    优先用 docker redis 容器取（HK 部署场景），兜底本机 redis-cli，再兜底手动输入
 CODE=""
+RAW=""
 if command -v docker >/dev/null 2>&1; then
-  CODE=$(docker exec bountyapp-redis redis-cli get "seeker:code:$EMAIL" 2>/dev/null | tr -d '\r' || true)
+  RAW=$(docker exec bountyapp-redis redis-cli get "seeker:code:$EMAIL" 2>/dev/null | tr -d '\r' || true)
 fi
-if [ -z "$CODE" ] && command -v redis-cli >/dev/null 2>&1; then
-  CODE=$(redis-cli --no-auth-warning get "seeker:code:$EMAIL" 2>/dev/null | tr -d '\r' || true)
+if [ -z "$RAW" ] && command -v redis-cli >/dev/null 2>&1; then
+  RAW=$(redis-cli --no-auth-warning get "seeker:code:$EMAIL" 2>/dev/null | tr -d '\r' || true)
+fi
+# redis 中存的是 JSON: {"code":"123456","exp":...}，需提取纯数字验证码
+if [ -n "$RAW" ]; then
+  CODE=$(echo "$RAW" | grep -o '"code":"[0-9]*"' | head -1 | cut -d'"' -f4)
 fi
 if [ -z "$CODE" ]; then
   echo "  [INFO] 无法自动获取验证码（非 HK 本机/无 redis）。"
