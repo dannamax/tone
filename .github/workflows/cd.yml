@@ -25,9 +25,8 @@ jobs:
         with:
           host: ${{ secrets.HK_HOST }}
           username: ${{ secrets.HK_USER }}
-          password: ${{ secrets.HK_PASSWORD }}
-          # 或改用密钥登录（推荐）：key: ${{ secrets.HK_SSH_KEY }}
-          debug: true
+          key: ${{ secrets.HK_SSH_KEY }}
+          # 或改用密码登录：password: ${{ secrets.HK_PASSWORD }}
           script: |
             set -euo pipefail
             echo "==> CD deploy target: ${{ secrets.HK_HOST }} dir=${{ secrets.HK_DEPLOY_DIR }}"
@@ -43,7 +42,7 @@ jobs:
         with:
           host: ${{ secrets.HK_HOST }}
           username: ${{ secrets.HK_USER }}
-          password: ${{ secrets.HK_PASSWORD }}
+          key: ${{ secrets.HK_SSH_KEY }}
           script: |
             set -e
             cd "${{ secrets.HK_DEPLOY_DIR }}"
