@@ -7,6 +7,8 @@ ARG BASE_ALPINE=docker.m.daocloud.io/library/alpine:3.21
 # 部署时由 CI 注入当前 commit SHA，编译进二进制供 /healthz 暴露
 ARG GIT_SHA=unknown
 FROM ${BASE_GOLANG} AS builder
+# 重新声明 ARG 使其在当前 stage 可见（FROM 前的全局 ARG 不会自动透传）
+ARG GIT_SHA=unknown
 # apk 换阿里云源加速
 RUN sed -i 's#https\?://dl-cdn.alpinelinux.org#https://mirrors.aliyun.com#g' /etc/apk/repositories \
  && apk add --no-cache gcc musl-dev
