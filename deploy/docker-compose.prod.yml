@@ -26,7 +26,7 @@ services:
 
   app:
     build:
-      context: ./backend
+      context: ../backend
       args:
         GIT_SHA: ${GIT_SHA:-unknown}
     image: bountyapp:${GIT_SHA:-latest}
