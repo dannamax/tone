@@ -10,7 +10,7 @@ settings:
     SWIFT_VERSION: "5.9"
     TARGETED_DEVICE_FAMILY: "1,2"
     INFOPLIST_FILE: BountyApp/Info.plist
-    ENABLE_PREVIEWS: YES
+    ENABLE_PREVIEWS: NO
     DEVELOPMENT_TEAM: "B646TQ3P36"
     CODE_SIGN_STYLE: Automatic
     PRODUCT_BUNDLE_IDENTIFIER: com.gotseeker.app
@@ -39,6 +39,9 @@ targets:
         UILaunchScreen: {}
         UIRequiresFullScreen: true
         ITSAppUsesNonExemptEncryption: false
+        CFBundleLocalizations:
+          - en
+          - zh-Hans
         BackendBaseHost: "https://api.gotseeker.com"
         PrivacyPolicyURL: "https://gotseeker.com/privacy"
         TermsOfServiceURL: "https://gotseeker.com/terms"

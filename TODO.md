@@ -46,6 +46,7 @@
 - P2.4 配额购买（Apple IAP）端到端沙盒验证。
 - P2.5 SQLite → 腾讯云 PostgreSQL（正式期，compose 已预留 `DB_DRIVER` 切换）。
 - P2.6 监控/日志接入云监控。
+- P2.7 **App Store 服务器通知（App Store Server Notifications V2）**：当前后端已实现 StoreKit 2 JWS 本地验签，但**未实现** Apple 服务器通知 webhook（接收退款/订阅状态/沙盒购买事件）。需在后端新增 `POST /api/v1/apple/webhook` 接口，用 Apple Root CA 校验通知 JWS 并处理 `signedPayload`，随后在 App Store Connect 配置生产/沙盒服务器通知 URL（`https://<host>/api/v1/apple/webhook`）。首提审核可暂时不填，上线后建议补。
 
 ---
 
