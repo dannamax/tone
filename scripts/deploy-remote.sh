@@ -50,13 +50,21 @@ cp -f "$DEPLOY_DIR/scripts/www/privacy.html" /opt/bountyapp/www/ 2>/dev/null || 
 cp -f "$DEPLOY_DIR/scripts/www/terms.html" /opt/bountyapp/www/ 2>/dev/null || true
 
 # ---------- 3. 保留上一个镜像用于回滚 ----------
-# 当前线上运行的是 bountyapp:latest（上一次部署产物），先打 :prev 备份
+# 当前线上运行的是 bountyapp:<当前commit>，先打 :prev 备份
 echo "==> 标记上一个镜像为 :prev ..."
-docker tag "bountyapp:latest" "bountyapp:prev" 2>/dev/null || true
+CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' bountyapp 2>/dev/null || true)
+if [ -n "$CURRENT_IMAGE" ]; then
+  docker tag "$CURRENT_IMAGE" "bountyapp:prev"
+  echo "==> backed up current image: $CURRENT_IMAGE -> bountyapp:prev"
+else
+  echo "==> [warn] 未找到运行中的 bountyapp 容器，无法备份 :prev"
+fi
 
 # ---------- 4. 构建并零停机重启（健康检查通过后接管）----------
-echo "==> 构建并启动 (GIT_SHA=$GIT_SHA)..."
-GIT_SHA="$GIT_SHA" docker compose -f "$COMPOSE_FILE" up -d --build
+# 先清理 compose 内部可能不一致的 orphan 容器状态，再构建启动
+echo "==> 清理旧容器状态并构建启动 (GIT_SHA=$GIT_SHA)..."
+docker compose -f "$COMPOSE_FILE" rm -f app 2>/dev/null || true
+GIT_SHA="$GIT_SHA" docker compose -f "$COMPOSE_FILE" up -d --build --remove-orphans
 
 # ---------- 5. 健康检查（带重试，确认新版本生效）----------
 echo "==> 等待服务就绪..."
