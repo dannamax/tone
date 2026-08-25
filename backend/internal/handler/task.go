@@ -73,12 +73,8 @@ func (h *TaskHandler) Publish(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("[TaskPublish] userID=%s taskID=%s title=%s status=%s\n", userID, task.ID, task.Title, task.Status)
+	fmt.Printf("[TaskPublish] userID=%s taskID=%s title=%s beans=%d\n", userID, task.ID, task.Title, task.BountyBeans)
 
-	if task.Status == model.StatusPending {
-		response.CreatedWithMessage(c, i18n.T(lang, "publish_pending_hint"), task)
-		return
-	}
 	response.Created(c, task)
 }
 

@@ -53,6 +53,9 @@ enum L10n {
     static var squareFilterAll: String { localized("square_filter_all") }
     static var squareFilterWithin: String { localized("square_filter_within") }
     static var squareLocating: String { localized("square_locating") }
+    static var squareSortDistance: String { localized("square_sort_distance") }
+    static var squareSortBeans: String { localized("square_sort_beans") }
+    static var squareSortNewest: String { localized("square_sort_newest") }
     static var squareEmpty: String { localized("square_empty") }
     static var squareEmptyHint: String { localized("square_empty_hint") }
     static var squarePublishAction: String { localized("square_publish_action") }
@@ -148,6 +151,9 @@ enum L10n {
     static var publishQuotaHint: String { localized("publish_quota_hint") }
     static var publishQuotaCost: String { localized("publish_quota_cost") }
     static var publishQuotaDesc: String { localized("publish_quota_desc") }
+    static var publishBeansTitle: String { localized("publish_beans_title") }
+    static var publishBeansCost: String { localized("publish_beans_cost") }
+    static var publishBeansHint: String { localized("publish_beans_hint") }
     static var publishSubmitBtn: String { localized("publish_submit_btn") }
     static var publishNeedLogin: String { localized("publish_need_login") }
     static var publishNeedLocation: String { localized("publish_need_location") }
@@ -219,6 +225,18 @@ enum L10n {
     static var quotaLoading: String { localized("quota_loading") }
     static var quotaPackageCountFmt: String { localized("quota_package_count_fmt") }
     static var quotaPurchasing: String { localized("quota_purchasing") }
+
+    // MARK: - Beans (金豆经济)
+    static var beansBalanceTitle: String { localized("beans_balance_title") }
+    static var beansBreakdownFmt: String { localized("beans_breakdown_fmt") }
+    static var beansBuyButton: String { localized("beans_buy_button") }
+    static var beansPackageCountFmt: String { localized("beans_package_count_fmt") }
+
+    // MARK: - Rewards Center (Coming Soon)
+    static var rewardsCenterTitle: String { localized("rewards_center_title") }
+    static var rewardsCenterSubtitle: String { localized("rewards_center_subtitle") }
+    static var rewardsComingSoon: String { localized("rewards_coming_soon") }
+    static var rewardsComingSoonMsg: String { localized("rewards_coming_soon_msg") }
     static var commonClose: String { localized("common_close") }
 
     // MARK: - StoreKit / Apple IAP

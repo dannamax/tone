@@ -47,23 +47,6 @@ struct MyTasksView: View {
                                         TaskCardView(task: task)
                                     }
                                     .buttonStyle(.plain)
-
-                                    if task.status == "pending" {
-                                        Button(action: { vm.activateTask(task) }) {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "arrow.up.circle.fill")
-                                                Text(L10n.myTasksPublishNow)
-                                            }
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(.white)
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 10)
-                                            .background(Color.orange)
-                                            .cornerRadius(8)
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.bottom, 10)
-                                    }
                                 }
                                 .background(Color.white)
                                 .cornerRadius(12)
@@ -163,25 +146,6 @@ final class MyTasksViewModel: ObservableObject {
                 print("[MyTasks] loadClaimed error: \(error)")
                 isLoading = false
                 errorMessage = L10n.myTasksLoadFailed + ": \(error.localizedDescription)"
-            }
-        }
-    }
-
-    func activateTask(_ task: TaskItem) {
-        Task {
-            activateToast = nil
-            do {
-                let resp: APIResponse<EmptyResponse> = try await APIClient.shared.request(
-                    "/tasks/\(task.id)/activate", method: "POST"
-                )
-                if resp.code == 0 {
-                    activateToast = L10n.myTasksPublishedToast
-                    loadPublished()
-                } else {
-                    activateToast = resp.message.isEmpty ? L10n.myTasksPublishFailed : resp.message
-                }
-            } catch {
-                activateToast = L10n.myTasksPublishFailed
             }
         }
     }

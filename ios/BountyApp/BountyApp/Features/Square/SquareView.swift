@@ -5,6 +5,7 @@ struct SquareView: View {
     @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = SquareViewModel()
     @State private var selectedRadius = 0
+    @State private var selectedSort = "distance"
     @State private var hasLocatedOnce = false
     let radii = [0, 1000, 3000, 5000]
 
@@ -17,6 +18,10 @@ struct SquareView: View {
 
                 RadiusFilterBar(radii: radii, selected: $selectedRadius)
                     .padding(.vertical, 8)
+
+                SortFilterBar(selected: $selectedSort)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 6)
 
                 if appState.userLat == 0 && appState.userLng == 0 && !hasLocatedOnce {
                     HStack(spacing: 6) {
@@ -31,19 +36,22 @@ struct SquareView: View {
             .background(Color.bountyBg)
             .onAppear {
                 // 首屏先尝试用已知坐标拉一次（无坐标时后端返回全部），随后定位到了再刷新
-                Task { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: selectedRadius) }
+                Task { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: selectedRadius, sort: selectedSort) }
             }
             .onChange(of: selectedRadius) { newVal in
-                Task { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: newVal) }
+                Task { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: newVal, sort: selectedSort) }
+            }
+            .onChange(of: selectedSort) { newVal in
+                Task { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: selectedRadius, sort: newVal) }
             }
             .onChange(of: appState.refreshSquareTrigger) { _ in
-                Task { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: selectedRadius) }
+                Task { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: selectedRadius, sort: selectedSort) }
             }
             .onChange(of: appState.userLat) { lat in
                 // 定位成功且之前未用真实坐标刷新过，则按真实距离动态刷新列表
                 guard lat != 0, !hasLocatedOnce else { return }
                 hasLocatedOnce = true
-                Task { await vm.refresh(lat: lat, lng: appState.userLng, radius: selectedRadius) }
+                Task { await vm.refresh(lat: lat, lng: appState.userLng, radius: selectedRadius, sort: selectedSort) }
             }
         }
     }
@@ -82,7 +90,7 @@ struct SquareView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
             }
-            .refreshable { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: selectedRadius) }
+            .refreshable { await vm.refresh(lat: appState.userLat, lng: appState.userLng, radius: selectedRadius, sort: selectedSort) }
         }
     }
 }
@@ -143,18 +151,64 @@ private struct RadiusChip: View {
     }
 }
 
+/// 任务广场排序切换：距离最近 / 赏金最多 / 最新发布
+private struct SortFilterBar: View {
+    @Binding var selected: String
+
+    private let options: [(key: String, icon: String)] = [
+        ("distance", "location.fill"),
+        ("beans", "circle.circle.fill"),
+        ("newest", "clock.fill"),
+    ]
+
+    private var titles: [String: String] {
+        [
+            "distance": L10n.squareSortDistance,
+            "beans": L10n.squareSortBeans,
+            "newest": L10n.squareSortNewest,
+        ]
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(options, id: \.key) { opt in
+                Button {
+                    withAnimation { selected = opt.key }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: opt.icon)
+                            .font(.system(size: 11))
+                        Text(titles[opt.key] ?? opt.key)
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundColor(selected == opt.key ? .white : .bountyTextSecondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(
+                        Capsule().fill(selected == opt.key ? Color.bountyGold : Color.white)
+                    )
+                    .overlay(
+                        Capsule().strokeBorder(Color.bountyBg, lineWidth: selected == opt.key ? 0 : 1)
+                    )
+                }
+            }
+            Spacer()
+        }
+    }
+}
+
 class SquareViewModel: ObservableObject {
     @Published var tasks: [TaskItem] = []
     @Published var isLoading = true
     private var currentPage = 1
     private var hasMore = true
 
-    func refresh(lat: Double, lng: Double, radius: Int) async {
+    func refresh(lat: Double, lng: Double, radius: Int, sort: String = "distance") async {
         await MainActor.run { isLoading = true }
 
         do {
             let resp: APIResponse<PaginatedResponse<TaskItem>> = try await APIClient.shared.request(
-                "/tasks/square?lat=\(lat)&lng=\(lng)&radius=\(radius)&page=1&size=20"
+                "/tasks/square?lat=\(lat)&lng=\(lng)&radius=\(radius)&sort=\(sort)&page=1&size=20"
             )
             if resp.code == 0, let data = resp.data {
                 await MainActor.run {

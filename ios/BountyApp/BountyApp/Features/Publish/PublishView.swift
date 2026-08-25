@@ -12,6 +12,8 @@ struct PublishView: View {
 
     let timeOptions = [5, 15, 30, 60, 120]
     let radiusOptions = [1000, 3000, 5000, 10000]
+    /// 赏金金豆快捷档位（1-50 可自定义）
+    let beansOptions = [1, 5, 10, 20, 50]
 
     var body: some View {
         NavigationStack {
@@ -50,17 +52,63 @@ struct PublishView: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text(L10n.publishQuotaHint)
+                            Text(L10n.publishBeansTitle)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.bountyText)
                             Spacer()
-                            Text(L10n.publishQuotaCost)
+                            Text(String(format: L10n.publishBeansCost, vm.bountyBeans))
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.bountyGold)
                         }
-                        Text(L10n.publishQuotaDesc)
-                            .font(.system(size: 12))
-                            .foregroundColor(.bountyGray)
+
+                        HStack(spacing: 10) {
+                            ForEach(beansOptions, id: \.self) { opt in
+                                Button {
+                                    withAnimation { vm.bountyBeans = opt }
+                                } label: {
+                                    Text("\(opt)")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(vm.bountyBeans == opt ? .white : .bountyTextSecondary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(vm.bountyBeans == opt ? Color.bountyGold : Color.white)
+                                        )
+                                }
+                            }
+                        }
+
+                        HStack(spacing: 12) {
+                            Button {
+                                if vm.bountyBeans > 1 { vm.bountyBeans -= 1 }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(vm.bountyBeans > 1 ? .bountyGold : .bountyGray)
+                            }
+                            .buttonStyle(.plain)
+
+                            Text("\(vm.bountyBeans)")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.bountyText)
+                                .frame(minWidth: 40)
+
+                            Button {
+                                if vm.bountyBeans < 50 { vm.bountyBeans += 1 }
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(vm.bountyBeans < 50 ? .bountyGold : .bountyGray)
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer()
+
+                            Text(L10n.publishBeansHint)
+                                .font(.system(size: 12))
+                                .foregroundColor(.bountyGray)
+                        }
                     }
                     .padding()
                     .background(Color.white)
@@ -212,9 +260,8 @@ class PublishViewModel: ObservableObject {
     @Published var isLocationAutoFilled = false
     @Published var radius = 3000
     @Published var timeLimit = 30
-    // 后端仍需要 bounty/currency 字段；使用固定默认值，UI 不再展示金额。
-    private let bounty: Double = 10
-    private let currency: String = "CNY"
+    /// 任务赏金金豆数（1-50，猎人在任务确认后赚取）
+    @Published var bountyBeans = 10
     @Published var publishError: String?
 
     /// 将当前已填入的 targetLat/targetLng 反向解析为地址（用于自动采用当前位置后填充地址文本）
@@ -253,11 +300,10 @@ class PublishViewModel: ObservableObject {
             targetAddr: targetAddr,
             radius: radius,
             timeLimit: timeLimit,
-            bounty: bounty,
-            currency: currency
+            bountyBeans: bountyBeans
         )
         do {
-            print("[Publish] request body: title=\(title), lat=\(targetLat), lng=\(targetLng), radius=\(radius), timeLimit=\(timeLimit), bounty=\(bounty)")
+            print("[Publish] request body: title=\(title), lat=\(targetLat), lng=\(targetLng), radius=\(radius), timeLimit=\(timeLimit), beans=\(bountyBeans)")
             print("[Publish] currentUserID: \(appState.currentUser?.id ?? "nil"), tokenPrefix: \(APIClient.shared.token?.prefix(20) ?? "nil")")
             let resp: APIResponse<TaskItem> = try await APIClient.shared.request(
                 "/tasks",
@@ -277,11 +323,7 @@ class PublishViewModel: ObservableObject {
             await MainActor.run {
                 appState.refreshMyTasksTrigger.toggle()
                 appState.refreshSquareTrigger.toggle()
-                if taskData.status == "pending" {
-                    appState.showToast(resp.message.isEmpty ? L10n.publishSuccessPending : resp.message)
-                } else {
-                    appState.showToast(L10n.publishSuccess)
-                }
+                appState.showToast(L10n.publishSuccess)
             }
             publishError = nil
             return true
@@ -319,15 +361,15 @@ struct PublishBody: Codable {
     let targetAddr: String
     let radius: Int
     let timeLimit: Int
-    let bounty: Double
-    let currency: String
+    let bountyBeans: Int
 
     enum CodingKeys: String, CodingKey {
-        case title, description, radius, bounty, currency
+        case title, description, radius
         case targetLat = "target_lat"
         case targetLng = "target_lng"
         case targetAddr = "target_addr"
         case timeLimit = "time_limit"
+        case bountyBeans = "bounty_beans"
     }
 }
 

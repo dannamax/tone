@@ -37,6 +37,7 @@ type TaskService struct {
 	notifyRepo     *repository.NotificationRepo
 	submissionRepo *repository.SubmissionRepo
 	wsHub          *websocket.Hub
+	txRepo         *repository.TransactionRepo
 }
 
 func NewTaskService(
@@ -45,6 +46,7 @@ func NewTaskService(
 	notifyRepo *repository.NotificationRepo,
 	submissionRepo *repository.SubmissionRepo,
 	wsHub *websocket.Hub,
+	txRepo *repository.TransactionRepo,
 ) *TaskService {
 	return &TaskService{
 		taskRepo:       taskRepo,
@@ -52,20 +54,20 @@ func NewTaskService(
 		notifyRepo:     notifyRepo,
 		submissionRepo: submissionRepo,
 		wsHub:          wsHub,
+		txRepo:         txRepo,
 	}
 }
 
+// Publish 发布任务：原子扣除金豆（先扣充值豆，再扣赚取豆），成功即发布。
+// 金豆不足返回 ErrInsufficientQuota（HTTP 402 引导充值）。
 func (s *TaskService) Publish(ctx context.Context, publisherID string, req *model.PublishTaskRequest) (*model.Task, error) {
-	fee := req.Bounty * model.PlatformFeeRate
-
-	user, err := s.userRepo.FindByID(ctx, publisherID)
-	if err != nil {
-		return nil, err
-	}
-
-	if user.PublishQuota < 1 {
-		return nil, NewTaskError(ErrInsufficientQuota,
-			i18n.TCtx(ctx, "insufficient_quota"))
+	// 原子扣豆：不足直接失败，任务不创建
+	if err := s.userRepo.DecBeans(ctx, publisherID, req.BountyBeans); err != nil {
+		if err == repository.ErrQuotaInsufficient {
+			return nil, NewTaskError(ErrInsufficientQuota,
+				i18n.TCtx(ctx, "insufficient_beans", req.BountyBeans))
+		}
+		return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "bean_spend_failed"), err)
 	}
 
 	task := &model.Task{
@@ -77,20 +79,27 @@ func (s *TaskService) Publish(ctx context.Context, publisherID string, req *mode
 		TargetAddr:  req.TargetAddr,
 		Radius:      req.Radius,
 		TimeLimit:   req.TimeLimit,
-		Bounty:      req.Bounty,
-		Fee:         fee,
-		Currency:    req.Currency,
-		Status:      model.StatusPublished, // 额度充足直接发布
+		BountyBeans: req.BountyBeans,
+		Status:      model.StatusPublished,
 	}
 
 	created, err := s.taskRepo.Create(ctx, task)
 	if err != nil {
+		// 创建失败回滚已扣金豆
+		_ = s.userRepo.AddBeans(ctx, publisherID, req.BountyBeans, false)
 		return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "task_create_failed"), err)
 	}
-	// 消耗 1 个发布额度
-	if err := s.userRepo.DecQuota(ctx, publisherID, 1); err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "quota_spend_failed"), err)
-	}
+
+	// 写金豆消耗流水
+	s.txRepo.Create(ctx, &model.Transaction{
+		TaskID:     &created.ID,
+		FromUserID: publisherID,
+		Type:       model.TxTypeBeanSpend,
+		Status:     model.TxStatusSuccess,
+		BeansDelta: -req.BountyBeans,
+		Remark:     i18n.T(i18n.LanguageFromCtx(ctx), "bean_spend", req.BountyBeans, created.Title),
+	})
+
 	return created, nil
 }
 
@@ -106,7 +115,7 @@ func (s *TaskService) GetTask(ctx context.Context, taskID string) (*model.Task, 
 }
 
 func (s *TaskService) SquareList(ctx context.Context, req *model.SquareListRequest) ([]model.Task, int64, error) {
-	return s.taskRepo.SquareList(ctx, req.Lat, req.Lng, req.DefaultRadius(), req.DefaultSize(), req.Offset())
+	return s.taskRepo.SquareList(ctx, req.Lat, req.Lng, req.DefaultRadius(), req.DefaultSize(), req.Offset(), req.NormalizedSort())
 }
 
 func (s *TaskService) Claim(ctx context.Context, taskID, claimerID string) error {

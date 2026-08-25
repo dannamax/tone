@@ -104,14 +104,16 @@ struct UserProfile: Codable, Identifiable {
     var avatar: String
     var balance: Double
     var frozenBalance: Double
-    var publishQuota: Int
-    var usedQuota: Int
+    var beansPurchased: Int
+    var beansEarned: Int
+
+    var beansTotal: Int { beansPurchased + beansEarned }
 
     enum CodingKeys: String, CodingKey {
         case id, email, nickname, avatar, balance
         case frozenBalance = "frozen_balance"
-        case publishQuota = "publish_quota"
-        case usedQuota = "used_quota"
+        case beansPurchased = "beans_purchased"
+        case beansEarned = "beans_earned"
     }
 }
 

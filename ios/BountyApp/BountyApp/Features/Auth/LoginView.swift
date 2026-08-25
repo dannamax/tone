@@ -414,8 +414,8 @@ class LoginViewModel: ObservableObject {
                             avatar: tokenResp.user.avatar,
                             balance: tokenResp.user.balance,
                             frozenBalance: tokenResp.user.frozenBalance,
-                            publishQuota: tokenResp.user.publishQuota,
-                            usedQuota: tokenResp.user.usedQuota
+                            beansPurchased: tokenResp.user.beansPurchased,
+                            beansEarned: tokenResp.user.beansEarned
                         )
                         completion(user, tokenResp.accessToken)
                     } else {
@@ -475,14 +475,14 @@ struct TokenUser: Codable {
     let avatar: String
     let balance: Double
     let frozenBalance: Double
-    let publishQuota: Int
-    let usedQuota: Int
+    let beansPurchased: Int
+    let beansEarned: Int
 
     enum CodingKeys: String, CodingKey {
         case id, email, nickname, avatar, balance
         case frozenBalance = "frozen_balance"
-        case publishQuota = "publish_quota"
-        case usedQuota = "used_quota"
+        case beansPurchased = "beans_purchased"
+        case beansEarned = "beans_earned"
     }
 }
 

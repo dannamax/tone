@@ -172,7 +172,7 @@ func main() {
 
 	authSvc := service.NewAuthService(userRepo, cfg, emailProv)
 	log.Printf("[Auth] Verification code store: %s", cfg.CodeStore.Kind)
-	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, hub)
+	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, hub, txRepo)
 	subSvc := service.NewSubmissionService(submissionRepo)
 	paySvc := service.NewPaymentService(userRepo, taskRepo, txRepo, notifyRepo, hub)
 	walletSvc := service.NewWalletService(userRepo, txRepo, notifyRepo)

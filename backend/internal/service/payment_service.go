@@ -56,23 +56,9 @@ func (s *PaymentService) ConfirmTask(ctx context.Context, taskID, publisherID st
 		claimerID = *task.ClaimerID
 	}
 
-	bountyCNY := model.ToCNY(task.Bounty, task.Currency)
-
-	// 余额不足校验：确认扣款前检查发布人可用余额是否足够
-	publisher, err := s.userRepo.FindByID(ctx, publisherID)
-	if err != nil {
-		return err
-	}
-	if publisher == nil || publisher.Balance < bountyCNY {
-		return errors.New(i18n.TCtx(ctx, "insufficient_funds"))
-	}
-
-	if err := s.userRepo.UpdateBalance(ctx, publisherID, -bountyCNY, -bountyCNY, bountyCNY, 0); err != nil {
-		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "unfreeze_deduct_failed"), err)
-	}
-
+	// 金豆结算：发布时已预扣，确认后全额发放给猎人（记入 beans_earned）
 	if claimerID != "" {
-		if err := s.userRepo.UpdateBalance(ctx, claimerID, bountyCNY, 0, 0, bountyCNY); err != nil {
+		if err := s.userRepo.AddBeans(ctx, claimerID, task.BountyBeans, true); err != nil {
 			return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "bounty_payout_failed"), err)
 		}
 	}
@@ -82,23 +68,22 @@ func (s *PaymentService) ConfirmTask(ctx context.Context, taskID, publisherID st
 		TaskID:     &taskID,
 		FromUserID: publisherID,
 		ToUserID:   &claimerID,
-		Amount:     task.Bounty,
-		Fee:        task.Fee,
-		Type:       model.TxTypeRelease,
+		Type:       model.TxTypeBeanReward,
 		Status:     model.TxStatusSuccess,
-		Remark:     i18n.T(lang, "txn_bounty_transfer"),
+		BeansDelta: task.BountyBeans,
+		Remark:     i18n.T(lang, "bean_reward", task.BountyBeans, task.Title),
 	}
 	s.transactionRepo.Create(ctx, tx)
 
 	s.notifyRepo.Create(ctx, claimerID, "task_confirmed",
 		i18n.T(lang, "notif_bounty_received_title"),
-		i18n.T(lang, "notif_bounty_received_body", bountyCNY, task.Title),
+		i18n.T(lang, "notif_bounty_received_body", task.BountyBeans, task.Title),
 		taskID)
 
 	if claimerID != "" {
 		s.wsHub.SendToUser(claimerID, websocket.Message{
 			Type:    websocket.MsgTypeTaskConfirmed,
-			Payload: map[string]interface{}{"task_id": taskID, "amount": task.Bounty},
+			Payload: map[string]interface{}{"task_id": taskID, "beans": task.BountyBeans},
 		})
 	}
 
@@ -155,7 +140,7 @@ func (s *PaymentService) AbandonTask(ctx context.Context, taskID, claimerID stri
 	return nil
 }
 
-// CancelByPublisher 允许发布人撤回自己已发布且未被认领的任务，并自动回收发布额度。
+// CancelByPublisher 允许发布人撤回自己已发布且未被认领的任务，预扣金豆全额返还。
 func (s *PaymentService) CancelByPublisher(ctx context.Context, taskID, publisherID string) error {
 	task, err := s.taskRepo.FindByID(ctx, taskID)
 	if err != nil {
@@ -172,7 +157,21 @@ func (s *PaymentService) CancelByPublisher(ctx context.Context, taskID, publishe
 		return err
 	}
 
+	// 金豆返还发布者（记入 beans_purchased）
+	if err := s.userRepo.AddBeans(ctx, publisherID, task.BountyBeans, false); err != nil {
+		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "bean_refund_failed"), err)
+	}
+
 	lang := i18n.LanguageFromCtx(ctx)
+	s.transactionRepo.Create(ctx, &model.Transaction{
+		TaskID:     &taskID,
+		FromUserID: publisherID,
+		Type:       model.TxTypeBeanRefund,
+		Status:     model.TxStatusSuccess,
+		BeansDelta: task.BountyBeans,
+		Remark:     i18n.T(lang, "bean_refund", task.BountyBeans, task.Title),
+	})
+
 	s.notifyRepo.Create(ctx, publisherID, "task_cancelled",
 		i18n.T(lang, "notif_task_cancelled_title"),
 		i18n.T(lang, "notif_task_cancelled_body", task.Title),
@@ -229,10 +228,8 @@ func (s *PaymentService) RefundTask(ctx context.Context, taskID, publisherID str
 		return err
 	}
 
-	bountyCNY := model.ToCNY(task.Bounty, task.Currency)
-	refundAmount := task.Bounty + task.Fee
-	refundAmountCNY := model.ToCNY(refundAmount, task.Currency)
-	if err := s.userRepo.UpdateBalance(ctx, publisherID, refundAmountCNY, -bountyCNY, 0, 0); err != nil {
+	// 金豆退款：预扣赏金返还发布者（记入 beans_purchased）
+	if err := s.userRepo.AddBeans(ctx, publisherID, task.BountyBeans, false); err != nil {
 		return fmt.Errorf("%s: %w", i18n.TCtx(ctx, "refund_failed"), err)
 	}
 
@@ -240,17 +237,16 @@ func (s *PaymentService) RefundTask(ctx context.Context, taskID, publisherID str
 	tx := &model.Transaction{
 		TaskID:     &taskID,
 		FromUserID: publisherID,
-		Amount:     refundAmountCNY,
-		Fee:        0,
-		Type:       model.TxTypeRefund,
+		Type:       model.TxTypeBeanRefund,
 		Status:     model.TxStatusSuccess,
+		BeansDelta: task.BountyBeans,
 		Remark:     i18n.T(lang, "txn_refunded"),
 	}
 	s.transactionRepo.Create(ctx, tx)
 
 	s.notifyRepo.Create(ctx, publisherID, "task_refunded",
 		i18n.T(lang, "notif_task_refunded_title"),
-		i18n.T(lang, "notif_task_refunded_body", task.Title, refundAmountCNY),
+		i18n.T(lang, "notif_task_refunded_body", task.BountyBeans, task.Title),
 		taskID)
 
 	return nil

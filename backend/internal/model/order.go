@@ -2,28 +2,27 @@ package model
 
 import "time"
 
-// RechargeOrder 充值购买发布额度订单（支付基座，必须幂等）
+// RechargeOrder 金豆充值订单（支付基座，必须幂等）
 type RechargeOrder struct {
-	ID             string     `json:"id" db:"id"`                          // 商户订单号 out_trade_no (uuid)
-	UserID         string     `json:"user_id" db:"user_id"`
-	PackageID      string     `json:"package_id" db:"package_id"`
-	Channel        string     `json:"channel" db:"channel"`                // apple / stripe / wechat / alipay
-	Amount         float64    `json:"amount" db:"amount"`                  // 实际支付金额
-	Currency       string     `json:"currency" db:"currency"`
-	QuotaGranted   int        `json:"quota_granted" db:"quota_granted"`    // 本次应发放额度
-	Status         string     `json:"status" db:"status"`                  // created / paid / failed / refunded
-	GatewayOrderID string     `json:"gateway_order_id,omitempty" db:"gateway_order_id"` // 支付机构订单号(幂等用)
-	ReceiptData    string     `json:"-" db:"receipt_data"`                 // 支付凭证(raw)，如 Apple receipt
-	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
-	PaidAt         *time.Time `json:"paid_at,omitempty" db:"paid_at"`
+	ID            string     `json:"id" db:"id"`                            // 商户订单号 out_trade_no (uuid)
+	UserID        string     `json:"user_id" db:"user_id"`
+	PackageID     string     `json:"package_id" db:"package_id"`
+	Channel       string     `json:"channel" db:"channel"`                   // apple / stripe / wechat / alipay
+	Amount        float64    `json:"amount" db:"amount"`                    // 实际支付金额
+	Currency      string     `json:"currency" db:"currency"`
+	BeansGranted  int        `json:"beans_granted" db:"beans_granted"`       // 本次应发放金豆数
+	Status        string     `json:"status" db:"status"`                     // created / paid / failed / refunded
+	GatewayOrderID string    `json:"gateway_order_id" db:"gateway_order_id"` // 支付机构订单号（transaction_id）
+	ReceiptData   string     `json:"receipt_data,omitempty" db:"receipt_data"`
+	PaidAt        *time.Time `json:"paid_at,omitempty" db:"paid_at"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
 }
 
-// 充值订单状态
+// 订单状态
 const (
-	OrderStatusCreated   = "created"
-	OrderStatusPaid      = "paid"
-	OrderStatusFailed    = "failed"
-	OrderStatusRefunded  = "refunded"
+	OrderStatusCreated = "created"
+	OrderStatusPaid    = "paid"
+	OrderStatusFailed  = "failed"
 )
 
 // RechargeChannel 支持的充值渠道

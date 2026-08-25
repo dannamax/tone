@@ -6,7 +6,6 @@ type TaskStatus string
 
 const (
 	StatusPublished TaskStatus = "published"
-	StatusPending   TaskStatus = "pending"
 	StatusClaimed   TaskStatus = "claimed"
 	StatusSubmitted TaskStatus = "submitted"
 	StatusCompleted TaskStatus = "completed"
@@ -16,27 +15,32 @@ const (
 	StatusCancelled TaskStatus = "cancelled"
 )
 
+// 任务广场排序维度
+const (
+	SortDistance = ""       // 默认按距离
+	SortBeans    = "beans"  // 按赏金金豆数降序
+	SortNewest   = "newest" // 按发布时间降序
+)
+
 type Task struct {
-	ID           string     `json:"id" db:"id"`
-	PublisherID  string     `json:"publisher_id" db:"publisher_id"`
-	Title        string     `json:"title" db:"title"`
-	Description  string     `json:"description" db:"description"`
-	TargetLat    float64    `json:"target_lat" db:"target_lat"`
-	TargetLng    float64    `json:"target_lng" db:"target_lng"`
-	TargetAddr   string     `json:"target_addr" db:"target_addr"`
-	Radius       int        `json:"radius" db:"radius"`
-	TimeLimit    int        `json:"time_limit" db:"time_limit"`
-	Bounty       float64    `json:"bounty" db:"bounty"`
-	Fee          float64    `json:"fee" db:"fee"`
-	Currency     string     `json:"currency" db:"currency"`
-	Status       TaskStatus `json:"status" db:"status"`
-	ClaimerID    *string    `json:"claimer_id,omitempty" db:"claimer_id"`
-	ClaimedAt    *time.Time `json:"claimed_at,omitempty" db:"claimed_at"`
-	SubmittedAt  *time.Time `json:"submitted_at,omitempty" db:"submitted_at"`
-	ConfirmedAt  *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
-	RefundedAt   *time.Time `json:"refunded_at,omitempty" db:"refunded_at"`
-	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
+	ID          string     `json:"id" db:"id"`
+	PublisherID string     `json:"publisher_id" db:"publisher_id"`
+	Title       string     `json:"title" db:"title"`
+	Description string     `json:"description" db:"description"`
+	TargetLat   float64    `json:"target_lat" db:"target_lat"`
+	TargetLng   float64    `json:"target_lng" db:"target_lng"`
+	TargetAddr  string     `json:"target_addr" db:"target_addr"`
+	Radius      int        `json:"radius" db:"radius"`
+	TimeLimit   int        `json:"time_limit" db:"time_limit"`
+	BountyBeans int        `json:"bounty_beans" db:"bounty_beans"` // 赏金金豆数（发布时预扣，确认后归猎人）
+	Status      TaskStatus `json:"status" db:"status"`
+	ClaimerID   *string    `json:"claimer_id,omitempty" db:"claimer_id"`
+	ClaimedAt   *time.Time `json:"claimed_at,omitempty" db:"claimed_at"`
+	SubmittedAt *time.Time `json:"submitted_at,omitempty" db:"submitted_at"`
+	ConfirmedAt *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
+	RefundedAt  *time.Time `json:"refunded_at,omitempty" db:"refunded_at"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
 
 	Distance float64 `json:"distance,omitempty"`
 }
@@ -49,8 +53,7 @@ type PublishTaskRequest struct {
 	TargetAddr  string  `json:"target_addr"`
 	Radius      int     `json:"radius" binding:"required,oneof=1000 3000 5000 10000"`
 	TimeLimit   int     `json:"time_limit" binding:"required,oneof=5 15 30 60 120"`
-	Bounty      float64 `json:"bounty" binding:"required,gte=1,lte=200"`
-	Currency    string  `json:"currency" binding:"required,oneof=CNY USD"`
+	BountyBeans int     `json:"bounty_beans" binding:"required,gte=1,lte=50"`
 }
 
 type SquareListRequest struct {
@@ -59,6 +62,19 @@ type SquareListRequest struct {
 	Radius int     `form:"radius" binding:"omitempty,oneof=0 1000 3000 5000 10000"`
 	Page   int     `form:"page" binding:"omitempty,min=1"`
 	Size   int     `form:"size" binding:"omitempty,min=1,max=50"`
+	Sort   string  `form:"sort"` // distance（默认）/ beans / newest
+}
+
+// NormalizedSort 返回白名单化的排序键
+func (r SquareListRequest) NormalizedSort() string {
+	switch r.Sort {
+	case "beans":
+		return "beans"
+	case "newest":
+		return "newest"
+	default:
+		return "distance"
+	}
 }
 
 func (r SquareListRequest) DefaultRadius() int {
@@ -86,31 +102,10 @@ func (r SquareListRequest) Offset() int {
 
 const (
 	MaxConcurrentTasks     = 3
-	PlatformFeeRate        = 0.10
 	MinWithdrawAmount      = 10.0
 	AutoConfirmHours       = 24
 	TaskExpireHours        = 2
 	MaxPhotosPerSubmission = 3
-	MinBounty              = 1.0
-	MaxBounty              = 200.0
+	MinBountyBeans         = 1
+	MaxBountyBeans         = 50
 )
-
-const (
-	CurrencyCNY       = "CNY"
-	CurrencyUSD       = "USD"
-	USDCNYExchangeRate = 7.2
-)
-
-func ToCNY(amount float64, currency string) float64 {
-	if currency == CurrencyUSD {
-		return amount * USDCNYExchangeRate
-	}
-	return amount
-}
-
-func CurrencySymbol(currency string) string {
-	if currency == CurrencyUSD {
-		return "$"
-	}
-	return "¥"
-}

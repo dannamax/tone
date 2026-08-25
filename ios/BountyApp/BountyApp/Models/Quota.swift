@@ -5,11 +5,11 @@ struct QuotaPackage: Codable, Identifiable {
     let name: String
     let price: Double
     let currency: String
-    let quota: Int
+    let beans: Int
     let appleProductID: String
 
     enum CodingKeys: String, CodingKey {
-        case id, name, price, currency, quota
+        case id, name, price, currency, beans
         case appleProductID = "apple_product_id"
     }
 
@@ -17,8 +17,8 @@ struct QuotaPackage: Codable, Identifiable {
         currency.isEmpty ? "\(price)" : "\(price) \(currency)"
     }
 
-    var localizedQuota: String {
-        String(format: L10n.quotaPackageCountFmt, quota)
+    var localizedBeans: String {
+        String(format: L10n.beansPackageCountFmt, beans)
     }
 }
 
@@ -29,7 +29,7 @@ struct RechargeOrder: Codable, Identifiable {
     let channel: String
     let amount: Double
     let currency: String
-    let quotaGranted: Int
+    let beansGranted: Int
     let status: String
     let createdAt: String
 
@@ -39,7 +39,7 @@ struct RechargeOrder: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, userID = "user_id", packageID = "package_id"
         case channel, amount, currency
-        case quotaGranted = "quota_granted", status
+        case beansGranted = "beans_granted", status
         case createdAt = "created_at"
     }
 }

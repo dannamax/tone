@@ -10,30 +10,20 @@ struct TaskItem: Codable, Identifiable {
     let targetAddr: String
     let radius: Int
     let timeLimit: Int
-    let bounty: Double
-    let fee: Double
-    let currency: String
+    let bountyBeans: Int
     var status: String
     let createdAt: String
     let updatedAt: String
     let distance: Double?
 
-    var currencySymbol: String {
-        switch currency {
-        case "USD": return "$"
-        case "HKD": return "HK$"
-        case "JPY": return "¥"
-        default:    return "¥"
-        }
-    }
-
     enum CodingKeys: String, CodingKey {
-        case id, title, description, radius, bounty, fee, currency, status, distance
+        case id, title, description, radius, status, distance
         case publisherID = "publisher_id"
         case targetLat = "target_lat"
         case targetLng = "target_lng"
         case targetAddr = "target_addr"
         case timeLimit = "time_limit"
+        case bountyBeans = "bounty_beans"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }

@@ -27,11 +27,11 @@ func NewTransactionRepo(db *sql.DB) *TransactionRepo {
 
 func (r *TransactionRepo) Create(ctx context.Context, t *model.Transaction) (*model.Transaction, error) {
 	t.ID = uuid.NewString()
-	query := `INSERT INTO transactions (id, task_id, from_user_id, to_user_id, amount, fee, tx_type, tx_status, remark, order_id, quota_delta) 
+	query := `INSERT INTO transactions (id, task_id, from_user_id, to_user_id, amount, fee, tx_type, tx_status, remark, order_id, beans_delta)
 			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := r.db.ExecContext(ctx, query,
 		t.ID, nullString(t.TaskID), t.FromUserID, t.ToUserID, t.Amount, t.Fee, t.Type, t.Status, t.Remark,
-		nullString(t.OrderID), t.QuotaDelta,
+		nullString(t.OrderID), t.BeansDelta,
 	)
 	if err != nil {
 		return nil, err

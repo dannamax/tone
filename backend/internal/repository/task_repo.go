@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"seeker/internal/model"
@@ -19,18 +20,46 @@ func NewTaskRepo(db *sql.DB) *TaskRepo {
 	return &TaskRepo{db: db}
 }
 
+// taskCols 任务查询列（bounty_beans 为金豆赏金）
+var taskCols = []string{
+	"id", "publisher_id", "title", "description", "target_lat", "target_lng", "target_addr",
+	"radius", "time_limit", "bounty_beans", "status", "claimer_id", "claimed_at",
+	"submitted_at", "confirmed_at", "refunded_at", "created_at", "updated_at",
+}
+
+const taskColsSQL = `id, publisher_id, title, description, target_lat, target_lng, target_addr,
+			  radius, time_limit, bounty_beans, status, claimer_id, claimed_at,
+			  submitted_at, confirmed_at, refunded_at, created_at, updated_at`
+
+func prefixedTaskCols(prefix string) string {
+	return prefix + strings.Join(taskCols, ", "+prefix)
+}
+
+func scanTaskDest(t *model.Task) []interface{} {
+	return []interface{}{
+		&t.ID, &t.PublisherID, &t.Title, &t.Description,
+		&t.TargetLat, &t.TargetLng, &t.TargetAddr, &t.Radius,
+		&t.TimeLimit, &t.BountyBeans, &t.Status,
+		&t.ClaimerID, &t.ClaimedAt, &t.SubmittedAt, &t.ConfirmedAt,
+		&t.RefundedAt, &t.CreatedAt, &t.UpdatedAt,
+	}
+}
+
 func (r *TaskRepo) Create(ctx context.Context, t *model.Task) (*model.Task, error) {
 	t.ID = uuid.NewString()
 	if t.Status == "" {
 		t.Status = model.StatusPublished
 	}
+	if t.BountyBeans <= 0 {
+		t.BountyBeans = model.MinBountyBeans
+	}
 	t.CreatedAt = time.Now()
 	t.UpdatedAt = time.Now()
-	query := `INSERT INTO tasks (id, publisher_id, title, description, target_lat, target_lng, target_addr, radius, time_limit, bounty, fee, currency, status, created_at, updated_at) 
-			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO tasks (id, publisher_id, title, description, target_lat, target_lng, target_addr, radius, time_limit, bounty_beans, status, created_at, updated_at)
+			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := r.db.ExecContext(ctx, query,
 		t.ID, t.PublisherID, t.Title, t.Description, t.TargetLat, t.TargetLng,
-		t.TargetAddr, t.Radius, t.TimeLimit, t.Bounty, t.Fee, t.Currency, t.Status, t.CreatedAt, t.UpdatedAt,
+		t.TargetAddr, t.Radius, t.TimeLimit, t.BountyBeans, t.Status, t.CreatedAt, t.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -38,120 +67,91 @@ func (r *TaskRepo) Create(ctx context.Context, t *model.Task) (*model.Task, erro
 	return t, nil
 }
 
-// Activate 将待提交任务转为已发布
+// Activate 旧版兼容：金豆制下任务发布即生效。
 func (r *TaskRepo) Activate(ctx context.Context, taskID string) error {
 	query := `UPDATE tasks SET status = ?, updated_at = ? WHERE id = ? AND status = 'pending'`
 	result, err := r.db.ExecContext(ctx, query, model.StatusPublished, time.Now(), taskID)
 	if err != nil {
 		return err
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
-		return fmt.Errorf("任务不存在或状态不正确")
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task not found or already active")
 	}
 	return nil
 }
 
 func (r *TaskRepo) FindByID(ctx context.Context, id string) (*model.Task, error) {
-	query := `SELECT id, publisher_id, title, description, target_lat, target_lng, target_addr, 
-			  radius, time_limit, bounty, fee, currency, status, claimer_id, claimed_at, submitted_at, confirmed_at, refunded_at, created_at, updated_at 
-			  FROM tasks WHERE id = ?`
+	query := `SELECT ` + taskColsSQL + ` FROM tasks WHERE id = ?`
 	t := &model.Task{}
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&t.ID, &t.PublisherID, &t.Title, &t.Description,
-		&t.TargetLat, &t.TargetLng, &t.TargetAddr, &t.Radius,
-		&t.TimeLimit, &t.Bounty, &t.Fee, &t.Currency, &t.Status,
-		&t.ClaimerID, &t.ClaimedAt, &t.SubmittedAt, &t.ConfirmedAt,
-		&t.RefundedAt, &t.CreatedAt, &t.UpdatedAt,
-	)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(scanTaskDest(t)...)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	return t, err
 }
 
-// SquareList 按 Haversine 球面距离排序，过滤半径内的已发布任务。
-// 当 lat、lng 均为 0 时视为「全部」，不计算距离，返回所有已发布任务。
-// SQLite 无 PostGIS，使用内联公式计算两坐标间米数距离。
-func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, limit, offset int) ([]model.Task, int64, error) {
+// SquareList 任务广场列表，支持多维度排序：
+//   - distance（默认）：Haversine 距离升序
+//   - beans：赏金金豆降序
+//   - newest：发布时间降序
+//
+// lat、lng 均为 0 视为「全部」；radius > 0 表示仅返回该半径内的任务。
+func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, limit, offset int, sort string) ([]model.Task, int64, error) {
+	cols := prefixedTaskCols("t.")
+
 	if lat == 0 && lng == 0 {
 		var total int64
-		if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE status = 'published'`).Scan(&total); err != nil {
+		if err := r.db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM tasks WHERE status = 'published'`).Scan(&total); err != nil {
 			return nil, 0, err
 		}
-
-		query := `SELECT id, publisher_id, title, description, target_lat, target_lng, target_addr, 
-				  radius, time_limit, bounty, fee, currency, status, claimer_id, claimed_at, submitted_at, 
-				  confirmed_at, refunded_at, created_at, updated_at,
-				  0 AS distance
-				  FROM tasks 
-				  WHERE status = 'published' 
-				  ORDER BY created_at DESC
-				  LIMIT ? OFFSET ?`
-
+		order := "t.created_at DESC"
+		if sort == model.SortBeans {
+			order = "t.bounty_beans DESC, t.created_at DESC"
+		}
+		query := fmt.Sprintf(`SELECT %s, 0 AS distance FROM tasks t
+				  WHERE t.status = 'published' ORDER BY %s LIMIT ? OFFSET ?`, cols, order)
 		rows, err := r.db.QueryContext(ctx, query, limit, offset)
 		if err != nil {
 			return nil, 0, err
 		}
 		defer rows.Close()
-
-		var tasks []model.Task
-		for rows.Next() {
-			var t model.Task
-			if err := rows.Scan(
-				&t.ID, &t.PublisherID, &t.Title, &t.Description,
-				&t.TargetLat, &t.TargetLng, &t.TargetAddr, &t.Radius,
-				&t.TimeLimit, &t.Bounty, &t.Fee, &t.Currency, &t.Status,
-				&t.ClaimerID, &t.ClaimedAt, &t.SubmittedAt, &t.ConfirmedAt,
-				&t.RefundedAt, &t.CreatedAt, &t.UpdatedAt, &t.Distance,
-			); err != nil {
-				return nil, 0, err
-			}
-			tasks = append(tasks, t)
-		}
-		return tasks, total, nil
+		return scanAllRows(rows), total, nil
 	}
 
-	distanceExpr := `(6371000 * acos(cos(radians(?)) * cos(radians(target_lat)) * cos(radians(target_lng) - radians(?)) + sin(radians(?)) * sin(radians(target_lat))))`
+	// 有坐标：distance 仍计算返回（展示用），排序维度由 sort 决定
+	dExpr := `(6371000 * acos(cos(radians(?)) * cos(radians(t.target_lat)) * cos(radians(t.target_lng) - radians(?)) + sin(radians(?)) * sin(radians(t.target_lat))))`
 
-	// radius <= 0 表示"全部"，仅按距离排序展示，不做距离硬过滤；
-	// radius > 0 表示查看该半径内的附近任务。
-	var countQuery string
-	if radius <= 0 {
-		countQuery = `SELECT COUNT(*) FROM tasks WHERE status = 'published'`
-	} else {
-		countQuery = fmt.Sprintf(`SELECT COUNT(*) FROM tasks WHERE status = 'published' AND %s <= ?`, distanceExpr)
+	var order string
+	switch sort {
+	case model.SortBeans:
+		order = "t.bounty_beans DESC, t.created_at DESC"
+	case model.SortNewest:
+		order = "t.created_at DESC"
+	default:
+		order = "distance"
 	}
+
 	var total int64
 	if radius <= 0 {
-		if err := r.db.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
+		if err := r.db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM tasks WHERE status = 'published'`).Scan(&total); err != nil {
 			return nil, 0, err
 		}
 	} else {
-		if err := r.db.QueryRowContext(ctx, countQuery, lat, lng, lat, radius).Scan(&total); err != nil {
+		countQ := fmt.Sprintf(`SELECT COUNT(*) FROM tasks t WHERE t.status = 'published' AND %s <= ?`, dExpr)
+		if err := r.db.QueryRowContext(ctx, countQ, lat, lng, lat, radius).Scan(&total); err != nil {
 			return nil, 0, err
 		}
 	}
 
 	var query string
 	if radius <= 0 {
-		query = fmt.Sprintf(`SELECT t.id, t.publisher_id, t.title, t.description, t.target_lat, t.target_lng, t.target_addr, 
-				  t.radius, t.time_limit, t.bounty, t.fee, t.currency, t.status, t.claimer_id, t.claimed_at, t.submitted_at, 
-				  t.confirmed_at, t.refunded_at, t.created_at, t.updated_at,
-				  %s AS distance
-				  FROM tasks t 
-				  WHERE t.status = 'published' 
-				  ORDER BY distance
-				  LIMIT ? OFFSET ?`, distanceExpr)
+		query = fmt.Sprintf(`SELECT %s, %s AS distance FROM tasks t
+				  WHERE t.status = 'published' ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, order)
 	} else {
-		query = fmt.Sprintf(`SELECT t.id, t.publisher_id, t.title, t.description, t.target_lat, t.target_lng, t.target_addr, 
-				  t.radius, t.time_limit, t.bounty, t.fee, t.currency, t.status, t.claimer_id, t.claimed_at, t.submitted_at, 
-				  t.confirmed_at, t.refunded_at, t.created_at, t.updated_at,
-				  %s AS distance
-				  FROM tasks t 
-				  WHERE t.status = 'published' AND %s <= ?
-				  ORDER BY distance
-				  LIMIT ? OFFSET ?`, distanceExpr, distanceExpr)
+		query = fmt.Sprintf(`SELECT %s, %s AS distance FROM tasks t
+				  WHERE t.status = 'published' AND %s <= ? ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, dExpr, order)
 	}
 
 	var rows *sql.Rows
@@ -169,13 +169,7 @@ func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, lim
 	var tasks []model.Task
 	for rows.Next() {
 		var t model.Task
-		if err := rows.Scan(
-			&t.ID, &t.PublisherID, &t.Title, &t.Description,
-			&t.TargetLat, &t.TargetLng, &t.TargetAddr, &t.Radius,
-			&t.TimeLimit, &t.Bounty, &t.Fee, &t.Currency, &t.Status,
-			&t.ClaimerID, &t.ClaimedAt, &t.SubmittedAt, &t.ConfirmedAt,
-			&t.RefundedAt, &t.CreatedAt, &t.UpdatedAt, &t.Distance,
-		); err != nil {
+		if err := rows.Scan(append(scanTaskDest(&t), &t.Distance)...); err != nil {
 			return nil, 0, err
 		}
 		tasks = append(tasks, t)
@@ -183,29 +177,39 @@ func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, lim
 	return tasks, total, nil
 }
 
+// scanAllRows 扫描不含 distance 列的行集
+func scanAllRows(rows *sql.Rows) []model.Task {
+	var tasks []model.Task
+	for rows.Next() {
+		var t model.Task
+		if err := rows.Scan(scanTaskDest(&t)...); err != nil {
+			continue
+		}
+		tasks = append(tasks, t)
+	}
+	return tasks
+}
+
 func (r *TaskRepo) UpdateStatus(ctx context.Context, id string, status model.TaskStatus) error {
-	query := `UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, status, time.Now(), id)
+	_, err := r.db.ExecContext(ctx, `UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?`, status, time.Now(), id)
 	return err
 }
 
 func (r *TaskRepo) Claim(ctx context.Context, taskID, claimerID string) error {
-	claimedAt := time.Now()
-	query := `UPDATE tasks SET status = ?, claimer_id = ?, claimed_at = ?, updated_at = ? 
+	query := `UPDATE tasks SET status = ?, claimer_id = ?, claimed_at = ?, updated_at = ?
 			  WHERE id = ? AND status = 'published'`
-	result, err := r.db.ExecContext(ctx, query, model.StatusClaimed, claimerID, claimedAt, time.Now(), taskID)
+	result, err := r.db.ExecContext(ctx, query, model.StatusClaimed, claimerID, time.Now(), time.Now(), taskID)
 	if err != nil {
 		return err
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
-		return fmt.Errorf("任务已被其他人领取或不存在")
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task already claimed or not found")
 	}
 	return nil
 }
 
 func (r *TaskRepo) CountActiveByUser(ctx context.Context, userID string) (int, error) {
-	query := `SELECT COUNT(*) FROM tasks WHERE (publisher_id = ? AND status IN ('claimed','submitted','disputed')) 
+	query := `SELECT COUNT(*) FROM tasks WHERE (publisher_id = ? AND status IN ('claimed','submitted','disputed'))
 			  OR (claimer_id = ? AND status IN ('claimed','submitted'))`
 	var count int
 	err := r.db.QueryRowContext(ctx, query, userID, userID).Scan(&count)
@@ -220,30 +224,27 @@ func (r *TaskRepo) CountClaimedByUser(ctx context.Context, userID string) (int, 
 }
 
 func (r *TaskRepo) FindPublishedByUser(ctx context.Context, userID string, page, size int) ([]model.Task, int64, error) {
-	countQuery := `SELECT COUNT(*) FROM tasks WHERE publisher_id = ?`
 	var total int64
-	if err := r.db.QueryRowContext(ctx, countQuery, userID).Scan(&total); err != nil {
+	if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE publisher_id = ?`, userID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	query := `SELECT id, publisher_id, title, description, target_lat, target_lng, target_addr, 
-			  radius, time_limit, bounty, fee, currency, status, claimer_id, claimed_at, submitted_at, confirmed_at, refunded_at, created_at, updated_at 
+	query := `SELECT ` + taskColsSQL + `
 			  FROM tasks WHERE publisher_id = ? AND status <> 'cancelled' ORDER BY created_at DESC LIMIT ? OFFSET ?`
 	return r.listTasks(ctx, query, total, userID, size, (page-1)*size)
 }
 
 func (r *TaskRepo) FindClaimedByUser(ctx context.Context, userID string, page, size int) ([]model.Task, int64, error) {
-	countQuery := `SELECT COUNT(*) FROM tasks WHERE claimer_id = ?`
 	var total int64
-	if err := r.db.QueryRowContext(ctx, countQuery, userID).Scan(&total); err != nil {
+	if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE claimer_id = ?`, userID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	query := `SELECT id, publisher_id, title, description, target_lat, target_lng, target_addr, 
-			  radius, time_limit, bounty, fee, currency, status, claimer_id, claimed_at, submitted_at, confirmed_at, refunded_at, created_at, updated_at 
+	query := `SELECT ` + taskColsSQL + `
 			  FROM tasks WHERE claimer_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
 	return r.listTasks(ctx, query, total, userID, size, (page-1)*size)
 }
 
-// CancelByPublisher 仅允许发布人撤回自己"已发布且未被认领"的任务，并回收已用额度。
+// CancelByPublisher 仅允许发布人撤回自己"已发布且未被认领"的任务。
+// 金豆返还由 service 层统一处理（AddBeans）。
 func (r *TaskRepo) CancelByPublisher(ctx context.Context, taskID, publisherID string) error {
 	query := `UPDATE tasks SET status = ?, updated_at = ? WHERE id = ? AND publisher_id = ? AND status = 'published'`
 	result, err := r.db.ExecContext(ctx, query, model.StatusCancelled, time.Now(), taskID, publisherID)
@@ -253,24 +254,17 @@ func (r *TaskRepo) CancelByPublisher(ctx context.Context, taskID, publisherID st
 	if affected, _ := result.RowsAffected(); affected == 0 {
 		return fmt.Errorf("task not cancellable by publisher")
 	}
-	// 回收发布额度（used_quota - 1，publish_quota + 1）
-	if _, err := r.db.ExecContext(ctx,
-		`UPDATE users SET used_quota = used_quota - 1, publish_quota = publish_quota + 1, updated_at = ? 
-		 WHERE id = ? AND used_quota > 0`, time.Now(), publisherID); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (r *TaskRepo) Release(ctx context.Context, taskID string) error {
-	query := `UPDATE tasks SET status = ?, claimer_id = NULL, claimed_at = NULL, updated_at = ? 
+	query := `UPDATE tasks SET status = ?, claimer_id = NULL, claimed_at = NULL, updated_at = ?
 			  WHERE id = ? AND status = 'claimed'`
 	result, err := r.db.ExecContext(ctx, query, model.StatusReleased, time.Now(), taskID)
 	if err != nil {
 		return err
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if affected, _ := result.RowsAffected(); affected == 0 {
 		return fmt.Errorf("task status invalid for release")
 	}
 	return nil
@@ -278,29 +272,27 @@ func (r *TaskRepo) Release(ctx context.Context, taskID string) error {
 
 func (r *TaskRepo) Submit(ctx context.Context, taskID string) error {
 	now := time.Now()
-	query := `UPDATE tasks SET status = ?, submitted_at = ?, updated_at = ? 
+	query := `UPDATE tasks SET status = ?, submitted_at = ?, updated_at = ?
 			  WHERE id = ? AND status = 'claimed'`
 	result, err := r.db.ExecContext(ctx, query, model.StatusSubmitted, now, now, taskID)
 	if err != nil {
 		return err
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
+	if affected, _ := result.RowsAffected(); affected == 0 {
 		return fmt.Errorf("task status invalid for submit")
 	}
 	return nil
 }
 
 func (r *TaskRepo) Confirm(ctx context.Context, taskID string) error {
-	query := `UPDATE tasks SET status = ?, confirmed_at = ?, updated_at = ? 
+	query := `UPDATE tasks SET status = ?, confirmed_at = ?, updated_at = ?
 			  WHERE id = ? AND status = 'submitted'`
 	result, err := r.db.ExecContext(ctx, query, model.StatusCompleted, time.Now(), time.Now(), taskID)
 	if err != nil {
 		return err
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
-		return fmt.Errorf("任务状态不正确，无法确认")
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task status invalid for confirm")
 	}
 	return nil
 }
@@ -311,9 +303,8 @@ func (r *TaskRepo) MarkDisputed(ctx context.Context, taskID string) error {
 	if err != nil {
 		return err
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
-		return fmt.Errorf("任务状态不正确")
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task status invalid for dispute")
 	}
 	return nil
 }
@@ -324,39 +315,22 @@ func (r *TaskRepo) Refund(ctx context.Context, taskID string) error {
 	if err != nil {
 		return err
 	}
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
-		return fmt.Errorf("任务不存在")
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task not found")
 	}
 	return nil
 }
 
 func (r *TaskRepo) FindExpiredTasks(ctx context.Context) ([]model.Task, error) {
 	cutoff := time.Now().Add(-time.Duration(model.TaskExpireHours) * time.Hour)
-	query := `SELECT id, publisher_id, title, description, target_lat, target_lng, target_addr, 
-			  radius, time_limit, bounty, fee, currency, status, claimer_id, claimed_at, submitted_at, confirmed_at, refunded_at, created_at, updated_at 
+	query := `SELECT ` + taskColsSQL + `
 			  FROM tasks WHERE status = 'published' AND created_at < ?`
 	rows, err := r.db.QueryContext(ctx, query, cutoff)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	var tasks []model.Task
-	for rows.Next() {
-		var t model.Task
-		if err := rows.Scan(
-			&t.ID, &t.PublisherID, &t.Title, &t.Description,
-			&t.TargetLat, &t.TargetLng, &t.TargetAddr, &t.Radius,
-			&t.TimeLimit, &t.Bounty, &t.Fee, &t.Currency, &t.Status,
-			&t.ClaimerID, &t.ClaimedAt, &t.SubmittedAt, &t.ConfirmedAt,
-			&t.RefundedAt, &t.CreatedAt, &t.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, t)
-	}
-	return tasks, nil
+	return scanAllRows(rows), nil
 }
 
 func (r *TaskRepo) listTasks(ctx context.Context, query string, total int64, arg string, limit, offset int) ([]model.Task, int64, error) {
@@ -365,20 +339,5 @@ func (r *TaskRepo) listTasks(ctx context.Context, query string, total int64, arg
 		return nil, 0, err
 	}
 	defer rows.Close()
-
-	var tasks []model.Task
-	for rows.Next() {
-		var t model.Task
-		if err := rows.Scan(
-			&t.ID, &t.PublisherID, &t.Title, &t.Description,
-			&t.TargetLat, &t.TargetLng, &t.TargetAddr, &t.Radius,
-			&t.TimeLimit, &t.Bounty, &t.Fee, &t.Currency, &t.Status,
-			&t.ClaimerID, &t.ClaimedAt, &t.SubmittedAt, &t.ConfirmedAt,
-			&t.RefundedAt, &t.CreatedAt, &t.UpdatedAt,
-		); err != nil {
-			return nil, 0, err
-		}
-		tasks = append(tasks, t)
-	}
-	return tasks, total, nil
+	return scanAllRows(rows), total, nil
 }

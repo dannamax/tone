@@ -1,28 +1,28 @@
 import SwiftUI
 
-struct BountyBadge: View {
-    let amount: Double
-    let currency: String
+/// 金豆赏金徽章（任务卡/详情页通用）
+struct BeansBadge: View {
+    let beans: Int
     var fontSize: CGFloat = 16
 
-    private var symbol: String {
-        currency.uppercased() == "USD" ? "$" : "¥"
-    }
-
     var body: some View {
-        Text("\(symbol)\(String(format: "%.0f", amount))")
-            .font(.system(size: fontSize, weight: .bold))
-            .foregroundColor(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(
-                Capsule()
-                    .fill(LinearGradient(
-                        colors: [Color(hex: "#FF8C52"), .bountyGold],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ))
-            )
+        HStack(spacing: 3) {
+            Image(systemName: "circle.circle.fill")
+                .font(.system(size: fontSize * 0.7))
+            Text("\(beans)")
+                .font(.system(size: fontSize, weight: .bold))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(
+            Capsule()
+                .fill(LinearGradient(
+                    colors: [Color(hex: "#FF8C52"), .bountyGold],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ))
+        )
     }
 }
 
@@ -31,7 +31,6 @@ struct StatusBadge: View {
 
     var color: Color {
         switch status {
-        case "pending": return .orange
         case "claimed": return .bountyInfo
         case "submitted": return .bountyGold
         case "completed": return .bountySuccess

@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
     frozen_balance  REAL NOT NULL DEFAULT 0,
     total_earned    REAL NOT NULL DEFAULT 0,
     total_spent     REAL NOT NULL DEFAULT 0,
-    publish_quota   INTEGER NOT NULL DEFAULT 3,
-    used_quota      INTEGER NOT NULL DEFAULT 0,
+    beans_purchased INTEGER NOT NULL DEFAULT 3,
+    beans_earned    INTEGER NOT NULL DEFAULT 0,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -41,9 +41,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     target_addr     VARCHAR(255) NOT NULL DEFAULT '',
     radius          INTEGER NOT NULL DEFAULT 3000,
     time_limit      INTEGER NOT NULL DEFAULT 30,
-    bounty          REAL NOT NULL,
-    fee             REAL NOT NULL DEFAULT 0,
-    currency        VARCHAR(10) NOT NULL DEFAULT 'CNY',
+    bounty_beans    INTEGER NOT NULL DEFAULT 1,
     status          VARCHAR(20) NOT NULL DEFAULT 'published',
     claimer_id      TEXT REFERENCES users(id),
     claimed_at      DATETIME,
@@ -93,7 +91,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     tx_status   VARCHAR(20) NOT NULL DEFAULT 'pending',
     remark      VARCHAR(255) NOT NULL DEFAULT '',
     order_id    TEXT REFERENCES recharge_orders(id),
-    quota_delta INTEGER NOT NULL DEFAULT 0,
+    beans_delta INTEGER NOT NULL DEFAULT 0,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_task ON transactions(task_id);
@@ -107,7 +105,7 @@ CREATE TABLE IF NOT EXISTS recharge_orders (
     channel         VARCHAR(20) NOT NULL,
     amount          REAL NOT NULL,
     currency        VARCHAR(10) NOT NULL DEFAULT 'CNY',
-    quota_granted   INTEGER NOT NULL DEFAULT 0,
+    beans_granted   INTEGER NOT NULL DEFAULT 0,
     status          VARCHAR(20) NOT NULL DEFAULT 'created',
     gateway_order_id TEXT NOT NULL DEFAULT '',
     receipt_data    TEXT NOT NULL DEFAULT '',

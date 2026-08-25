@@ -66,13 +66,20 @@ var enMessages = map[string]string{
 	"recharge_txn_failed":       "Failed to write recharge transaction record",
 	"recharge_simulated":        "Account recharge (simulated)",
 
-	// --- Publish Quota ---
-	"package_not_found":         "Quota package not found",
+	// --- Publish Quota (beans) ---
+	"package_not_found":         "Beans package not found",
 	"order_not_found":           "Recharge order not found",
 	"invalid_receipt":           "Invalid receipt",
 	"service_unavailable":       "Service temporarily unavailable",
-	"quota_spend_failed":        "Failed to consume publish quota",
-	"insufficient_quota":        "Insufficient publish quota, please recharge",
+	"quota_spend_failed":        "Failed to consume beans",
+	"insufficient_quota":        "Not enough beans, please recharge",
+	"insufficient_beans":        "Not enough beans: %d needed, please recharge",
+	"bean_spend_failed":         "Failed to spend beans",
+	"bean_spend":               "Publish task, spent %d beans: %s",
+	"bean_reward":              "Task completed, earned %d beans: %s",
+	"bean_refund":               "Task returned, refunded %d beans: %s",
+	"bean_refund_failed":        "Failed to refund beans",
+	"bounty_beans_invalid":      "Bounty must be between 1 and 50 beans",
 
 	// --- Wallet / Withdraw ---
 	"withdraw_below_min":        "Withdrawal amount is below the minimum",
@@ -96,14 +103,16 @@ var enMessages = map[string]string{
 	"notif_task_claimed_body":   "Your task \"%s\" has been claimed",
 	"notif_task_submitted_title": "Evidence Submitted",
 	"notif_task_submitted_body": "Evidence for task \"%s\" has been submitted, please review",
-	"notif_bounty_received_title": "Bounty Received",
-	"notif_bounty_received_body": "Bounty ¥%.2f for task \"%s\" has been deposited",
+	"notif_bounty_received_title": "Beans Received",
+	"notif_bounty_received_body": "You earned %d beans for task \"%s\"",
 	"notif_task_abandoned_title": "Task Abandoned",
 	"notif_task_abandoned_body": "The claimer has abandoned task \"%s\", it has been re-published",
 	"notif_task_disputed_title":  "Task Disputed",
 	"notif_task_disputed_body":   "Task \"%s\" has been disputed by the publisher, awaiting support",
 	"notif_task_refunded_title":  "Task Refunded",
-	"notif_task_refunded_body":   "Task \"%s\" has been refunded, ¥%.2f returned to your balance",
+	"notif_task_refunded_body":   "Task \"%s\" refunded, %d beans returned to you",
+	"notif_task_cancelled_title": "Task Cancelled",
+	"notif_task_cancelled_body":  "Your task \"%s\" has been cancelled and beans refunded",
 
 	// --- DB transaction remark ---
 	"txn_bounty_transfer":       "Task completed, bounty transferred",

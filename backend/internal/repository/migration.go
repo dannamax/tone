@@ -38,6 +38,20 @@ func RunMigrations(ctx context.Context, db *sql.DB, driver, migrationsDir string
 				}
 			}
 		}
+		// 金豆经济模型：旧库补齐金豆列（发布额度制 → 金豆制）
+		for _, q := range []string{
+			`ALTER TABLE users ADD COLUMN beans_purchased INTEGER NOT NULL DEFAULT 3`,
+			`ALTER TABLE users ADD COLUMN beans_earned INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE tasks ADD COLUMN bounty_beans INTEGER NOT NULL DEFAULT 1`,
+			`ALTER TABLE transactions ADD COLUMN beans_delta INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE recharge_orders ADD COLUMN beans_granted INTEGER NOT NULL DEFAULT 0`,
+		} {
+			if _, err := db.ExecContext(ctx, q); err != nil {
+				if !strings.Contains(err.Error(), "duplicate column name") {
+					return fmt.Errorf("金豆列迁移失败: %w", err)
+				}
+			}
+		}
 		fmt.Println("[Migration] ✓ sqlite_schema.sql")
 		return nil
 	}

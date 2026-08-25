@@ -24,7 +24,7 @@ struct TaskCardView: View {
                     }
                 }
                 Spacer()
-                BountyBadge(amount: task.bounty, currency: task.currency, fontSize: 18)
+                BeansBadge(beans: task.bountyBeans, fontSize: 18)
             }
 
             HStack {

@@ -27,7 +27,7 @@ func (s *QuotaService) Packages(ctx context.Context) []model.QuotaPackage {
 	return model.QuotaPackagesList()
 }
 
-// CreateOrder 创建充值订单（不实际扣钱，等待支付回调）
+// CreateOrder 创建金豆充值订单（不实际扣钱，等待支付回调）
 func (s *QuotaService) CreateOrder(ctx context.Context, userID, packageID, channel string) (*model.RechargeOrder, error) {
 	pkg, ok := model.GetQuotaPackage(packageID)
 	if !ok {
@@ -39,29 +39,29 @@ func (s *QuotaService) CreateOrder(ctx context.Context, userID, packageID, chann
 		Channel:      channel,
 		Amount:       pkg.Price,
 		Currency:     pkg.Currency,
-		QuotaGranted: pkg.Quota,
+		BeansGranted: pkg.Beans,
 	}
 	return s.rechargeRepo.Create(ctx, order)
 }
 
-// redeem 支付成功后幂等发放额度 + 写流水
+// redeem 支付成功后幂等发放金豆（进 beans_purchased） + 写流水
 func (s *QuotaService) redeem(ctx context.Context, order *model.RechargeOrder) error {
-	_, err := s.rechargeRepo.MarkPaid(ctx, order.ID, order.GatewayOrderID, order.QuotaGranted,
+	_, err := s.rechargeRepo.MarkPaid(ctx, order.ID, order.GatewayOrderID, order.BeansGranted,
 		func(c context.Context, uid string, n int) error {
-			return s.userRepo.AddQuota(c, uid, n)
+			return s.userRepo.AddBeans(c, uid, n, false)
 		})
 	if err != nil {
 		return err
 	}
-	// 写额度购买流水
+	// 写金豆购买流水
 	_, err = s.txRepo.Create(ctx, &model.Transaction{
 		FromUserID: order.UserID,
 		Amount:     order.Amount,
-		Type:       model.TxTypeQuotaBuy,
+		Type:       model.TxTypeBeanBuy,
 		Status:     model.TxStatusSuccess,
-		Remark:     "quota package:" + order.PackageID,
+		Remark:     "beans package:" + order.PackageID,
 		OrderID:    &order.ID,
-		QuotaDelta: order.QuotaGranted,
+		BeansDelta: order.BeansGranted,
 	})
 	return err
 }

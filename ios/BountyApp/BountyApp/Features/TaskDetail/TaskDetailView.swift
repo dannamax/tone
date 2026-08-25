@@ -75,7 +75,7 @@ struct TaskDetailView: View {
             if let task = vm.task {
                 VStack(spacing: 12) {
                     HStack {
-                        BountyBadge(amount: task.bounty, currency: task.currency, fontSize: 20)
+                        BeansBadge(beans: task.bountyBeans, fontSize: 20)
                         Spacer()
                         StatusBadge(status: task.status)
                     }
@@ -263,47 +263,6 @@ struct TaskDetailView: View {
     @ViewBuilder
     private var bottomBar: some View {
         if let task = vm.task {
-            // pending 状态且是自己的任务 → 确认发布按钮
-            if task.status == "pending" && isOwnTask {
-                VStack(spacing: 0) {
-                    Divider()
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(L10n.taskQuotaLow)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.orange)
-                            Text(L10n.taskQuotaHint)
-                                .font(.system(size: 12))
-                                .foregroundColor(.bountyGray)
-                        }
-                        Spacer()
-                        Button {
-                            vm.activatePendingTask(taskID: taskID)
-                        } label: {
-                            HStack(spacing: 6) {
-                                if vm.isActivating {
-                                    ProgressView().tint(.white)
-                                } else {
-                                    Image(systemName: "arrow.up.circle.fill")
-                                        .font(.system(size: 16))
-                                }
-                                Text(vm.isActivating ? L10n.taskPublishing : L10n.taskPublishConfirm)
-                                    .font(.system(size: 14, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(vm.isActivating ? Color.orange.opacity(0.6) : Color.orange)
-                            .cornerRadius(10)
-                        }
-                        .disabled(vm.isActivating)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color.white)
-                }
-            }
-
             // published 状态且不是自己的任务 → 领取按钮
             if task.status == "published" && !isOwnTask {
                 VStack(spacing: 0) {
@@ -589,7 +548,6 @@ class TaskDetailViewModel: ObservableObject {
     @Published var isSubmitting = false
     @Published var isReviewing = false
     @Published var isClaiming = false
-    @Published var isActivating = false
     @Published var showPhotoPicker = false
     @Published var showChatPhotoPicker = false
 
@@ -805,25 +763,6 @@ class TaskDetailViewModel: ObservableObject {
                 print("[Claim] error: \(error)")
             }
             isClaiming = false
-        }
-    }
-
-    func activatePendingTask(taskID: String) {
-        Task { @MainActor in
-            isActivating = true
-            do {
-                let resp: APIResponse<EmptyResponse> = try await APIClient.shared.request(
-                    "/tasks/\(taskID)/activate", method: "POST"
-                )
-                if resp.code == 0 {
-                    loadTask(id: taskID)
-                } else {
-                    print("[Activate] failed: \(resp.message)")
-                }
-            } catch {
-                print("[Activate] error: \(error)")
-            }
-            isActivating = false
         }
     }
 
