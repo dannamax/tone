@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -55,12 +57,23 @@ func NewCOSStorage(secretID, secretKey, bucket, region string) (*COSStorage, err
 }
 
 func (s *COSStorage) Save(key string, data []byte, contentType string) (string, error) {
+	// Defense in depth: only ever serve images inline. Even if a non-image
+	// content type were somehow passed, force image/* + Content-Disposition
+	// so browsers never render uploaded objects as HTML/JS (stored XSS / SVG
+	// script execution risk).
+	if !strings.HasPrefix(contentType, "image/") {
+		contentType = "application/octet-stream"
+	}
+	disp := fmt.Sprintf("inline; filename=%q", filepath.Base(key))
 	opt := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			ContentType: contentType,
 			// 任务/头像图片需公网可读（前端 AsyncImage 直链加载），
 			// 故对象级设为公有读，桶本身保持私有。
-			XOptionHeader: &http.Header{"x-cos-acl": []string{"public-read"}},
+			XOptionHeader: &http.Header{
+				"x-cos-acl":            []string{"public-read"},
+				"Content-Disposition": []string{disp},
+			},
 		},
 	}
 	// PutFromFile-style upload via reader.
