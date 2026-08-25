@@ -41,16 +41,16 @@ jobs:
         run: |
           EXPECTED="${{ steps.sha.outputs.sha }}"
           BASE="${{ secrets.HK_PUBLIC_BASE_URL }}"
+          CURL_OPTS=""
           if [ -z "$BASE" ]; then
             BASE="https://${{ secrets.HK_HOST }}"
+            CURL_OPTS="-k"
             echo " [WARN] HK_PUBLIC_BASE_URL not set, defaulting to $BASE"
           fi
           echo "==> expecting version=$EXPECTED on $BASE"
           for i in $(seq 1 10); do
-            # Use -k because HK currently serves HTTPS via a certificate that
-            # is valid for the domain but not for the bare IP address.
-            # This is only a version-check probe, not a security boundary.
-            HTTP_CODE=$(curl -sS -k -o /tmp/healthz.json -w "%{http_code}" "$BASE/healthz" 2>/tmp/curl.err || true)
+            # 仅当回退到裸 IP 探测时才使用 -k；若使用域名证书则正常校验。
+            HTTP_CODE=$(curl -sS $CURL_OPTS -o /tmp/healthz.json -w "%{http_code}" "$BASE/healthz" 2>/tmp/curl.err || true)
             GOT=$(grep -o '"version":"[^"]*"' /tmp/healthz.json 2>/dev/null | cut -d'"' -f4 || true)
             if [ "$GOT" = "$EXPECTED" ]; then
               echo " [OK] online version matches $EXPECTED"

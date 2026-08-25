@@ -70,7 +70,7 @@
 | `HK_USER` | `root` | SSH 用户 |
 | `HK_SSH_KEY` | `<private-key>` | SSH 私钥（**勿硬编码**，配置在 GitHub Secrets） |
 | `HK_DEPLOY_DIR` | `/opt/bountyapp` | 部署目录 |
-| `HK_PUBLIC_BASE_URL` | `https://api.gotseeker.com` | 公网 base，用于部署后版本核对；建议用域名（HK 证书对裸 IP 无效，verify 会回退到 -k 探测） |
+| `HK_PUBLIC_BASE_URL` | `https://api.gotseeker.com` | 公网 base，用于部署后版本核对；**必须配置**。若使用域名则正常校验 HTTPS 证书；未配置时回退到 `https://HK_HOST` 并加 `-k` 探测 |
 
 > 机器上的 `.env`（含 JWT_SECRET / RESEND_API_KEY / COS 密钥等）**由机器本地维护**，CD 脚本绝不覆盖。密钥轮换只改机器 `.env` + 重启，不动代码。
 
@@ -92,11 +92,11 @@
 1. **自动**：CD 的 verify 步骤比对 `healthz.version` 与目标 SHA。
 2. **人工**：
    ```bash
-   curl https://129.226.138.231/healthz
+   curl https://api.gotseeker.com/healthz
    # 期望 {"status":"ok","version":"<本次 push 的 SHA>"}
    ```
-3. 真实邮件冒烟（Resend）：调一次 `/api/v1/auth/send-code` 到你的 163 邮箱，确认收到。
-4. 跑 `scripts/e2e-smoke.sh https://129.226.138.231`（注意：涉及真实邮件发送需 `E2E_ALLOW_REAL_EMAIL=1`，默认走 mock 保护通道）。
+3. 真实邮件冒烟（Resend）：调一次 `/api/v1/auth/send-code` 到你的邮箱，确认收到。
+4. 跑 `scripts/e2e-smoke.sh https://api.gotseeker.com`（注意：涉及真实邮件发送需 `E2E_ALLOW_REAL_EMAIL=1`，默认走 mock 保护通道）。
 
 ---
 

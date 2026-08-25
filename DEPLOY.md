@@ -76,7 +76,7 @@
 | `HK_USER` | SSH 用户（如 `root`） |
 | `HK_SSH_KEY` | SSH 私钥（CD 使用密钥登录，已在 Secrets 中配置） |
 | `HK_DEPLOY_DIR` | 机器部署目录（如 `/opt/bountyapp`） |
-| `HK_PUBLIC_BASE_URL` | 公网 base（如 `https://129.226.138.231`），用于部署后版本核对 |
+| `HK_PUBLIC_BASE_URL` | 公网 base（如 `https://api.gotseeker.com`），用于部署后版本核对；**必须配置** |
 
 > CD 当前使用**密钥登录**（`key: secrets.HK_SSH_KEY`）。手动调试仍可用密码（`root/Beijing@010`），但生产发布严禁手动 SSH。
 
@@ -89,7 +89,7 @@
 git clone <repo> /opt/bountyapp
 cd /opt/bountyapp
 # 复制真实 .env（切勿用占位符启动）
-cp backend/.env.example .env && vi .env   # 补全 JWT_SECRET / SMTP_* / MINIO_*
+cp backend/.env.example .env && vi .env   # 补全 JWT_SECRET / RESEND_API_KEY / COS 等
 # 安装 docker + compose
 ```
 

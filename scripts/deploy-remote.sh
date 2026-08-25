@@ -36,8 +36,8 @@ if [ ! -f "$DEPLOY_DIR/.env" ]; then
   echo "!!! 部署中止: 检测到机器上缺少 .env。"
   echo "    已生成占位文件 $DEPLOY_DIR/.env，请补全以下真实配置后再部署："
   echo "      - JWT_SECRET (强随机, 且部署后保持固定, 否则已发 token 失效)"
-  echo "      - SMTP_* (真实邮箱授权码)"
-  echo "      - MINIO_* / COS 等对象存储"
+  echo "      - RESEND_API_KEY (Resend 邮件服务)"
+  echo "      - COS / MINIO 等对象存储密钥"
   echo "    补全后重新运行部署。"
   exit 1
 fi
