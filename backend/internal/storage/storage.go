@@ -13,4 +13,7 @@ type Storage interface {
 	Delete(key string) error
 	// URL returns the public URL for a previously stored key.
 	URL(key string) string
+	// PublicBase returns the public base URL (or path) that stored objects
+	// live under, used to validate user-supplied image URLs.
+	PublicBase() string
 }

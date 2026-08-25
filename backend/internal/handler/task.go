@@ -7,6 +7,7 @@ import (
 	"seeker/internal/model"
 	"seeker/internal/repository"
 	"seeker/internal/service"
+	"seeker/internal/validator"
 	"seeker/pkg/i18n"
 	"seeker/pkg/response"
 
@@ -14,14 +15,15 @@ import (
 )
 
 type TaskHandler struct {
-	taskSvc     *service.TaskService
-	subSvc      *service.SubmissionService
-	paySvc      *service.PaymentService
-	messageRepo *repository.MessageRepo
+	taskSvc      *service.TaskService
+	subSvc       *service.SubmissionService
+	paySvc       *service.PaymentService
+	messageRepo  *repository.MessageRepo
+	allowedImageBases []string
 }
 
-func NewTaskHandler(taskSvc *service.TaskService, subSvc *service.SubmissionService, paySvc *service.PaymentService, messageRepo *repository.MessageRepo) *TaskHandler {
-	return &TaskHandler{taskSvc: taskSvc, subSvc: subSvc, paySvc: paySvc, messageRepo: messageRepo}
+func NewTaskHandler(taskSvc *service.TaskService, subSvc *service.SubmissionService, paySvc *service.PaymentService, messageRepo *repository.MessageRepo, allowedImageBases []string) *TaskHandler {
+	return &TaskHandler{taskSvc: taskSvc, subSvc: subSvc, paySvc: paySvc, messageRepo: messageRepo, allowedImageBases: allowedImageBases}
 }
 
 func (h *TaskHandler) Square(c *gin.Context) {
@@ -132,6 +134,10 @@ func (h *TaskHandler) Submit(c *gin.Context) {
 		ImageURLs: []string{},
 	}
 	if req.Note != nil && *req.Note != "" {
+		if validator.ContainsURL(*req.Note) {
+			response.BadRequest(c, i18n.T(lang, "url_not_allowed"))
+			return
+		}
 		msg.Content = i18n.T(lang, "evidence_submitted_with_note", *req.Note)
 	}
 	_, _ = h.messageRepo.Create(c.Request.Context(), msg)
@@ -262,6 +268,20 @@ func (h *TaskHandler) SendMessage(c *gin.Context) {
 	if req.Content == "" && len(req.ImageURLs) == 0 {
 		response.BadRequest(c, i18n.T(lang, "content_empty"))
 		return
+	}
+
+	// Reject any embedded links in chat text (anti-spam / anti-phishing).
+	if validator.ContainsURL(req.Content) {
+		response.BadRequest(c, i18n.T(lang, "url_not_allowed"))
+		return
+	}
+
+	// Only allow image URLs that belong to this app's own storage.
+	for _, u := range req.ImageURLs {
+		if !validator.IsAllowedImageURL(u, h.allowedImageBases) {
+			response.BadRequest(c, i18n.T(lang, "image_url_not_allowed"))
+			return
+		}
 	}
 
 	msg := &model.TaskMessage{

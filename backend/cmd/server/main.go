@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
@@ -180,7 +181,6 @@ func main() {
 
 	// --- Handlers ---
 	authHandler := handler.NewAuthHandler(authSvc, userRepo)
-	taskHandler := handler.NewTaskHandler(taskSvc, subSvc, paySvc, messageRepo)
 	walletHandler := handler.NewWalletHandler(walletSvc, userRepo, txRepo, notifyRepo)
 	quotaHandler := handler.NewQuotaHandler(quotaSvc)
 	// --- Object storage backend ---
@@ -202,6 +202,18 @@ func main() {
 		store = storage.NewLocalStorage(cfg.Storage.LocalDir, cfg.Storage.LocalBase)
 		fmt.Printf("[storage] backend=local dir=%s\n", cfg.Storage.LocalDir)
 	}
+	// Allowed image hosts: the app's own storage base, plus any extra bases
+	// via ALLOWED_IMAGE_BASES (comma-separated) for CDN/front-door setups.
+	allowedImageBases := []string{store.PublicBase()}
+	if extra := strings.TrimSpace(os.Getenv("ALLOWED_IMAGE_BASES")); extra != "" {
+		for _, b := range strings.Split(extra, ",") {
+			b = strings.TrimSpace(b)
+			if b != "" {
+				allowedImageBases = append(allowedImageBases, b)
+			}
+		}
+	}
+	taskHandler := handler.NewTaskHandler(taskSvc, subSvc, paySvc, messageRepo, allowedImageBases)
 	uploadHandler := handler.NewUploadHandler(store)
 	configH := handler.NewConfigHandler(cfg)
 

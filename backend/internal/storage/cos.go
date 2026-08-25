@@ -18,9 +18,9 @@ type COSStorage struct {
 	client *cos.Client
 	bucket string
 	region string
-	// PublicBase is the publicly reachable base URL of the bucket, e.g.
+	// publicBase is the publicly reachable base URL of the bucket, e.g.
 	// https://seekerhub-1301056533.cos.ap-hongkong.myqcloud.com
-	PublicBase string
+	publicBase string
 }
 
 // NewCOSStorage builds a COS client from permanent API credentials.
@@ -52,7 +52,7 @@ func NewCOSStorage(secretID, secretKey, bucket, region string) (*COSStorage, err
 		client:     client,
 		bucket:     bucket,
 		region:     region,
-		PublicBase: fmt.Sprintf("https://%s", host),
+		publicBase: fmt.Sprintf("https://%s", host),
 	}, nil
 }
 
@@ -93,5 +93,10 @@ func (s *COSStorage) Delete(key string) error {
 }
 
 func (s *COSStorage) URL(key string) string {
-	return fmt.Sprintf("%s/%s", s.PublicBase, key)
+	return fmt.Sprintf("%s/%s", s.publicBase, key)
+}
+
+// PublicBase returns the COS bucket's public base URL.
+func (s *COSStorage) PublicBase() string {
+	return s.publicBase
 }

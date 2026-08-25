@@ -86,6 +86,8 @@ var enMessages = map[string]string{
 	"file_empty":                "File is empty",
 	"file_too_large":            "File is too large",
 	"unsupported_image_format":  "Unsupported image format (allowed: JPEG, PNG, GIF, WebP)",
+	"url_not_allowed":           "Links are not allowed in messages",
+	"image_url_not_allowed":     "Image URL must point to this app's storage",
 	"file_type_not_allowed":     "File type is not allowed",
 	"upload_failed":             "Upload failed",
 
@@ -218,6 +220,8 @@ var zhMessages = map[string]string{
 	"file_empty":                  "文件为空",
 	"file_too_large":              "文件过大",
 	"unsupported_image_format":    "不支持的图片格式（仅允许 JPEG、PNG、GIF、WebP）",
+	"url_not_allowed":             "消息中不允许包含链接",
+	"image_url_not_allowed":       "图片地址必须指向本应用的存储空间",
 	"file_type_not_allowed":       "文件类型不允许",
 	"upload_failed":               "上传失败",
 

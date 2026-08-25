@@ -45,3 +45,8 @@ func (s *LocalStorage) Delete(key string) error {
 func (s *LocalStorage) URL(key string) string {
 	return s.base + "/" + key
 }
+
+// PublicBase returns the local public base path for stored objects.
+func (s *LocalStorage) PublicBase() string {
+	return s.base
+}
