@@ -5,28 +5,28 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [main]
 
 jobs:
   deploy:
     name: Deploy to HK (from GitHub)
-    # 仅当 CI 的结果为 success 才部署
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # 仅当 CI 的结果为 success 且来源分支为 main 才部署。
+    # 注意：workflow_run 不支持 branches 过滤，必须在 if 里显式判断 head_branch。
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - name: Fetch deployed commit SHA
         id: sha
         run: echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy via SSH
+      - name: Deploy via SSH (password)
         id: deploy
         uses: appleboy/ssh-action@v1.2.0
-        # 注：此处不再 continue-on-error，任何失败都必须显式暴露以便排查
         with:
           host: ${{ secrets.HK_HOST }}
           username: ${{ secrets.HK_USER }}
-          key: ${{ secrets.HK_SSH_KEY }}
-          # 或改用密码登录：password: ${{ secrets.HK_PASSWORD }}
+          password: ${{ secrets.HK_PASSWORD }}
           script: |
             set -euo pipefail
             echo "==> CD deploy target: ${{ secrets.HK_HOST }} dir=${{ secrets.HK_DEPLOY_DIR }}"
@@ -35,6 +35,25 @@ jobs:
             bash scripts/deploy-remote.sh "${{ steps.sha.outputs.sha }}" "${{ secrets.HK_DEPLOY_DIR }}"
             echo "==> deployed HEAD after: $(git rev-parse HEAD)"
 
+      # 部署后核对线上版本 == 目标 SHA，并跑一次冒烟（公网）
+      - name: Verify deployed version
+        id: verify
+        run: |
+          EXPECTED="${{ steps.sha.outputs.sha }}"
+          BASE="${{ secrets.HK_PUBLIC_BASE_URL }}"
+          echo "==> expecting version=$EXPECTED on $BASE"
+          for i in $(seq 1 10); do
+            GOT=$(curl -fsS "$BASE/healthz" | grep -o '"version":"[^"]*"' | cut -d'"' -f4 || true)
+            if [ "$GOT" = "$EXPECTED" ]; then
+              echo " [OK] online version matches $EXPECTED"
+              exit 0
+            fi
+            echo " wait ($i): got '$GOT' want '$EXPECTED'"
+            sleep 5
+          done
+          echo " [FAIL] online version did not reach $EXPECTED"
+          exit 1
+
       # 部署失败自动回滚到上一个版本
       - name: Rollback on failure
         if: ${{ failure() && steps.deploy.outcome == 'failure' }}
@@ -42,7 +61,7 @@ jobs:
         with:
           host: ${{ secrets.HK_HOST }}
           username: ${{ secrets.HK_USER }}
-          key: ${{ secrets.HK_SSH_KEY }}
+          password: ${{ secrets.HK_PASSWORD }}
           script: |
             set -e
             cd "${{ secrets.HK_DEPLOY_DIR }}"
@@ -56,3 +75,4 @@ jobs:
             docker container prune -f 2>/dev/null || true
             GIT_SHA=prev docker compose -f deploy/docker-compose.prod.yml up -d
             curl -fsS http://127.0.0.1:8080/healthz && echo " [OK] rollback done" || echo " [WARN] rollback healthz FAILED"
+

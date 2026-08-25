@@ -28,12 +28,19 @@ jobs:
       - name: Build
         run: CGO_ENABLED=1 go build -o /tmp/seeker ./cmd/server
 
-      - name: Test
-        run: go test ./... -race -count=1
+      - name: Test (race + coverage gate)
+        run: go test ./... -race -count=1 -coverprofile=coverage.out
+      
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
 
   ios:
     name: iOS build (smoke)
     runs-on: macos-latest
-    if: false # 占位：Xcode 构建按需开启
+    # 占位：Xcode 构建按需开启。发布前 iOS 需本地/手动 Archive 并提交 App Store Connect。
+    if: false
     steps:
       - uses: actions/checkout@v4
