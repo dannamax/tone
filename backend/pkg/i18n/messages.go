@@ -85,6 +85,7 @@ var enMessages = map[string]string{
 	// --- File ---
 	"file_empty":                "File is empty",
 	"file_too_large":            "File is too large",
+	"unsupported_image_format":  "Unsupported image format (allowed: JPEG, PNG, GIF, WebP)",
 	"file_type_not_allowed":     "File type is not allowed",
 	"upload_failed":             "Upload failed",
 
@@ -216,6 +217,7 @@ var zhMessages = map[string]string{
 	// --- File ---
 	"file_empty":                  "文件为空",
 	"file_too_large":              "文件过大",
+	"unsupported_image_format":    "不支持的图片格式（仅允许 JPEG、PNG、GIF、WebP）",
 	"file_type_not_allowed":       "文件类型不允许",
 	"upload_failed":               "上传失败",
 
