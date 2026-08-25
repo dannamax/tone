@@ -18,6 +18,20 @@ EMAIL="e2e_smoke_${TS}@gotseeker.com"
 PASS="SmokeTest123!"
 PASSPORT="+8613800000000"
 
+# ---------- 发信通道保护 ----------
+# e2e 只需要验证码"生成并被脚本读到"，不需要真实投递。若后端当前仍用真实
+# SMTP（个人 163 等）发信，本脚本会把大量测试邮箱灌进发信通道产生退信、
+# 损害发件信誉。因此默认拒绝在"真实 SMTP 通道"上跑 e2e，除非显式声明：
+#   E2E_ALLOW_REAL_EMAIL=1 ./scripts/e2e-smoke.sh <base-url>
+# 正确做法：先把部署的 EMAIL_PROVIDER 设为 resend 或 mock，再跑本脚本。
+if [[ "$BASE" == *"gotseeker.com"* ]] && [ "${E2E_ALLOW_REAL_EMAIL:-0}" != "1" ]; then
+  echo "  [WARN] 目标为生产域名且未声明发信通道已切换。"
+  echo "         若后端 EMAIL_PROVIDER 仍为 smtp(个人邮箱)，本脚本会触发真实发信并产生退信。"
+  echo "         请先将 HK 部署的 EMAIL_PROVIDER 改为 resend 或 mock，再运行；"
+  echo "         或显式确认风险: E2E_ALLOW_REAL_EMAIL=1 $0 $*"
+  exit 1
+fi
+
 pass=0; fail=0
 check() { # desc, condition
   if [ "$2" = "0" ]; then echo "  [PASS] $1"; pass=$((pass+1)); else echo "  [FAIL] $1"; fail=$((fail+1)); fi

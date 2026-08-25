@@ -12,6 +12,33 @@ TS="$(date +%s)"
 EMAIL="full_e2e_${TS}@gotseeker.com"
 PASSPORT="+8613800000000"
 pass=0; fail=0; skip=0
+
+# ---------- 发信通道保护 ----------
+# 本脚本跑在 HK 机器、针对已部署的生产后端。e2e 只需要验证码"生成并被脚本
+# 读到"(从 redis 读取)，不需要真实投递。若后端仍用真实 SMTP(个人 163 等)，
+# 会向大量测试邮箱真实发信并产生退信、损害发件信誉。
+# 默认拒绝在真实 SMTP 通道上跑，除非显式声明:
+#   E2E_ALLOW_REAL_EMAIL=1 bash scripts/full-e2e.sh
+# 正确做法：先把部署的 EMAIL_PROVIDER 设为 resend 或 mock，再跑本脚本。
+if [ "${E2E_ALLOW_REAL_EMAIL:-0}" != "1" ]; then
+  # 探测当前发信通道：优先读运行容器的环境变量；读不到则按 warning 处理。
+  CUR_PROV=""
+  if command -v docker >/dev/null 2>&1; then
+    CUR_PROV=$(docker exec bountyapp printenv EMAIL_PROVIDER 2>/dev/null | tr -d '\r' || true)
+  fi
+  if [ "$CUR_PROV" = "smtp" ]; then
+    echo "  [ABORT] 后端 EMAIL_PROVIDER=smtp(真实个人邮箱)。直接跑会灌退信、损害发件信誉。"
+    echo "          请先把 HK 部署的 EMAIL_PROVIDER 改为 resend 或 mock，再运行；"
+    echo "          或显式确认风险: E2E_ALLOW_REAL_EMAIL=1 bash scripts/full-e2e.sh"
+    exit 1
+  fi
+  if [ -z "$CUR_PROV" ]; then
+    echo "  [WARN] 无法探测当前 EMAIL_PROVIDER。若后端仍为真实 SMTP，本脚本会触发真实发信并产生退信。"
+    echo "         请确认部署的 EMAIL_PROVIDER 已为 resend 或 mock；或显式声明: E2E_ALLOW_REAL_EMAIL=1"
+    exit 1
+  fi
+  echo "  [INFO] 当前 EMAIL_PROVIDER=$CUR_PROV，非真实 SMTP，继续 e2e。"
+fi
 check() { if [ "$2" = "0" ]; then echo "  [PASS] $1"; pass=$((pass+1)); else echo "  [FAIL] $1"; fail=$((fail+1)); fi; }
 jqget() { echo "$1" | grep -o "\"$2\":\"[^\"]*\"" | head -1 | cut -d'"' -f4; }
 

@@ -132,7 +132,19 @@ func main() {
 	// setting SMTP_INTL_* env vars. Falls back to mock console logging when no
 	// channel is configured.
 	var emailProv email.Provider
-	if cfg.Email.Provider == "smtp" {
+	if cfg.Email.Provider == "resend" {
+		// Resend Email API (https://resend.com). Recommended for individual
+		// developers — no business license / credit card required to start.
+		// The sender domain must be verified in the Resend console first.
+		resendProv := email.NewResendProvider(cfg.Email.ResendAPIKey, cfg.Email.ResendFrom)
+		if resendProv.IsEnabled() {
+			emailProv = resendProv
+			log.Printf("[Email] Using Resend provider (from=%s)\n", cfg.Email.ResendFrom)
+		} else {
+			emailProv = email.NewMockProvider()
+			log.Println("[Email] Using Mock provider (RESEND_API_KEY / RESEND_FROM not set; set EMAIL_PROVIDER=resend for production)")
+		}
+	} else if cfg.Email.Provider == "smtp" {
 		var domestic, international *email.SMTPProvider
 		if cfg.Email.Domestic.Enabled() {
 			domestic = email.NewSMTPProvider(cfg.Email.Domestic.Host, cfg.Email.Domestic.Port,

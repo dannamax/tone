@@ -122,6 +122,12 @@ type EmailConfig struct {	// Provider selects the top-level mode: "smtp" (real s
 	// professional service (Amazon SES, SendGrid, Postmark, Tencent/Aliyun
 	// Email Push, etc.) is intended to plug in later — just fill these fields.
 	International SMTPChannelConfig
+	// Resend API credentials (used when Provider == "resend"). Recommended for
+	// individual developers: no business license / credit card required to start
+	// (free tier 3,000 emails/month). The sender domain must be verified in the
+	// Resend console (SPF + DKIM) or the API rejects sends with 400/422.
+	ResendAPIKey string
+	ResendFrom   string
 }
 
 func Load() *Config {
@@ -184,6 +190,8 @@ func Load() *Config {
 				From:     getEnv("SMTP_INTL_FROM", ""),
 				UseTLS:   getEnv("SMTP_INTL_USE_TLS", "false") == "true",
 			},
+			ResendAPIKey: getEnv("RESEND_API_KEY", ""),
+			ResendFrom:   getEnv("RESEND_FROM", ""),
 		},
 		Exchange: ExchangeRateConfig{
 			USDToCNY: getEnvFloat("EXCHANGE_USD_CNY", 7.2),
