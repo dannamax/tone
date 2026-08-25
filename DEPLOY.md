@@ -74,11 +74,11 @@
 |--------|------|
 | `HK_HOST` | HK 机器 IP / 域名（如 `129.226.138.231`） |
 | `HK_USER` | SSH 用户（如 `root`） |
-| `HK_PASSWORD` | SSH 密码（CD 使用密码登录，与 HK 机器现状一致） |
+| `HK_SSH_KEY` | SSH 私钥（CD 使用密钥登录，已在 Secrets 中配置） |
 | `HK_DEPLOY_DIR` | 机器部署目录（如 `/opt/bountyapp`） |
 | `HK_PUBLIC_BASE_URL` | 公网 base（如 `https://129.226.138.231`），用于部署后版本核对 |
 
-> CD 当前使用**密码登录**（`password: secrets.HK_PASSWORD`）。若改用密钥登录，请把 `cd.yml` 的 `password:` 改为 `key:` 并配置 `HK_SSH_KEY`。
+> CD 当前使用**密钥登录**（`key: secrets.HK_SSH_KEY`）。手动调试仍可用密码（`root/Beijing@010`），但生产发布严禁手动 SSH。
 
 > 不要把 `hk.host.env`（含 root 密码）提交进 git，它已被 `.gitignore` 忽略。CI 用 Secrets 注入，本地手动部署用 `hk.host.env`。
 

@@ -34,7 +34,7 @@
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 3. CD 自动部署 (cd.yml)                                      │
-│    SSH(HK 密码) → deploy-remote.sh <sha>                     │
+│    SSH(HK 私钥) → deploy-remote.sh <sha>                     │
 │    git reset --hard origin/main → 打 :prev → compose build   │
 │    → up → 轮询 healthz                                       │
 └───────────────────────────┬─────────────────────────────────┘
@@ -68,7 +68,7 @@
 |--------|----|------|
 | `HK_HOST` | `129.226.138.231` | HK 机器公网 IP |
 | `HK_USER` | `root` | SSH 用户 |
-| `HK_PASSWORD` | `Beijing@010` | SSH 密码（**定期轮换**，勿硬编码进仓库） |
+| `HK_SSH_KEY` | `<private-key>` | SSH 私钥（**勿硬编码**，配置在 GitHub Secrets） |
 | `HK_DEPLOY_DIR` | `/opt/bountyapp` | 部署目录 |
 | `HK_PUBLIC_BASE_URL` | `https://129.226.138.231` | 公网 base，用于部署后版本核对 |
 

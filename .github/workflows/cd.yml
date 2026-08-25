@@ -20,13 +20,13 @@ jobs:
         id: sha
         run: echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy via SSH (password)
+      - name: Deploy via SSH (key)
         id: deploy
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HK_HOST }}
           username: ${{ secrets.HK_USER }}
-          password: ${{ secrets.HK_PASSWORD }}
+          key: ${{ secrets.HK_SSH_KEY }}
           script: |
             set -euo pipefail
             echo "==> CD deploy target: ${{ secrets.HK_HOST }} dir=${{ secrets.HK_DEPLOY_DIR }}"
@@ -61,7 +61,7 @@ jobs:
         with:
           host: ${{ secrets.HK_HOST }}
           username: ${{ secrets.HK_USER }}
-          password: ${{ secrets.HK_PASSWORD }}
+          key: ${{ secrets.HK_SSH_KEY }}
           script: |
             set -e
             cd "${{ secrets.HK_DEPLOY_DIR }}"
