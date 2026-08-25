@@ -70,7 +70,7 @@
 | `HK_USER` | `root` | SSH 用户 |
 | `HK_SSH_KEY` | `<private-key>` | SSH 私钥（**勿硬编码**，配置在 GitHub Secrets） |
 | `HK_DEPLOY_DIR` | `/opt/bountyapp` | 部署目录 |
-| `HK_PUBLIC_BASE_URL` | `https://129.226.138.231` | 公网 base，用于部署后版本核对 |
+| `HK_PUBLIC_BASE_URL` | `https://129.226.138.231` | 公网 base，用于部署后版本核对（未配置时默认 `https://HK_HOST`） |
 
 > 机器上的 `.env`（含 JWT_SECRET / RESEND_API_KEY / COS 密钥等）**由机器本地维护**，CD 脚本绝不覆盖。密钥轮换只改机器 `.env` + 重启，不动代码。
 

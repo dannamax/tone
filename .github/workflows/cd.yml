@@ -41,9 +41,13 @@ jobs:
         run: |
           EXPECTED="${{ steps.sha.outputs.sha }}"
           BASE="${{ secrets.HK_PUBLIC_BASE_URL }}"
+          if [ -z "$BASE" ]; then
+            BASE="https://${{ secrets.HK_HOST }}"
+            echo " [WARN] HK_PUBLIC_BASE_URL not set, defaulting to $BASE"
+          fi
           echo "==> expecting version=$EXPECTED on $BASE"
           for i in $(seq 1 10); do
-            GOT=$(curl -fsS "$BASE/healthz" | grep -o '"version":"[^"]*"' | cut -d'"' -f4 || true)
+            GOT=$(curl -fsS "$BASE/healthz" 2>/dev/null | grep -o '"version":"[^"]*"' | cut -d'"' -f4 || true)
             if [ "$GOT" = "$EXPECTED" ]; then
               echo " [OK] online version matches $EXPECTED"
               exit 0
