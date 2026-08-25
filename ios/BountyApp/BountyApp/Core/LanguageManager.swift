@@ -35,8 +35,7 @@ struct AppLanguage: Identifiable, Equatable {
     var id: String { code }
 
     static let supported: [AppLanguage] = [
-        AppLanguage(code: "en",      nativeName: "English",               englishName: "English",              flag: "🇺🇸"),
-        AppLanguage(code: "zh-Hans", nativeName: "简体中文",                englishName: "Chinese (Simplified)", flag: "🇨🇳"),
+        AppLanguage(code: "en", nativeName: "English", englishName: "English", flag: "🇺🇸"),
     ]
 
     /// Returns the matching AppLanguage for a language code, or English as fallback.

@@ -41,7 +41,6 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         CFBundleLocalizations:
           - en
-          - zh-Hans
         BackendBaseHost: "https://api.gotseeker.com"
         PrivacyPolicyURL: "https://gotseeker.com/privacy"
         TermsOfServiceURL: "https://gotseeker.com/terms"

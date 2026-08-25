@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 )
 
-// Language constants
+// Language constants (global release: English only)
 const (
 	LangEN = "en"
-	LangZH = "zh"
 )
 
 // Context key for language
@@ -31,24 +29,14 @@ func LanguageFromCtx(ctx context.Context) string {
 }
 
 // ParseAcceptLanguage extracts the preferred language from Accept-Language header.
+// Global release: English only, any header value resolves to English.
 func ParseAcceptLanguage(header string) string {
-	if header == "" {
-		return LangEN
-	}
-	lang := header
-	if idx := strings.IndexAny(lang, ",;"); idx != -1 {
-		lang = lang[:idx]
-	}
-	lang = strings.TrimSpace(lang)
-	if strings.HasPrefix(lang, "zh") {
-		return LangZH
-	}
+	_ = header
 	return LangEN
 }
 
 var messages = map[string]map[string]string{
 	LangEN: enMessages,
-	LangZH: zhMessages,
 }
 
 // T returns a translated message for the given key and language.

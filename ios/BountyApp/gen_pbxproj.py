@@ -44,7 +44,6 @@ for root, dirs, files in os.walk(APP_DIR):
             continue
         path = os.path.join(rel, f)
         if "en.lproj" in path: grp = "en_lproj"
-        elif "zh-Hans.lproj" in path: grp = "zh_lproj"
         else: grp = "Resources"
         strings_files.append((path, f, grp))
 
@@ -201,7 +200,7 @@ path_map = {
     "Review":"Review","Settings":"Settings","Square":"Square",
     "TaskDetail":"TaskDetail","Wallet":"Wallet","Models":"Models",
     "Resources":"Resources",
-    "en_lproj":"en.lproj","zh_lproj":"zh-Hans.lproj",
+    "en_lproj":"en.lproj",
 }
 
 for gn in sorted(all_grps):
@@ -227,7 +226,7 @@ ROOT_GROUP = suuid("rootgroup")
 a(f'\t\t{MAIN} /* Seeker */ = {{')
 a(f'\t\t\tisa = PBXGroup;')
 a(f'\t\t\tchildren = (')
-for gn in ["App","Core","Features","Models","Resources","en_lproj","zh_lproj"]:
+for gn in ["App","Core","Features","Models","Resources","en_lproj"]:
     a(f'\t\t\t\t{GRP[gn]} /* {gn} */,')
 a(f'\t\t\t);')
 a(f'\t\t\tpath = BountyApp;')
@@ -342,11 +341,10 @@ a(f'\t\t\t\t}};')
 a(f'\t\t\t}};')
 a(f'\t\t\tbuildConfigurationList = {BCL_P} /* Build configuration list for PBXProject "Seeker" */;')
 a(f'\t\t\tcompatibilityVersion = "Xcode 14.0";')
-a(f'\t\t\tdevelopmentRegion = "zh-Hans";')
+a(f'\t\t\tdevelopmentRegion = "en";')
 a(f'\t\t\thasScannedForEncodings = 0;')
 a(f'\t\t\tknownRegions = (')
 a(f'\t\t\t\ten,')
-a(f'\t\t\t\t"zh-Hans",')
 a(f'\t\t\t);')
 a(f'\t\t\tmainGroup = {ROOT_GROUP};')
 a(f'\t\t\tproductRefGroup = {PRODS} /* Products */;')

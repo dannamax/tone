@@ -36,7 +36,6 @@
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
-		<string>zh-Hans</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Seeker needs camera access to complete tasks</string>

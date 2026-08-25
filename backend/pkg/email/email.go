@@ -63,19 +63,8 @@ func buildMessage(from, to, code, lang string) string {
 	return buf.String()
 }
 
-// emailContent returns (subject, htmlBody) for the given language.
+// emailContent returns (subject, htmlBody). Global release: English only.
 func emailContent(lang, code string) (string, string) {
-	if strings.HasPrefix(lang, "zh") {
-		subject := "Seeker 验证码"
-		body := fmt.Sprintf(
-			`<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:0 auto;padding:24px;">`+
-				`<h2 style="color:#1a1a1a;">Seeker</h2>`+
-				`<p style="color:#444;font-size:15px;line-height:1.6;">您的验证码为：</p>`+
-				`<p style="font-size:32px;font-weight:700;letter-spacing:4px;color:#b8923b;margin:12px 0;">%s</p>`+
-				`<p style="color:#888;font-size:13px;">该验证码 5 分钟内有效。若非本人操作，请忽略此邮件。</p>`+
-				`</div>`, code)
-		return subject, body
-	}
 	subject := "Seeker Verification Code"
 	body := fmt.Sprintf(
 		`<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:0 auto;padding:24px;">`+

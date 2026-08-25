@@ -76,7 +76,6 @@
 		4DD763DC8E5EC8058BD0BD8E /* TaskDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailView.swift; sourceTree = "<group>"; };
 		56FDD25EDE81ED480083057C /* iap_icon_pkg_cny_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iap_icon_pkg_cny_1.png; sourceTree = "<group>"; };
 		5ED7510C56E19F3D5D3651C4 /* Quota.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quota.swift; sourceTree = "<group>"; };
-		66BFE8423DB243095C6F64E4 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		67C34D74210BA1F38500D1ED /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		77744B6482E38A8FC51EDCAB /* AppSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsView.swift; sourceTree = "<group>"; };
 		77B381D5D37897448B4394DF /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -92,7 +91,6 @@
 		95CC54A78BA59582D64D697F /* ServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSettingsView.swift; sourceTree = "<group>"; };
 		9A6033441D988E0549F8AD5D /* MyTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyTasksView.swift; sourceTree = "<group>"; };
 		9C0B48DC8D3837FD83307F5F /* NetworkDiscoverer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkDiscoverer.swift; sourceTree = "<group>"; };
-		B4747206D21FFD5EA47B867B /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		B66E6CD1903F3CD788073E94 /* Date+Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Format.swift"; sourceTree = "<group>"; };
 		C44A7773C5BC85F5581D5967 /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		D5F08ABDC66DE3563D71E220 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
@@ -409,7 +407,6 @@
 			knownRegions = (
 				Base,
 				en,
-				"zh-Hans",
 			);
 			mainGroup = 62D074BAC7DFA231260CE04D;
 			minimizedProjectReferenceProxies = 1;
@@ -503,7 +500,6 @@
 			isa = PBXVariantGroup;
 			children = (
 				F98BE8A19357AF576A8E2573 /* en */,
-				66BFE8423DB243095C6F64E4 /* zh-Hans */,
 			);
 			name = InfoPlist.strings;
 			sourceTree = "<group>";
@@ -512,7 +508,6 @@
 			isa = PBXVariantGroup;
 			children = (
 				F062869A0DA4531066228B82 /* en */,
-				B4747206D21FFD5EA47B867B /* zh-Hans */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
