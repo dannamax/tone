@@ -119,12 +119,92 @@ struct WalletView: View {
         .sheet(isPresented: $showPackages) {
             QuotaPackagesSheet(vm: vm)
         }
-        .alert(L10n.rewardsCenterTitle, isPresented: $showRewardsComingSoon) {
-            Button(L10n.commonClose, role: .cancel) {}
-        } message: {
-            Text(L10n.rewardsComingSoonMsg)
+        .sheet(isPresented: $showRewardsComingSoon) {
+            RewardsCenterSheet(earned: vm.beansEarned)
         }
         .onAppear { vm.load() }
+    }
+}
+
+/// 奖励中心说明弹窗（V1：仅兑换规则预告 + 进度展示，不提供真实兑换）
+/// 合规要点：
+/// 1. 只预告 earned 豆参与兑换（purchased 不参与）——与 IAP 隔离，防审核判定闭环套利；
+/// 2. 不承诺上线时间与具体比例（"Final rules will be published at launch"）；
+/// 3. 全程用 rewards/redemption 措辞，不用 cash out/withdraw money。
+struct RewardsCenterSheet: View {
+    @ObservedObject private var lang = LanguageManager.shared
+    let earned: Int
+    @Environment(\.dismiss) private var dismiss
+
+    private let threshold = 500
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // 进度卡片
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(L10n.rewardsProgressTitle)
+                            .font(.system(size: 13))
+                            .foregroundColor(.bountyTextSecondary)
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text("\(earned)")
+                                .font(.system(size: 34, weight: .bold))
+                                .foregroundColor(.bountyText)
+                            Text("/ \(threshold)")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.bountyGray)
+                            Spacer()
+                            Text(L10n.rewardsComingSoon)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.bountyGold)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(Color.bountyGold.opacity(0.12)))
+                        }
+                        ProgressView(value: Double(min(earned, threshold)), total: Double(threshold))
+                            .tint(.bountyGold)
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.white)
+                    .cornerRadius(14)
+
+                    // 兑换规则预告
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text(L10n.rewardsRulesTitle)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.bountyText)
+                        ruleRow(icon: "checkmark.circle.fill", color: .bountySuccess, text: L10n.rewardsRuleEarnedOnly)
+                        ruleRow(icon: "gift.fill", color: .bountyGold, text: L10n.rewardsRuleThreshold)
+                        ruleRow(icon: "creditcard.fill", color: .bountyInfo, text: L10n.rewardsRuleOptions)
+                        ruleRow(icon: "person.2.fill", color: .bountyGray, text: L10n.rewardsRuleNoTransfer)
+                        ruleRow(icon: "doc.text.fill", color: .bountyGray, text: L10n.rewardsRuleFinalNote)
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.white)
+                    .cornerRadius(14)
+                }
+                .padding(20)
+            }
+            .background(Color.bountyBg)
+            .navigationTitle(L10n.rewardsCenterTitle)
+            .navigationBarItems(trailing: Button(L10n.commonClose) { dismiss() })
+        }
+    }
+
+    private func ruleRow(icon: String, color: Color, text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(color)
+                .frame(width: 18)
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundColor(.bountyText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

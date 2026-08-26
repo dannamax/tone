@@ -229,6 +229,13 @@
 "rewards_center_subtitle" = "More ways to use earned beans";
 "rewards_coming_soon" = "Coming Soon";
 "rewards_coming_soon_msg" = "The Rewards Center is under development. Beans you earn from tasks will unlock more uses here — we'll notify you as soon as it's live.";
+"rewards_progress_title" = "Earned beans toward redemption";
+"rewards_rules_title" = "How redemption will work";
+"rewards_rule_earned_only" = "Only beans earned from completed tasks are redeemable. Purchased beans are not redeemable.";
+"rewards_rule_threshold" = "Redemption starts from 500 earned beans.";
+"rewards_rule_options" = "Planned reward options: gift cards and PayPal payouts. Exchange rates will be published when redemption goes live.";
+"rewards_rule_no_transfer" = "Beans are personal and cannot be transferred between accounts.";
+"rewards_rule_final_note" = "Final rules will be published at launch.";
 "quota_loading" = "Loading packages...";
 "quota_package_count_fmt" = "%d tasks";
 "quota_purchasing" = "Processing purchase...";

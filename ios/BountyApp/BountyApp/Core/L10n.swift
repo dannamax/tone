@@ -237,6 +237,13 @@ enum L10n {
     static var rewardsCenterSubtitle: String { localized("rewards_center_subtitle") }
     static var rewardsComingSoon: String { localized("rewards_coming_soon") }
     static var rewardsComingSoonMsg: String { localized("rewards_coming_soon_msg") }
+    static var rewardsProgressTitle: String { localized("rewards_progress_title") }
+    static var rewardsRulesTitle: String { localized("rewards_rules_title") }
+    static var rewardsRuleEarnedOnly: String { localized("rewards_rule_earned_only") }
+    static var rewardsRuleThreshold: String { localized("rewards_rule_threshold") }
+    static var rewardsRuleOptions: String { localized("rewards_rule_options") }
+    static var rewardsRuleNoTransfer: String { localized("rewards_rule_no_transfer") }
+    static var rewardsRuleFinalNote: String { localized("rewards_rule_final_note") }
     static var commonClose: String { localized("common_close") }
 
     // MARK: - StoreKit / Apple IAP
