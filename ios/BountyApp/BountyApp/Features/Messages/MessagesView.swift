@@ -193,7 +193,7 @@ final class MessagesViewModel: ObservableObject {
                 notifications = [
                     NotificationItem(id: "1", type: "task_claimed", title: L10n.messagesOfferClaimed, content: "", taskId: nil, isRead: false, createdAt: "Today"),
                     NotificationItem(id: "2", type: "task_submitted", title: L10n.messagesEvidenceSubmitted, content: "", taskId: nil, isRead: true, createdAt: "Yesterday"),
-                    NotificationItem(id: "3", type: "task_confirmed", title: String(format: L10n.messagesBountyReceived, 8.50), content: "", taskId: nil, isRead: true, createdAt: "2 days ago")
+                    NotificationItem(id: "3", type: "task_confirmed", title: String(format: L10n.messagesBountyReceived, 5), content: "", taskId: nil, isRead: true, createdAt: "2 days ago")
                 ]
                 isLoading = false
             }

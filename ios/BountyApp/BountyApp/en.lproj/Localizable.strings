@@ -381,4 +381,4 @@
 /* Messages Mock */
 "messages_offer_claimed" = "Your offer has been claimed, pending review";
 "messages_evidence_submitted" = "Task evidence has been submitted, please review";
-"messages_bounty_received" = "You have received a bounty of ¥%.2f";
+"messages_bounty_received" = "You have received %d beans";
