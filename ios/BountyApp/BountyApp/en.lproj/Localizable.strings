@@ -232,7 +232,7 @@
 "rewards_progress_title" = "Earned beans toward redemption";
 "rewards_rules_title" = "How redemption will work";
 "rewards_rule_earned_only" = "Only beans earned from completed tasks are redeemable. Purchased beans are not redeemable.";
-"rewards_rule_threshold" = "Redemption requires both 500 earned beans and 50 confirmed completed tasks.";
+"rewards_rule_threshold" = "Redemption requires 50 confirmed completed tasks and at least 50 earned beans.";
 "wallet_beans_suffix" = "beans";
 "rewards_tasks_suffix" = "completed tasks";
 "rewards_rule_options" = "Planned reward options: gift cards and PayPal payouts. Exchange rates will be published when redemption goes live.";

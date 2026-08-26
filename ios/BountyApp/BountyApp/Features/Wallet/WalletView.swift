@@ -129,8 +129,8 @@ struct WalletView: View {
 /// 奖励中心说明弹窗（V1：仅兑换规则预告 + 双进度展示，不提供真实兑换）
 /// 合规要点：
 /// 1. 只预告 earned 豆参与兑换（purchased 不参与）——与 IAP 隔离，防审核判定闭环套利；
-/// 2. 双维门槛：earned ≥ 500 豆 且 已确认任务 ≥ 50 个（防高赏金速通 + 防小号刷量，
-///    正常用户 50 任务 × 均价 10 豆 = 500 豆两条件同时达成）；
+/// 2. 双维门槛：已确认任务 ≥ 50 个（主门槛，工作量维度）且 earned ≥ 50 豆（最低累计
+///    报酬下限；数学上被 50 任务蕴含——最低 5 象任务 × 50 = 250 豆，为防御性冗余条件）；
 /// 3. 不承诺上线时间与具体比例（"Final rules will be published at launch"）；
 /// 4. 全程用 rewards/redemption 措辞，不用 cash out/withdraw money。
 struct RewardsCenterSheet: View {
@@ -139,7 +139,7 @@ struct RewardsCenterSheet: View {
     let completed: Int
     @Environment(\.dismiss) private var dismiss
 
-    private let beanThreshold = 500
+    private let beanThreshold = 50
     private let taskThreshold = 50
 
     var body: some View {
