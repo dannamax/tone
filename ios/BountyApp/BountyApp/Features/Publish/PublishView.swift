@@ -12,8 +12,8 @@ struct PublishView: View {
 
     let timeOptions = [5, 15, 30, 60, 120]
     let radiusOptions = [1000, 3000, 5000, 10000]
-    /// 赏金金豆快捷档位（1-50 可自定义）
-    let beansOptions = [1, 5, 10, 20, 50]
+    /// 赏金金豆快捷档位（5-50 可自定义，最低 5 豆）
+    let beansOptions = [5, 10, 20, 30, 50]
 
     var body: some View {
         NavigationStack {
@@ -81,11 +81,11 @@ struct PublishView: View {
 
                         HStack(spacing: 12) {
                             Button {
-                                if vm.bountyBeans > 1 { vm.bountyBeans -= 1 }
+                                if vm.bountyBeans > 5 { vm.bountyBeans -= 1 }
                             } label: {
                                 Image(systemName: "minus.circle.fill")
                                     .font(.system(size: 22))
-                                    .foregroundColor(vm.bountyBeans > 1 ? .bountyGold : .bountyGray)
+                                    .foregroundColor(vm.bountyBeans > 5 ? .bountyGold : .bountyGray)
                             }
                             .buttonStyle(.plain)
 

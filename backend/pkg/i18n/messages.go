@@ -79,7 +79,7 @@ var enMessages = map[string]string{
 	"bean_reward":              "Task completed, earned %d beans: %s",
 	"bean_refund":               "Task returned, refunded %d beans: %s",
 	"bean_refund_failed":        "Failed to refund beans",
-	"bounty_beans_invalid":      "Bounty must be between 1 and 50 beans",
+	"bounty_beans_invalid":      "Bounty must be between 5 and 50 beans",
 
 	// --- Wallet / Withdraw ---
 	"withdraw_below_min":        "Withdrawal amount is below the minimum",

@@ -24,8 +24,8 @@ func (u *User) BeansTotal() int {
 	return u.BeansPurchased + u.BeansEarned
 }
 
-// FreeBeans 新用户注册赠送的金豆数
-const FreeBeans = 3
+// FreeBeans 新用户注册赠送的金豆数（与最低赏金等值，先尝后买：体验 1 次发布后触发充值）
+const FreeBeans = 5
 
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`

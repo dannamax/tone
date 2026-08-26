@@ -53,7 +53,7 @@ type PublishTaskRequest struct {
 	TargetAddr  string  `json:"target_addr"`
 	Radius      int     `json:"radius" binding:"required,oneof=1000 3000 5000 10000"`
 	TimeLimit   int     `json:"time_limit" binding:"required,oneof=5 15 30 60 120"`
-	BountyBeans int     `json:"bounty_beans" binding:"required,gte=1,lte=50"`
+	BountyBeans int     `json:"bounty_beans" binding:"required,gte=5,lte=50"`
 }
 
 type SquareListRequest struct {
@@ -106,6 +106,6 @@ const (
 	AutoConfirmHours       = 24
 	TaskExpireHours        = 2
 	MaxPhotosPerSubmission = 3
-	MinBountyBeans         = 1
+	MinBountyBeans         = 5 // 高频充值模型：最低赏金与最小充值包等值，$0.99=5豆=1次任务
 	MaxBountyBeans         = 50
 )

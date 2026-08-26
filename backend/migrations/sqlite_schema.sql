@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     frozen_balance  REAL NOT NULL DEFAULT 0,
     total_earned    REAL NOT NULL DEFAULT 0,
     total_spent     REAL NOT NULL DEFAULT 0,
-    beans_purchased INTEGER NOT NULL DEFAULT 3,
+    beans_purchased INTEGER NOT NULL DEFAULT 5,
     beans_earned    INTEGER NOT NULL DEFAULT 0,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

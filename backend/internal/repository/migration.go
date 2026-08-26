@@ -40,7 +40,7 @@ func RunMigrations(ctx context.Context, db *sql.DB, driver, migrationsDir string
 		}
 		// 金豆经济模型：旧库补齐金豆列（发布额度制 → 金豆制）
 		for _, q := range []string{
-			`ALTER TABLE users ADD COLUMN beans_purchased INTEGER NOT NULL DEFAULT 3`,
+			`ALTER TABLE users ADD COLUMN beans_purchased INTEGER NOT NULL DEFAULT 5`,
 			`ALTER TABLE users ADD COLUMN beans_earned INTEGER NOT NULL DEFAULT 0`,
 			`ALTER TABLE tasks ADD COLUMN bounty_beans INTEGER NOT NULL DEFAULT 1`,
 			`ALTER TABLE transactions ADD COLUMN beans_delta INTEGER NOT NULL DEFAULT 0`,
@@ -51,6 +51,11 @@ func RunMigrations(ctx context.Context, db *sql.DB, driver, migrationsDir string
 					return fmt.Errorf("金豆列迁移失败: %w", err)
 				}
 			}
+		}
+		// 存量用户金豆补齐到注册礼水平（幂等）
+		if _, err := db.ExecContext(ctx,
+			`UPDATE users SET beans_purchased = MAX(beans_purchased, 5) WHERE beans_purchased < 5 AND beans_earned = 0`); err != nil {
+			return fmt.Errorf("存量金豆补齐失败: %w", err)
 		}
 		fmt.Println("[Migration] ✓ sqlite_schema.sql")
 		return nil

@@ -147,7 +147,7 @@
 "publish_quota_desc" = "Publishing a task consumes 1 publish quota.";
 "publish_beans_title" = "Bounty Beans";
 "publish_beans_cost" = "Cost: %d beans";
-"publish_beans_hint" = "Hunter earns the full bounty (1-50)";
+"publish_beans_hint" = "Hunter earns the full bounty (5-50)";
 "publish_submit_btn" = "Publish Task";
 "publish_need_login" = "Please log in first";
 "publish_need_location" = "Please enable location permissions";
