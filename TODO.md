@@ -5,36 +5,31 @@
 
 ---
 
-## 🔴 P0 — 发布前阻断项（须解决才能上 App Store）
+## 🔴 P0 — 发布前阻断项（须解决才能提审 App Store）
 
-无（核心功能链路已验证可用，详见下方「发布就绪核对」）。
+### P0.1 IAP 沙盒真机端到端验证
+- **现状**：后端 StoreKit 2 JWS 本地验签已完成（Apple Root CA - G3 证书链 + ECDSA 验签 + productId 匹配 + 防重放，5 个单测全过）；iOS 发送 `transaction.jwsRepresentation`；ASC 三 SKU（pkg_usd_2/5/10）已配置为"可供审核"。
+- **缺口**：**从未在真机 + 沙盒账号完成一次实际购买闭环**（购买 → JWS 提交 → 验签 → 豆子到账 → 钱包余额更新）。
+- **步骤**：真机装 Release 构建 → 设置登录沙盒账号（Settings → App Store → Sandbox Account）→ 钱包购买 $1.99/10豆 → 确认余额 +10 → 重复购买确认幂等 → 退款路径（沙盒可选）。
+- **这是唯一拦提审的代码侧事项**（人工真机操作，约 15 分钟）。
+
+### P0.2 App Store Connect 提审材料
+- [ ] **截图**：6.7"（iPhone 17 Pro Max 等）+ 6.5" 两组；`scripts/generate_review_screenshot.py` 可生成占位图，建议用真机/模拟器截真实界面（广场、发布、钱包、任务详情）
+- [ ] **版本页**：1.0 — 描述文案（PRD 1.1/1.2 可提炼）、关键词、推广文本、支持 URL（support@gotseeker.com 或 gotseeker.com）
+- [ ] **App 隐私标签**：Data Collection 问卷（对照 PrivacyInfo.xcprivacy：位置/照片/邮箱/设备 ID，不追踪）
+- [ ] **年龄分级**：问卷（任务交易类，预期 12+/17+）
+- [ ] **价格与地区**：免费 + 排除中国大陆/香港/台湾，其余全开
+- [ ] **出口合规**：Info.plist 已设 `ITSAppUsesNonExemptEncryption=false` ✅（ASC 问卷同步选"仅 HTTPS"）
 
 ---
 
 ## 🟡 P1 — 已知架构问题（已分析，发布后可择机修复）
 
 ### P1.1 文件上传存储于 HK 机器本地盘（非对象存储）
-- **现状**：`POST /api/v1/upload` 把文件写入容器 `/app/uploads`（bind mount 到 HK 宿主机 `/opt/bountyapp/uploads`），返回相对 URL `/uploads/xxx.jpg`。`config.go` 的 `MinIOConfig` 未被使用。
-- **风险**：
-  1. 磁盘空间上限（系统盘 50–100GB，图片堆积无清理 → 写满后上传失败、连带 SQLite 异常）。
-  2. 容器/机器重建时本地盘图片有丢失风险（SQLite 已用 volume，uploads 仍是 bind mount，不一致）。
-  3. 无 CDN，图片经后端回源，真机加载慢、占带宽。
-  4. 返回相对 URL，换域名/CDN 时前端拼接要改。
-  5. 无 MIME/大小校验，有恶意上传风险。
-  6. 多实例水平扩展时本地盘图片不共享。
-- **方案**：接入腾讯云 COS（或兼容 S3 的 MinIO）。`internal/service/storage.go` 提供统一接口（cos/minio/local 三后端），upload handler 改为传 COS 并返回绝对 URL；compose 去掉 `./uploads` bind mount；`.env.example` / DEPLOY.md 补充 COS 配置。
-- **状态**：✅ 已完成并验证（2026-08-24）。
-  - 新增 `internal/storage` 抽象层：`Storage` 接口 + `LocalStorage`(开发/CI) + `COSStorage`(生产)，引入 `github.com/tencentyun/cos-go-sdk-v5 v0.7.75`。
-  - `config.go` 的 `MinIOConfig` 替换为 `StorageConfig`（`STORAGE_BACKEND` 开关 + `COS_SECRET_ID/KEY/BUCKET/REGION`）。
-  - upload handler 改用 Storage 接口，返回完整 COS 公网 URL（对象级 `public-read`，桶保持私有）。
-  - HK `.env` 已配置 `STORAGE_BACKEND=cos` + COS 凭据（不提交 git）。
-  - 端到端验证：上传 1x1 PNG → 返回 `https://seekerhub-1301056533.cos.ap-hongkong.myqcloud.com/...png` → 公网 `curl` 返回 200。
-  - iOS `buildImageURL` 已兼容完整 http(s) URL，无需改动。
-  - ⚠️ **历史数据迁移提示**：迁移前已上传到 HK 本地 `/uploads/` 的旧图片，其 URL 为相对路径 `/uploads/xxx.jpg`，在 COS 模式下这些旧图片已无法访问（前端会拼成 `https://api.gotseeker.com/uploads/...` 但后端不再提供该静态路由对应的旧文件）。当前为早期发布阶段、历史图片量极少，影响可忽略；若需保留旧图，可脚本批量迁移至 COS。
+- **状态**：✅ 已完成并验证（2026-08-24，COS 上线，对象级 public-read + 完整 URL）。
 
 ### P1.2 上传接口缺 MIME/大小校验
-- 依赖 `PhotoUpload` model 限制（证据图 `max=3`），但 `/upload` 接口本身不限类型/大小。
-- **方案**：加 `image/*` 白名单 + 单文件大小上限（如 5MB）。
+- **状态**：✅ 已完成并验证（2026-08-26 核对代码）：5MB 上限 + PNG/JPEG/GIF/WebP 魔数嗅探白名单 + 强制 `image/*` Content-Type + Content-Disposition + 禁路径穿越。
 
 ---
 
@@ -43,35 +38,26 @@
 - P2.1 上传走前端 STS 直传 COS，后端只签发临时凭证（降带宽压力）。
 - P2.2 COS 图片处理生成缩略图，提升真机加载。
 - P2.3 WebSocket 推送稳定性与重连策略压测。
-- P2.4 配额购买（Apple IAP）端到端沙盒验证。
 - P2.5 SQLite → 腾讯云 PostgreSQL（正式期，compose 已预留 `DB_DRIVER` 切换）。
-- P2.6 监控/日志接入云监控。
-- P2.7 **App Store 服务器通知（App Store Server Notifications V2）**：当前后端已实现 StoreKit 2 JWS 本地验签，但**未实现** Apple 服务器通知 webhook（接收退款/订阅状态/沙盒购买事件）。需在后端新增 `POST /api/v1/apple/webhook` 接口，用 Apple Root CA 校验通知 JWS 并处理 `signedPayload`，随后在 App Store Connect 配置生产/沙盒服务器通知 URL（`https://<host>/api/v1/apple/webhook`）。首提审核可暂时不填，上线后建议补。
+- P2.6 监控/日志接入云监控；CD 失败告警（2026-08-26 曾发生 CD SSH 会话中断导致容器被 down 未 up，人工恢复；建议加部署失败重试/告警）。
+- P2.7 **App Store 服务器通知（ASN V2）**：后端新增 `POST /api/v1/apple/webhook`（Apple Root CA 校验 signedPayload），ASC 配置生产/沙盒通知 URL。首提审核可暂时不填，上线后建议补——**退款感知是金豆经济的财务完整性依赖**。
+- P2.8 奖励中心 V2 兑换实现（触发条件：累计 IAP 收入 ≥ $1K 且月活猎人 ≥ 300）：redeem 流水类型 + 兑换订单表 + 双门槛校验（50 任务 + 50 earned 豆）+ Stripe Connect payout。
 
 ---
 
-## ✅ 发布就绪核对（核心功能可用）
-
-后端 API 全链路已通过 e2e 冒烟 + 自测清单覆盖，下列核心能力可用：
+## ✅ 发布就绪核对（已验证）
 
 | 模块 | 状态 | 说明 |
 |------|------|------|
-| 认证（发码/登录/注册） | ✅ | redis 存码 + JWT |
-| 任务发布（校验/冻结） | ✅ | 位置、金额、枚举校验齐全 |
-| 广场（半径过滤） | ✅ | Haversine 距离 |
-| 认领/提交/确认 | ✅ | 确认含余额不足拦截 |
-| 取消/放弃/争议/退款 | ✅ | 状态机完整 |
-| 钱包（余额/累计/充值/提现/交易） | ✅ | 累计字段已修复 |
-| 发布配额（套餐/下单/Apple 校验） | ✅ | IAP 接口齐，待沙盒验证 |
-| 消息协作 | ✅ | |
-| 通知（列表/已读） | ✅ | |
-| 配置（汇率/邮箱域名） | ✅ | |
-| 健康检查 + 版本核对 | ✅ | `/healthz` 返回 version |
-| CI/CD 自动部署 | ✅ | push → CI → CD(HK) |
-
-**发布前仍建议人工核对（iOS 端）**：
-- [x] App Store 隐私清单（PrivacyInfo.xcprivacy）齐备 ✅ 已核对（2026-08-24）：覆盖 NSLocation/NSCamera/NSUserDefaults/NSFileManager 访问 API + Email/Phone/Location/UserContent/Photos/DeviceID 数据类型，Tracking=false；图片用 PHPicker 不触发额外声明；无第三方 SDK 需补充。仅需确认 UserDefaults 是否用 App Group（否则用 CA92.1 正确）
-- [x] 隐私政策/服务条款页面可公网访问（已修复：HK `/opt/bountyapp/www` 缺失 + caddy 自签证书缺失导致 nginx reload 失败；2026-08-24 已部署并验证 `https://gotseeker.com/privacy` `/terms` 均 200）
-- [x] Apple 登录/邮箱登录合规（✅ 已核对：App 仅用自建邮箱验证码登录，无第三方 SSO，依 Apple Guideline 4.8/5.1.1 不强制提供 Sign in with Apple；GDPR 同意流 `PrivacyConsentView` 已存在，首次启动弹窗且 `interactiveDismissDisabled`；2026-08-24 修复：① 同意页内的隐私/条款链接由占位 `WebViewPlaceholder` 改为真实 `WKWebView` 加载 `gotseeker.com` 页面；② 拒绝时由 `exit(0)` 改为停留同意页并提示「必须接受才能继续使用」，避免被审质疑强制退出）
-- [x] 真机 HTTPS 连通（✅ 已核对：Info.plist `BackendBaseHost = https://api.gotseeker.com`（域名+有效 Let's Encrypt 证书，此前 e2e 验证 200）；`PrivacyPolicyURL`/`TermsOfServiceURL` 指向 `gotseeker.com`；无 ATS 例外、不依赖 IP 自签证书，全部标准 HTTPS）
-- [~] IAP 沙盒购买回归（✅ 后端已打通 StoreKit 2 JWS 本地验签：新增 `pkg/appleiap/jws.go` 用 Apple Root CA - G3 校验证书链 + ECDSA 验签 + productId 匹配 + 防篡改/防重放，5 个单元测试全过；iOS `StoreKitManager` 改为发送 `transaction.jwsRepresentation`；legacy `verify.go`（receipt_data）作为回退保留。仍需在真机用沙盒账号实际购买一次做端到端回归——此项为人工真机测试，非静态核对可完成，建议在提审前用 TestFlight 沙盒账号验证）
+| 后端全链路 e2e | ✅ | **53 项全绿**（HK 生产实跑，金豆守恒断言：发布扣豆/确认入账/退款退豆/豆不足拦截/假 JWS 拒绝） |
+| iOS 模拟器 UI 测试 | ✅ | iPhone 17 全绿（登录→发布→我的任务→消息 + mock 冒烟 5 项） |
+| 认证（发码/登录/注册） | ✅ | redis 存码 + 60s 冷却 + 注册礼 5 豆（代码显式发放） |
+| 金豆经济闭环 | ✅ | 双账本（purchased/earned）原子扣减、IAP 三 SKU 映射 |
+| 奖励中心 | ✅ | 双门槛规则预告（50 任务 + 50 豆）+ 进度展示，合规措辞 |
+| 任务状态机 | ✅ | 发布/领取/提交/确认/争议/退款/取消/放弃全链路 + 24h 自动确认 |
+| 广场三排序 | ✅ | distance/beans/newest（服务端白名单） |
+| CI/CD | ✅ | push → CI(vet/build/test) → CD(HK) → 版本核对 → 失败回滚 |
+| 隐私合规 | ✅ | 隐私政策/条款公网 200、GDPR 同意流、PrivacyInfo.xcprivacy、加密声明 false |
+| App 图标 | ✅ | 全尺寸 + 1024 marketing |
+| 权限描述 | ✅ | 相机/定位（前后台）文案齐备 |
+| IAP 配置 | ✅ | ASC 三 SKU 可供审核；后端 JWS 验签就绪；待沙盒真机闭环（→ P0.1） |
