@@ -4,8 +4,6 @@ struct ProfileView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject private var lang = LanguageManager.shared
     @State private var showLogoutConfirm = false
-    @State private var showTermsSheet = false
-    @State private var showPrivacySheet = false
 
     private func openHelpAndFeedback() {
         let supportEmail = "support@gotseeker.com"
@@ -62,7 +60,7 @@ struct ProfileView: View {
                                     .foregroundColor(.bountyText)
                                 Spacer()
                                 if let user = appState.currentUser {
-                                    Text("¥\(String(format: "%.2f", user.balance))")
+                                    Text(String(format: L10n.beansPackageCountFmt, user.beansTotal))
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(.bountyGold)
                                 }
@@ -126,20 +124,10 @@ struct ProfileView: View {
                         ProfileRow(icon: "questionmark.circle", title: L10n.profileHelp, color: .bountyInfo) {
                             openHelpAndFeedback()
                         }
-
-                        Divider().padding(.leading, 52)
-
-                        ProfileRow(icon: "doc.text", title: L10n.profileTerms, color: .bountyGray) {
-                            showTermsSheet = true
-                        }
-
-                        Divider().padding(.leading, 52)
-
-                        ProfileRow(icon: "shield.checkered", title: L10n.profilePrivacy, color: .bountyGray) {
-                            showPrivacySheet = true
-                        }
                     }
                     .cornerRadius(12)
+
+                    // Terms & privacy live in Settings to avoid duplicated entries.
 
                     // Logout
                     Button(action: { showLogoutConfirm = true }) {
@@ -157,12 +145,6 @@ struct ProfileView: View {
             }
             .background(Color.bountyBg)
             .navigationTitle(L10n.profileTitle)
-            .sheet(isPresented: $showTermsSheet) {
-                WebViewPlaceholder(title: L10n.profileTerms, url: AppConfig.termsOfServiceURL)
-            }
-            .sheet(isPresented: $showPrivacySheet) {
-                WebViewPlaceholder(title: L10n.profilePrivacy, url: AppConfig.privacyPolicyURL)
-            }
         }
         .confirmationDialog(L10n.profileLogoutConfirm, isPresented: $showLogoutConfirm, titleVisibility: .visible) {
             Button(L10n.profileLogoutAction, role: .destructive) {

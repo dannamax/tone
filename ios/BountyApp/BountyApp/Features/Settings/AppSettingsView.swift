@@ -5,9 +5,10 @@ import SwiftUI
 /// Covers language, country/region, permissions, privacy, and about.
 
 struct AppSettingsView: View {
-    @EnvironmentObject var appState: AppState
     @StateObject private var lang = LanguageManager.shared
     @State private var showLanguagePicker = false
+    @State private var showPrivacySheet = false
+    @State private var showTermsSheet = false
     @State private var notifyEnabled = UserDefaults.standard.bool(forKey: "settings_notify")
 
     var body: some View {
@@ -47,7 +48,7 @@ struct AppSettingsView: View {
             // MARK: Privacy & Legal
             Section {
                 Button {
-                    openPrivacyPolicy()
+                    showPrivacySheet = true
                 } label: {
                     settingsRow(
                         icon: "hand.raised.fill", iconColor: .bountyInfo,
@@ -57,7 +58,7 @@ struct AppSettingsView: View {
                 }
 
                 Button {
-                    openTermsOfService()
+                    showTermsSheet = true
                 } label: {
                     settingsRow(
                         icon: "doc.text.fill", iconColor: .bountyGray,
@@ -82,42 +83,14 @@ struct AppSettingsView: View {
 
                     Spacer()
 
-                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
-                        .foregroundColor(.bountyTextSecondary)
-                        .font(.system(size: 15))
-                }
-
-                HStack {
-                    Label {
-                        Text(L10n.settingsBuild)
-                            .foregroundColor(.bountyText)
-                    } icon: {
-                        Image(systemName: "number")
-                            .foregroundColor(.bountyGray)
-                    }
-
-                    Spacer()
-
-                    Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
+                    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+                    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+                    Text("\(version) (\(build))")
                         .foregroundColor(.bountyTextSecondary)
                         .font(.system(size: 15))
                 }
             } header: {
                 Text(L10n.settingsAbout)
-            }
-
-            // MARK: Logout
-            Section {
-                Button(role: .destructive) {
-                    appState.logout()
-                } label: {
-                    HStack {
-                        Spacer()
-                        Text(L10n.profileLogoutAction)
-                            .font(.system(size: 16, weight: .medium))
-                        Spacer()
-                    }
-                }
             }
         }
         .listStyle(.insetGrouped)
@@ -127,6 +100,12 @@ struct AppSettingsView: View {
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $showLanguagePicker) {
             languagePickerSheet
+        }
+        .sheet(isPresented: $showPrivacySheet) {
+            WebViewPlaceholder(title: L10n.profilePrivacy, url: AppConfig.privacyPolicyURL)
+        }
+        .sheet(isPresented: $showTermsSheet) {
+            WebViewPlaceholder(title: L10n.profileTerms, url: AppConfig.termsOfServiceURL)
         }
     }
 
@@ -199,20 +178,6 @@ struct AppSettingsView: View {
                     Button(L10n.done) { showLanguagePicker = false }
                 }
             }
-        }
-    }
-
-    // MARK: - External Links
-
-    private func openPrivacyPolicy() {
-        if let url = URL(string: AppConfig.privacyPolicyURL) {
-            UIApplication.shared.open(url)
-        }
-    }
-
-    private func openTermsOfService() {
-        if let url = URL(string: AppConfig.termsOfServiceURL) {
-            UIApplication.shared.open(url)
         }
     }
 }
