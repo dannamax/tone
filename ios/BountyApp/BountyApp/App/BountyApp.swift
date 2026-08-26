@@ -6,15 +6,6 @@ struct SeekerApp: App {
     @StateObject private var lang = LanguageManager.shared
 
     init() {
-        // UI 测试模式下重置首次启动与登录态，保证 onboarding 每次都出现。
-        if ProcessInfo.processInfo.arguments.contains("-resetOnLaunch") {
-            UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
-            UserDefaults.standard.removeObject(forKey: "auth_token")
-            UserDefaults.standard.removeObject(forKey: "user_json")
-            // 清理持久化的语言选择，避免连续运行时语言状态残留导致 onboarding 文案不一致
-            UserDefaults.standard.removeObject(forKey: "app_language")
-        }
-
         // 强制全局窗口背景与应用主题色一致，避免刘海/Home Indicator 区域
         // 在深色模式下露出系统默认黑色背景。
         UIWindow.appearance().backgroundColor = UIColor(Color.bountyBg)

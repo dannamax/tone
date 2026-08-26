@@ -23,6 +23,25 @@ class AppState: ObservableObject {
     private var locationCancellables = Set<AnyCancellable>()
 
     init() {
+        // UI 测试模式：在自身初始化阶段就重置首次启动状态。
+        // 必须早于 @Published 字段的默认值赋值（字段默认值与 init() 内的赋值时机：
+        // Swift 按声明顺序执行属性初始化器，本 init() 在所有 @Published 之后被调用，
+        // 但 @Published 的 default value 在 struct/class 字段声明处求值时已完成）。
+        // 因此这里主动重新读取：先清 UserDefaults，再覆盖 @Published 值。
+        if ProcessInfo.processInfo.arguments.contains("-resetOnLaunch") {
+            UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+            UserDefaults.standard.removeObject(forKey: "auth_token")
+            UserDefaults.standard.removeObject(forKey: "user_json")
+            UserDefaults.standard.removeObject(forKey: "app_language")
+            UserDefaults.standard.removeObject(forKey: "hasAcceptedPrivacyPolicy")
+            // 覆盖当前字段（默认值在 init 之前已锁定）
+            self.hasCompletedOnboarding = false
+            self.isLoggedIn = false
+            self.currentUser = nil
+            self.showPrivacyConsent = true
+            self.unreadCount = 0
+        }
+
         // 订阅全局定位更新，保持 AppState 中坐标同步
         LocationManager.shared.$userLat
             .receive(on: RunLoop.main)

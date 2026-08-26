@@ -42,7 +42,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "47E2694A983577B5CCB2219A"
-               BuildableName = "SeekerHub.xctest"
+               BuildableName = "SeekerUITests.xctest"
                BlueprintName = "SeekerUITests"
                ReferencedContainer = "container:SeekerHub.xcodeproj">
             </BuildableReference>

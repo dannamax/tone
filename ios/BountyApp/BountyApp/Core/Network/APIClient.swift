@@ -676,6 +676,8 @@ extension APIClient {
                     "role": "seeker",
                     "balance": 0,
                     "frozen_balance": 0,
+                    "beans_purchased": 5,
+                    "beans_earned": 0,
                     "created_at": "2026-01-01T00:00:00Z"
                 ]
             ]
@@ -688,6 +690,8 @@ extension APIClient {
                 "role": "seeker",
                 "balance": 0,
                 "frozen_balance": 0,
+                "beans_purchased": 5,
+                "beans_earned": 0,
                 "created_at": "2026-01-01T00:00:00Z"
             ]
         } else {

@@ -93,6 +93,7 @@ struct PublishView: View {
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.bountyText)
                                 .frame(minWidth: 40)
+                                .accessibilityIdentifier("publishBountyField")
 
                             Button {
                                 if vm.bountyBeans < 50 { vm.bountyBeans += 1 }

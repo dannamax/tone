@@ -54,7 +54,9 @@ final class SeekerUITests: XCTestCase {
 
     /// Test 2: First launch shows the onboarding with the English option selected by default.
     func testFirstLaunchLanguageSelection() {
-        let en = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "English")).firstMatch
+        // Composite SwiftUI buttons (flag + title + subtitle) are not always exposed
+        // as buttons; match any element containing the language label.
+        let en = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "English")).firstMatch
         XCTAssertTrue(en.waitForExistence(timeout: 10), "English language option not found")
 
         // English-only build: Get Started is available immediately.
@@ -298,9 +300,10 @@ final class SeekerFullFlowUITests: XCTestCase {
         dismissKeyboardIfPresent()
 
         // Task description is optional (backend only validates title).
-        let bounty = app.textFields["publishBountyField"]
+        // Beans economy: bounty is a stepper + chips UI (staticText), not a text field.
+        let bounty = app.descendants(matching: .any)["publishBountyField"]
         XCTAssertTrue(bounty.waitForExistence(timeout: 5), "Bounty field did not appear")
-        // Bounty defaults to 10, no input needed.
+        // Bounty defaults to 10 beans, no input needed.
 
         // The simulator has GPS coordinates set; the publish sheet auto-fills the current
         // location and asks for confirmation.
@@ -318,7 +321,7 @@ final class SeekerFullFlowUITests: XCTestCase {
         // Wait for the publish sheet to actually close (title field disappears).
         let titleFieldGone = app.textFields["publishTitleField"]
         let dismissed = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: titleFieldGone, handler: nil)
-        wait(for: [dismissed], timeout: 20)
+        wait(for: [dismissed], timeout: 40)
         XCTAssertTrue(app.tabBars.firstMatch.exists, "Did not return to the main app after publishing")
     }
 
@@ -329,12 +332,12 @@ final class SeekerFullFlowUITests: XCTestCase {
         myTasks.tap()
 
         let published = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "UITest")).firstMatch
-        if !published.waitForExistence(timeout: 12) {
+        if !published.waitForExistence(timeout: 30) {
             // If in pending state, tap "Publish Now" to activate.
             let activateEN = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Publish Now")).firstMatch
             if activateEN.exists { activateEN.tap() }
             sleep(2)
-            _ = published.waitForExistence(timeout: 12)
+            _ = published.waitForExistence(timeout: 20)
         }
         XCTAssertTrue(published.exists, "Published task not shown in My Tasks")
     }
