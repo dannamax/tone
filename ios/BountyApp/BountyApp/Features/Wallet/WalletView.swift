@@ -120,39 +120,43 @@ struct WalletView: View {
             QuotaPackagesSheet(vm: vm)
         }
         .sheet(isPresented: $showRewardsComingSoon) {
-            RewardsCenterSheet(earned: vm.beansEarned)
+            RewardsCenterSheet(earned: vm.beansEarned, completed: vm.completedTasks)
         }
         .onAppear { vm.load() }
     }
 }
 
-/// 奖励中心说明弹窗（V1：仅兑换规则预告 + 进度展示，不提供真实兑换）
+/// 奖励中心说明弹窗（V1：仅兑换规则预告 + 双进度展示，不提供真实兑换）
 /// 合规要点：
 /// 1. 只预告 earned 豆参与兑换（purchased 不参与）——与 IAP 隔离，防审核判定闭环套利；
-/// 2. 不承诺上线时间与具体比例（"Final rules will be published at launch"）；
-/// 3. 全程用 rewards/redemption 措辞，不用 cash out/withdraw money。
+/// 2. 双维门槛：earned ≥ 500 豆 且 已确认任务 ≥ 50 个（防高赏金速通 + 防小号刷量，
+///    正常用户 50 任务 × 均价 10 豆 = 500 豆两条件同时达成）；
+/// 3. 不承诺上线时间与具体比例（"Final rules will be published at launch"）；
+/// 4. 全程用 rewards/redemption 措辞，不用 cash out/withdraw money。
 struct RewardsCenterSheet: View {
     @ObservedObject private var lang = LanguageManager.shared
     let earned: Int
+    let completed: Int
     @Environment(\.dismiss) private var dismiss
 
-    private let threshold = 500
+    private let beanThreshold = 500
+    private let taskThreshold = 50
 
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // 进度卡片
-                    VStack(alignment: .leading, spacing: 10) {
+                    // 进度卡片（双门槛）
+                    VStack(alignment: .leading, spacing: 14) {
                         Text(L10n.rewardsProgressTitle)
                             .font(.system(size: 13))
                             .foregroundColor(.bountyTextSecondary)
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text("\(earned)")
-                                .font(.system(size: 34, weight: .bold))
+                                .font(.system(size: 30, weight: .bold))
                                 .foregroundColor(.bountyText)
-                            Text("/ \(threshold)")
-                                .font(.system(size: 15, weight: .medium))
+                            Text("/ \(beanThreshold) \(L10n.walletBeansSuffix)")
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.bountyGray)
                             Spacer()
                             Text(L10n.rewardsComingSoon)
@@ -162,8 +166,20 @@ struct RewardsCenterSheet: View {
                                 .padding(.vertical, 4)
                                 .background(Capsule().fill(Color.bountyGold.opacity(0.12)))
                         }
-                        ProgressView(value: Double(min(earned, threshold)), total: Double(threshold))
+                        ProgressView(value: Double(min(earned, beanThreshold)), total: Double(beanThreshold))
                             .tint(.bountyGold)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text("\(completed)")
+                                .font(.system(size: 30, weight: .bold))
+                                .foregroundColor(.bountyText)
+                            Text("/ \(taskThreshold) \(L10n.rewardsTasksSuffix)")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.bountyGray)
+                        }
+                        .padding(.top, 4)
+                        ProgressView(value: Double(min(completed, taskThreshold)), total: Double(taskThreshold))
+                            .tint(.bountySuccess)
                     }
                     .padding(18)
                     .frame(maxWidth: .infinity)
@@ -268,6 +284,7 @@ class WalletViewModel: ObservableObject {
     @Published var beansTotal: Int = 0
     @Published var beansPurchased: Int = 0
     @Published var beansEarned: Int = 0
+    @Published var completedTasks: Int = 0
     @Published var packages: [QuotaPackage] = []
     @Published var isPurchasing = false
     @Published var loadError: String?
@@ -282,6 +299,7 @@ class WalletViewModel: ObservableObject {
                         self.beansPurchased = data.beansPurchased
                         self.beansEarned = data.beansEarned
                         self.beansTotal = data.beansTotal
+                        self.completedTasks = data.completedTasks ?? 0
                         self.loadError = nil
                     } else {
                         self.loadError = resp.message.isEmpty ? L10n.walletLoadFailed : resp.message
@@ -369,6 +387,7 @@ struct WalletData: Codable {
     let beansPurchased: Int
     let beansEarned: Int
     let beansTotal: Int
+    let completedTasks: Int?
 
     enum CodingKeys: String, CodingKey {
         case balance
@@ -379,5 +398,6 @@ struct WalletData: Codable {
         case beansPurchased = "beans_purchased"
         case beansEarned = "beans_earned"
         case beansTotal = "beans_total"
+        case completedTasks = "completed_tasks"
     }
 }

@@ -175,7 +175,7 @@ func main() {
 	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, hub, txRepo)
 	subSvc := service.NewSubmissionService(submissionRepo)
 	paySvc := service.NewPaymentService(userRepo, taskRepo, txRepo, notifyRepo, hub)
-	walletSvc := service.NewWalletService(userRepo, txRepo, notifyRepo)
+	walletSvc := service.NewWalletService(userRepo, txRepo, notifyRepo, taskRepo)
 	rechargeRepo := repository.NewRechargeRepo(db)
 	quotaSvc := service.NewQuotaService(rechargeRepo, userRepo, txRepo, appleiap.NewVerifier(cfg.Apple.Password))
 

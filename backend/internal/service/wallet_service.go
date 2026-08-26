@@ -14,13 +14,15 @@ type WalletService struct {
 	userRepo   *repository.UserRepo
 	txRepo     *repository.TransactionRepo
 	notifyRepo *repository.NotificationRepo
+	taskRepo   *repository.TaskRepo
 }
 
-func NewWalletService(userRepo *repository.UserRepo, txRepo *repository.TransactionRepo, notifyRepo *repository.NotificationRepo) *WalletService {
+func NewWalletService(userRepo *repository.UserRepo, txRepo *repository.TransactionRepo, notifyRepo *repository.NotificationRepo, taskRepo *repository.TaskRepo) *WalletService {
 	return &WalletService{
 		userRepo:   userRepo,
 		txRepo:     txRepo,
 		notifyRepo: notifyRepo,
+		taskRepo:   taskRepo,
 	}
 }
 
@@ -30,6 +32,11 @@ func (s *WalletService) GetWalletInfo(ctx context.Context, userID string) (*mode
 		return nil, err
 	}
 
+	// 兑换资格第二维：已确认完成的任务数（与 earned 豆双门槛）
+	completed, err := s.taskRepo.CountConfirmedByClaimer(ctx, userID)
+	if err != nil {
+		completed = 0 // 统计失败不阻塞钱包主流程
+	}
 	return &model.WalletInfo{
 		Balance:        user.Balance,
 		FrozenBal:      user.FrozenBal,
@@ -38,6 +45,7 @@ func (s *WalletService) GetWalletInfo(ctx context.Context, userID string) (*mode
 		BeansPurchased: user.BeansPurchased,
 		BeansEarned:    user.BeansEarned,
 		BeansTotal:     user.BeansTotal(),
+		CompletedTasks: completed,
 		CanWithdraw:    user.Balance >= model.MinWithdrawAmount,
 	}, nil
 }

@@ -56,5 +56,6 @@ type WalletInfo struct {
 	BeansPurchased  int     `json:"beans_purchased"`        // 充值金豆（不可提现）
 	BeansEarned     int     `json:"beans_earned"`            // 任务赚取金豆（V2 将开放提现）
 	BeansTotal      int     `json:"beans_total"`             // 可用金豆总数
+	CompletedTasks  int     `json:"completed_tasks"`         // 猎人已确认完成的任务数（兑换资格第二维）
 	CanWithdraw     bool    `json:"can_withdraw"`
 }

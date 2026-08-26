@@ -223,6 +223,15 @@ func (r *TaskRepo) CountClaimedByUser(ctx context.Context, userID string) (int, 
 	return count, err
 }
 
+// CountConfirmedByClaimer 统计猎人已获发布者确认（结算完成）的任务数，
+// 用于奖励中心兑换资格的第二维门槛（防高赏金速通）。
+func (r *TaskRepo) CountConfirmedByClaimer(ctx context.Context, userID string) (int, error) {
+	query := `SELECT COUNT(*) FROM tasks WHERE claimer_id = ? AND status = 'confirmed'`
+	var count int
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
 func (r *TaskRepo) FindPublishedByUser(ctx context.Context, userID string, page, size int) ([]model.Task, int64, error) {
 	var total int64
 	if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE publisher_id = ?`, userID).Scan(&total); err != nil {

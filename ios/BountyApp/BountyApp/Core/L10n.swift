@@ -241,6 +241,8 @@ enum L10n {
     static var rewardsRulesTitle: String { localized("rewards_rules_title") }
     static var rewardsRuleEarnedOnly: String { localized("rewards_rule_earned_only") }
     static var rewardsRuleThreshold: String { localized("rewards_rule_threshold") }
+    static var walletBeansSuffix: String { localized("wallet_beans_suffix") }
+    static var rewardsTasksSuffix: String { localized("rewards_tasks_suffix") }
     static var rewardsRuleOptions: String { localized("rewards_rule_options") }
     static var rewardsRuleNoTransfer: String { localized("rewards_rule_no_transfer") }
     static var rewardsRuleFinalNote: String { localized("rewards_rule_final_note") }
