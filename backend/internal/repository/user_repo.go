@@ -61,8 +61,11 @@ func (r *UserRepo) CreateByEmail(ctx context.Context, email, deviceID string) (*
 	}
 	nickname := fmt.Sprintf(i18n.T(i18n.LangEN, "default_nickname"), local)
 	id := uuid.NewString()
-	query := `INSERT INTO users (id, email, nickname, avatar, device_id) VALUES (?, ?, ?, ?, ?)`
-	_, err := r.db.ExecContext(ctx, query, id, email, nickname, "default", deviceID)
+	// 注册礼金豆由代码显式发放（model.FreeBeans），不依赖 DB 列默认值：
+	// 线上旧库 beans_purchased 列默认值仍是 3（早期版本所建，ALTER 无法修改），
+	// 依赖默认值会导致新用户拿 3 豆而无法发布最低 5 豆的任务。
+	query := `INSERT INTO users (id, email, nickname, avatar, device_id, beans_purchased) VALUES (?, ?, ?, ?, ?, ?)`
+	_, err := r.db.ExecContext(ctx, query, id, email, nickname, "default", deviceID, model.FreeBeans)
 	if err != nil {
 		return nil, err
 	}

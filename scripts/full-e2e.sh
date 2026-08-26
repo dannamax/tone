@@ -223,7 +223,7 @@ check "任务详情 200" "$([ "$code" = "200" ] && echo 0 || echo 1)"
 wl=$(curl -s "$BASE/api/v1/wallet" -H "$AUTH")
 check "钱包查询含 beans 字段" "$(echo "$wl" | grep -q '"beans_total"' && echo 0 || echo 1)"; echo "    $(head -c 200 <<<"$wl")"
 tx=$(curl -s "$BASE/api/v1/wallet/transactions" -H "$AUTH")
-check "交易记录 200" "$(echo "$tx" | grep -q '\[' && echo 0 || echo 1)"
+check "交易记录 200" "$(echo "$tx" | grep -q '"total"' && echo 0 || echo 1)"
 check "交易记录含 bean_spend" "$(echo "$tx" | grep -q 'bean_spend' && echo 0 || echo 1)"
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/wallet/recharge" -H "$AUTH" -H 'Content-Type: application/json' -d "{\"amount\":100}")
@@ -251,7 +251,7 @@ fi
 
 # ---------- 通知 ----------
 nt=$(curl -s "$BASE/api/v1/notifications" -H "$AUTH")
-check "通知列表 200" "$(echo "$nt" | grep -q '\[' && echo 0 || echo 1)"
+check "通知列表 200" "$(echo "$nt" | grep -q '"total"' && echo 0 || echo 1)"
 NID=$(echo "$nt" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 if [ -n "$NID" ]; then
   code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/notifications/$NID/read" -H "$AUTH")
