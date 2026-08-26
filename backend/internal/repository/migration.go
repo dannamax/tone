@@ -57,6 +57,14 @@ func RunMigrations(ctx context.Context, db *sql.DB, driver, migrationsDir string
 			`UPDATE users SET beans_purchased = MAX(beans_purchased, 5) WHERE beans_purchased < 5 AND beans_earned = 0`); err != nil {
 			return fmt.Errorf("存量金豆补齐失败: %w", err)
 		}
+		// 金豆制改造：删除旧库遗留的 tasks.bounty 列（NOT NULL 且无默认值，
+		// 新模型 INSERT 不再写该列会直接失败）。SQLite >= 3.35 支持 DROP COLUMN；
+		// 新库 schema 无此列，报 no such column 时忽略（幂等）。
+		if _, err := db.ExecContext(ctx, `ALTER TABLE tasks DROP COLUMN bounty`); err != nil {
+			if !strings.Contains(err.Error(), "no such column") {
+				return fmt.Errorf("删除旧 bounty 列失败: %w", err)
+			}
+		}
 		fmt.Println("[Migration] ✓ sqlite_schema.sql")
 		return nil
 	}
