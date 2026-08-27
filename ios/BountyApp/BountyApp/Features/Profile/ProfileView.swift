@@ -6,6 +6,9 @@ struct ProfileView: View {
     @State private var showLogoutConfirm = false
     @State private var showDeleteAccountConfirm = false
     @State private var isDeletingAccount = false
+    @State private var showEditName = false
+    @State private var editingName = ""
+    @State private var isUpdatingName = false
 
     /// 删除账户：调 DELETE /me 彻底清除服务端数据，成功后清空本地登录态。
     /// 有进行中任务时后端返回 409，toast 提示先完成或放弃。
@@ -40,6 +43,30 @@ struct ProfileView: View {
         }
     }
 
+    private func startEditingName() {
+        editingName = appState.currentUser?.nickname ?? ""
+        showEditName = true
+    }
+
+    private func saveNickname() {
+        guard !isUpdatingName else { return }
+        let trimmed = editingName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (1...32).contains(trimmed.count) else {
+            appState.showToast(L10n.profileEditNameInvalid)
+            return
+        }
+        isUpdatingName = true
+        Task { @MainActor in
+            let success = await appState.updateNickname(trimmed)
+            isUpdatingName = false
+            if success {
+                showEditName = false
+            } else {
+                appState.showToast(L10n.profileEditNameFailed)
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -63,9 +90,17 @@ struct ProfileView: View {
                         }
 
                         if let user = appState.currentUser {
-                            Text(user.nickname)
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.bountyText)
+                            Button(action: startEditingName) {
+                                HStack(spacing: 4) {
+                                    Text(user.nickname)
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(.bountyText)
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.bountyGold)
+                                }
+                            }
+                            .buttonStyle(.plain)
                             Text("ID: \(String(user.id.prefix(8)))...")
                                 .font(.system(size: 12))
                                 .foregroundColor(.bountyTextSecondary)
@@ -194,6 +229,18 @@ struct ProfileView: View {
             Button(L10n.cancel, role: .cancel) {}
         } message: {
             Text(L10n.profileDeleteAccountConfirmMsg)
+        }
+        // 编辑昵称
+        .alert(L10n.profileEditNameTitle, isPresented: $showEditName) {
+            TextField(L10n.profileEditNamePlaceholder, text: $editingName)
+                .autocorrectionDisabled()
+            Button(L10n.cancel, role: .cancel) {}
+            Button(L10n.save, role: .none) {
+                saveNickname()
+            }
+            .disabled(isUpdatingName || editingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            Text(L10n.profileEditNameInvalid)
         }
     }
 }

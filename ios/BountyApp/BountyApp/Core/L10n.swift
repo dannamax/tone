@@ -294,6 +294,11 @@ enum L10n {
     static var profileLogout: String { localized("profile_logout") }
     static var profileLogoutConfirm: String { localized("profile_logout_confirm") }
     static var profileLogoutAction: String { localized("profile_logout_action") }
+    static var profileEditName: String { localized("profile_edit_name") }
+    static var profileEditNameTitle: String { localized("profile_edit_name_title") }
+    static var profileEditNamePlaceholder: String { localized("profile_edit_name_placeholder") }
+    static var profileEditNameInvalid: String { localized("profile_edit_name_invalid") }
+    static var profileEditNameFailed: String { localized("profile_edit_name_failed") }
 
     // MARK: - Settings
     static var settingsTitle: String { localized("settings_title") }

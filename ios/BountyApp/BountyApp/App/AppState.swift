@@ -141,6 +141,29 @@ class AppState: ObservableObject {
         PushManager.shared.reportPendingToken()
     }
 
+    func updateNickname(_ nickname: String) async -> Bool {
+        let trimmed = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (1...32).contains(trimmed.count) else { return false }
+        do {
+            let resp: APIResponse<UserProfile> = try await APIClient.shared.request(
+                "/me",
+                method: .PATCH,
+                body: ["nickname": trimmed]
+            )
+            guard resp.code == 0, let profile = resp.data else { return false }
+            await MainActor.run {
+                currentUser = profile
+                if let json = try? JSONEncoder().encode(profile) {
+                    TokenStorage.shared.userJSON = String(data: json, encoding: .utf8)
+                }
+            }
+            return true
+        } catch {
+            print("[AppState] update nickname failed: \(error)")
+            return false
+        }
+    }
+
     func logout() {
         self.currentUser = nil
         self.isLoggedIn = false

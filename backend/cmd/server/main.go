@@ -238,6 +238,7 @@ func main() {
 		api.POST("/auth/send-code", authHandler.SendCode)
 		api.POST("/auth/login", authHandler.RegisterOrLogin)
 		api.GET("/me", middleware.AuthMiddleware(cfg.JWT.Secret), authHandler.GetProfile)
+		api.PATCH("/me", middleware.AuthMiddleware(cfg.JWT.Secret), authHandler.UpdateProfile)
 		// 账户删除（App Store 5.1.1(v) / GDPR 合规）
 		api.DELETE("/me", middleware.AuthMiddleware(cfg.JWT.Secret), authHandler.DeleteAccount)
 		// 推送设备登记（APNs）

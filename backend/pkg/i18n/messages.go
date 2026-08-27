@@ -25,6 +25,8 @@ var enMessages = map[string]string{
 	"token_generate_failed":     "Failed to generate token",
 	"device_id_required":        "Device ID is required",
 	"nickname_required":         "Nickname is required",
+	"invalid_nickname":          "Nickname must be 1-32 characters",
+	"profile_update_failed":     "Failed to update profile",
 	"default_nickname":          "Hunter%s",
 
 	// --- Auth ---

@@ -85,6 +85,32 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	response.Success(c, user)
 }
 
+// UpdateProfile 更新当前用户资料，目前仅支持昵称修改。
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	lang := i18n.LanguageFromRequest(c.Request)
+	userID := middleware.GetUserID(c)
+
+	var req struct {
+		Nickname string `json:"nickname" binding:"required,min=1,max=32"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, i18n.T(lang, "invalid_nickname"))
+		return
+	}
+
+	if err := h.userRepo.UpdateNickname(c.Request.Context(), userID, strings.TrimSpace(req.Nickname)); err != nil {
+		response.InternalError(c, i18n.T(lang, "profile_update_failed"))
+		return
+	}
+
+	user, err := h.userRepo.FindByID(c.Request.Context(), userID)
+	if err != nil || user == nil {
+		response.InternalError(c, i18n.T(lang, "profile_update_failed"))
+		return
+	}
+	response.Success(c, user)
+}
+
 // DeleteAccount 彻底删除账户及全部个人数据（App Store 5.1.1(v) / GDPR 合规）。
 // 有进行中任务时返回 409，提示先完成或放弃。
 func (h *AuthHandler) DeleteAccount(c *gin.Context) {

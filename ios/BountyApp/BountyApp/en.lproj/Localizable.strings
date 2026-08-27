@@ -295,6 +295,11 @@
 "profile_logout" = "Log Out";
 "profile_logout_confirm" = "Are you sure you want to log out?";
 "profile_logout_action" = "Log Out";
+"profile_edit_name" = "Edit Name";
+"profile_edit_name_title" = "Edit Nickname";
+"profile_edit_name_placeholder" = "Enter your nickname";
+"profile_edit_name_invalid" = "Nickname must be 1-32 characters";
+"profile_edit_name_failed" = "Failed to update nickname";
 
 /* Settings */
 "settings_title" = "Settings";

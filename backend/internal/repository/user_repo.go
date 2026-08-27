@@ -78,6 +78,16 @@ func (r *UserRepo) UpdateDevice(ctx context.Context, userID, deviceID string) er
 	return err
 }
 
+// UpdateNickname 更新用户昵称，空字符串会被过滤
+func (r *UserRepo) UpdateNickname(ctx context.Context, userID, nickname string) error {
+	if strings.TrimSpace(nickname) == "" {
+		return fmt.Errorf("nickname cannot be empty")
+	}
+	query := `UPDATE users SET nickname = ?, updated_at = ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, nickname, time.Now(), userID)
+	return err
+}
+
 // UpdateBalance 遗留钱包余额账务（提现/历史数据兼容），金豆体系不使用
 func (r *UserRepo) UpdateBalance(ctx context.Context, userID string, balanceDelta, frozenDelta, totalSpentDelta, totalEarnedDelta float64) error {
 	query := `UPDATE users SET balance = balance + ?, frozen_balance = frozen_balance + ?, total_spent = total_spent + ?, total_earned = total_earned + ?, updated_at = ? WHERE id = ?`
