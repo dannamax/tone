@@ -262,7 +262,9 @@ class PublishViewModel: ObservableObject {
     @Published var radius = 3000
     @Published var timeLimit = 30
     /// 任务赏金金豆数（1-50，猎人在任务确认后赚取）
-    @Published var bountyBeans = 10
+    // 默认赏金 = 注册礼豆数：新用户首次发布无需充值即可直接成功，
+    // 避免默认值(10)超过注册礼(5)导致首单必失败(402)。
+    @Published var bountyBeans = 5
     @Published var publishError: String?
 
     /// 将当前已填入的 targetLat/targetLng 反向解析为地址（用于自动采用当前位置后填充地址文本）
