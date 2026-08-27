@@ -47,6 +47,8 @@ services:
     volumes:
       - appdata:/app/data       # 数据库持久化
       - ./uploads:/app/uploads  # 上传文件持久化
+      # APNs 推送私钥（宿主机 /opt/bountyapp/secrets/，只读挂载）
+      - /opt/bountyapp/secrets:/opt/bountyapp/secrets:ro
     depends_on:
       - redis
     healthcheck:
