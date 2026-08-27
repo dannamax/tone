@@ -82,6 +82,51 @@ class AppState: ObservableObject {
         #if !PRODUCTION
         AppConfig.launchDiscovery()
         #endif
+
+        // 冷启动登录态恢复：App 被系统回收后重新打开时，读取上次登录
+        // 保存的 token 与用户资料，避免每次冷启动都要求重新验证码登录。
+        // （此前 token 虽已持久化但从未被读回，登录态仅存活于进程内存中，
+        //  进程被杀即丢；服务端 JWT 有效期为 7 天。）
+        restoreSessionIfNeeded()
+    }
+
+    /// 冷启动恢复登录态：先用本地缓存的用户资料乐观恢复 UI，
+    /// 再后台调 GET /me 校验 token 是否仍有效：
+    ///   - 有效 → 刷新最新资料（金豆余额等）
+    ///   - 401/失效 → logout() 回到登录页（token 已过期，需重新验证码）
+    ///   - 网络异常 → 保留本地登录态不打断用户，由后续请求失败时处理
+    private func restoreSessionIfNeeded() {
+        guard let token = TokenStorage.shared.token, !token.isEmpty,
+              let json = TokenStorage.shared.userJSON,
+              let data = json.data(using: .utf8),
+              let user = try? JSONDecoder().decode(UserProfile.self, from: data) else {
+            return
+        }
+        currentUser = user
+        isLoggedIn = true
+        print("[AppState] session restored for \(user.email)")
+
+        Task { @MainActor in
+            do {
+                let resp: APIResponse<UserProfile> = try await APIClient.shared.request("/me")
+                if resp.code == 0, let fresh = resp.data {
+                    // 刷新最新资料（金豆/昵称等可能已变化）
+                    currentUser = fresh
+                    if let json = try? JSONEncoder().encode(fresh) {
+                        TokenStorage.shared.userJSON = String(data: json, encoding: .utf8)
+                    }
+                } else {
+                    print("[AppState] /me rejected restored token, logging out")
+                    logout()
+                }
+            } catch APIError.unauthorized {
+                print("[AppState] restored token expired (401), logging out")
+                logout()
+            } catch {
+                // 网络不可达等临时错误：保留本地登录态，不打断用户
+                print("[AppState] /me validation unreachable: \(error.localizedDescription)")
+            }
+        }
     }
 
     func login(user: UserProfile, token: String) {
