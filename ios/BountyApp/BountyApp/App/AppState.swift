@@ -147,7 +147,7 @@ class AppState: ObservableObject {
         do {
             let resp: APIResponse<UserProfile> = try await APIClient.shared.request(
                 "/me",
-                method: .PATCH,
+                method: "PATCH",
                 body: ["nickname": trimmed]
             )
             guard resp.code == 0, let profile = resp.data else { return false }
