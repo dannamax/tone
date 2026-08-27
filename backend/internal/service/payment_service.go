@@ -17,6 +17,7 @@ type PaymentService struct {
 	transactionRepo *repository.TransactionRepo
 	notifyRepo      *repository.NotificationRepo
 	wsHub           *websocket.Hub
+	push            *PushService
 }
 
 func NewPaymentService(
@@ -25,6 +26,7 @@ func NewPaymentService(
 	transactionRepo *repository.TransactionRepo,
 	notifyRepo *repository.NotificationRepo,
 	wsHub *websocket.Hub,
+	push *PushService,
 ) *PaymentService {
 	return &PaymentService{
 		userRepo:        userRepo,
@@ -32,6 +34,7 @@ func NewPaymentService(
 		transactionRepo: transactionRepo,
 		notifyRepo:      notifyRepo,
 		wsHub:           wsHub,
+		push:            push,
 	}
 }
 
@@ -75,7 +78,7 @@ func (s *PaymentService) ConfirmTask(ctx context.Context, taskID, publisherID st
 	}
 	s.transactionRepo.Create(ctx, tx)
 
-	s.notifyRepo.Create(ctx, claimerID, "task_confirmed",
+	notifyAndPush(ctx, s.notifyRepo, s.push, claimerID, "task_confirmed",
 		i18n.T(lang, "notif_bounty_received_title"),
 		i18n.T(lang, "notif_bounty_received_body", task.BountyBeans, task.Title),
 		taskID)
@@ -132,7 +135,7 @@ func (s *PaymentService) AbandonTask(ctx context.Context, taskID, claimerID stri
 	}
 
 	lang := i18n.LanguageFromCtx(ctx)
-	s.notifyRepo.Create(ctx, task.PublisherID, "task_released",
+	notifyAndPush(ctx, s.notifyRepo, s.push, task.PublisherID, "task_released",
 		i18n.T(lang, "notif_task_abandoned_title"),
 		i18n.T(lang, "notif_task_abandoned_body", task.Title),
 		taskID)
@@ -172,7 +175,7 @@ func (s *PaymentService) CancelByPublisher(ctx context.Context, taskID, publishe
 		Remark:     i18n.T(lang, "bean_refund", task.BountyBeans, task.Title),
 	})
 
-	s.notifyRepo.Create(ctx, publisherID, "task_cancelled",
+	notifyAndPush(ctx, s.notifyRepo, s.push, publisherID, "task_cancelled",
 		i18n.T(lang, "notif_task_cancelled_title"),
 		i18n.T(lang, "notif_task_cancelled_body", task.Title),
 		taskID)
@@ -202,7 +205,7 @@ func (s *PaymentService) DisputeTask(ctx context.Context, taskID, publisherID, r
 
 	if task.ClaimerID != nil {
 		lang := i18n.LanguageFromCtx(ctx)
-		s.notifyRepo.Create(ctx, *task.ClaimerID, "task_disputed",
+		notifyAndPush(ctx, s.notifyRepo, s.push, *task.ClaimerID, "task_disputed",
 			i18n.T(lang, "notif_task_disputed_title"),
 			i18n.T(lang, "notif_task_disputed_body", task.Title),
 			taskID)
@@ -244,7 +247,7 @@ func (s *PaymentService) RefundTask(ctx context.Context, taskID, publisherID str
 	}
 	s.transactionRepo.Create(ctx, tx)
 
-	s.notifyRepo.Create(ctx, publisherID, "task_refunded",
+	notifyAndPush(ctx, s.notifyRepo, s.push, publisherID, "task_refunded",
 		i18n.T(lang, "notif_task_refunded_title"),
 		i18n.T(lang, "notif_task_refunded_body", task.BountyBeans, task.Title),
 		taskID)

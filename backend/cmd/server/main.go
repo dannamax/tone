@@ -172,18 +172,21 @@ func main() {
 
 	authSvc := service.NewAuthService(userRepo, cfg, emailProv)
 	log.Printf("[Auth] Verification code store: %s", cfg.CodeStore.Kind)
-	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, messageRepo, hub, txRepo)
+	deviceRepo := repository.NewDeviceTokenRepo(db)
+	pushSvc := service.NewPushService(deviceRepo)
+	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, messageRepo, hub, txRepo, pushSvc)
 	subSvc := service.NewSubmissionService(submissionRepo)
-	paySvc := service.NewPaymentService(userRepo, taskRepo, txRepo, notifyRepo, hub)
+	paySvc := service.NewPaymentService(userRepo, taskRepo, txRepo, notifyRepo, hub, pushSvc)
 	walletSvc := service.NewWalletService(userRepo, txRepo, notifyRepo, taskRepo)
 	rechargeRepo := repository.NewRechargeRepo(db)
 	quotaSvc := service.NewQuotaService(rechargeRepo, userRepo, txRepo, appleiap.NewVerifier(cfg.Apple.Password))
-	accountSvc := service.NewAccountService(userRepo, taskRepo, messageRepo, submissionRepo, notifyRepo, txRepo, rechargeRepo)
+	accountSvc := service.NewAccountService(userRepo, taskRepo, messageRepo, submissionRepo, notifyRepo, txRepo, rechargeRepo, deviceRepo)
 
 	// --- Handlers ---
 	authHandler := handler.NewAuthHandler(authSvc, userRepo, accountSvc)
 	walletHandler := handler.NewWalletHandler(walletSvc, userRepo, txRepo, notifyRepo)
 	quotaHandler := handler.NewQuotaHandler(quotaSvc)
+	deviceHandler := handler.NewDeviceHandler(deviceRepo)
 	// --- Object storage backend ---
 	var store storage.Storage
 	switch cfg.Storage.Backend {
@@ -237,6 +240,8 @@ func main() {
 		api.GET("/me", middleware.AuthMiddleware(cfg.JWT.Secret), authHandler.GetProfile)
 		// 账户删除（App Store 5.1.1(v) / GDPR 合规）
 		api.DELETE("/me", middleware.AuthMiddleware(cfg.JWT.Secret), authHandler.DeleteAccount)
+		// 推送设备登记（APNs）
+		api.POST("/devices/register", middleware.AuthMiddleware(cfg.JWT.Secret), deviceHandler.Register)
 
 		// 任务广场 & 任务（具体路由必须放在 /tasks/:id 之前）
 		api.GET("/tasks/square", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Square)

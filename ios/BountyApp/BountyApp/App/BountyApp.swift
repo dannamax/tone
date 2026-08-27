@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct SeekerApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()
     @StateObject private var lang = LanguageManager.shared
 
@@ -37,5 +38,31 @@ struct SeekerApp: App {
             .id(lang.currentCode)
             .ignoresSafeArea()
         }
+    }
+}
+
+/// APNs 远程推送生命周期（PushManager 详见 Core/Push/PushManager.swift）
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        // 请求通知权限并注册远程通知（模拟器/未开 capability 时静默失败）
+        PushManager.shared.bootstrap()
+        return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        PushManager.shared.didRegister(deviceToken: deviceToken)
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        PushManager.shared.didFailToRegister(error: error)
     }
 }

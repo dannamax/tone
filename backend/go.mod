@@ -11,6 +11,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.49
 	github.com/redis/go-redis/v9 v9.22.0
+	github.com/sideshow/apns2 v0.25.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.75
 	golang.org/x/time v0.15.0
 )
@@ -29,6 +30,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.4.1 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect

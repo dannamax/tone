@@ -105,6 +105,7 @@ class AppState: ObservableObject {
         currentUser = user
         isLoggedIn = true
         print("[AppState] session restored for \(user.email)")
+        PushManager.shared.reportPendingToken()
 
         Task { @MainActor in
             do {
@@ -136,6 +137,8 @@ class AppState: ObservableObject {
         if let json = try? JSONEncoder().encode(user) {
             TokenStorage.shared.userJSON = String(data: json, encoding: .utf8)
         }
+        // 登录成功后上报缓存的推送 token（若 APNs token 已到手）
+        PushManager.shared.reportPendingToken()
     }
 
     func logout() {

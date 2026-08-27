@@ -38,9 +38,37 @@ extension Date {
 
 extension String {
     func distanceDisplay(_ meters: Double) -> String {
-        if meters < 1000 {
-            return String(format: L10n.distanceMeter, meters)
+        if AppLocale.usesMetric {
+            if meters < 1000 {
+                return String(format: L10n.distanceMeter, meters)
+            }
+            return String(format: L10n.distanceKm, meters / 1000)
         }
-        return String(format: L10n.distanceKm, meters / 1000)
+        // 英制（美国/英国）：短距离英尺，长距离英里
+        let miles = meters / 1609.344
+        if miles < 0.1 {
+            return String(format: L10n.distanceFt, meters * 3.28084)
+        }
+        return String(format: L10n.distanceMi, miles)
+    }
+}
+
+/// 距离单位：跟随系统区域设置（美国用户 miles，其余 km），
+/// App 内语言切换不影响单位（区域才决定度量衡习惯）。
+enum AppLocale {
+    static var usesMetric: Bool {
+        Locale.current.usesMetricSystem
+    }
+
+    /// 任务半径显示：metric → "5km"；imperial → "3.1 mi"
+    static func radiusDisplay(_ meters: Int) -> String {
+        if usesMetric {
+            if meters < 1000 {
+                return "\(meters)m"
+            }
+            let km = Double(meters) / 1000
+            return km == km.rounded() ? String(format: "%.0fkm", km) : String(format: "%.1fkm", km)
+        }
+        return String(format: "%.1f mi", Double(meters) / 1609.344)
     }
 }

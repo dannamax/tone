@@ -376,6 +376,8 @@ enum L10n {
     // MARK: - Formatting
     static var distanceMeter: String { localized("distance_meter") }
     static var distanceKm: String { localized("distance_km") }
+    static var distanceFt: String { localized("distance_ft") }
+    static var distanceMi: String { localized("distance_mi") }
     static var durationHourMin: String { localized("duration_hour_min") }
     static var durationMinSec: String { localized("duration_min_sec") }
     static var durationZero: String { localized("duration_zero") }

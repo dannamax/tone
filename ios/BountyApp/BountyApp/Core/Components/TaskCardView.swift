@@ -38,7 +38,7 @@ struct TaskCardView: View {
             }
 
             HStack(spacing: 14) {
-                Label(String(format: L10n.taskDistanceKm, task.radius / 1000), systemImage: "scope")
+                Label(AppLocale.radiusDisplay(task.radius), systemImage: "scope")
                     .font(.system(size: 12))
                     .foregroundColor(.bountyTextSecondary)
                 Label(String(format: L10n.taskTimeMin, task.timeLimit), systemImage: "clock")

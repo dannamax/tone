@@ -96,7 +96,7 @@ struct TaskDetailView: View {
                           systemImage: "location.fill")
                             .font(.system(size: 12))
                             .foregroundColor(.bountyGray)
-                        Label(String(format: L10n.taskDistanceKm, task.radius/1000), systemImage: "scope")
+                        Label(AppLocale.radiusDisplay(task.radius), systemImage: "scope")
                             .font(.system(size: 12))
                             .foregroundColor(.bountyGray)
                         Label(String(format: L10n.taskTimeMin, task.timeLimit), systemImage: "clock")

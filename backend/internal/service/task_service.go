@@ -39,6 +39,7 @@ type TaskService struct {
 	messageRepo    *repository.MessageRepo
 	wsHub          *websocket.Hub
 	txRepo         *repository.TransactionRepo
+	push           *PushService
 }
 
 func NewTaskService(
@@ -49,6 +50,7 @@ func NewTaskService(
 	messageRepo *repository.MessageRepo,
 	wsHub *websocket.Hub,
 	txRepo *repository.TransactionRepo,
+	push *PushService,
 ) *TaskService {
 	return &TaskService{
 		taskRepo:       taskRepo,
@@ -58,6 +60,7 @@ func NewTaskService(
 		messageRepo:    messageRepo,
 		wsHub:          wsHub,
 		txRepo:         txRepo,
+		push:           push,
 	}
 }
 
@@ -149,7 +152,7 @@ func (s *TaskService) Claim(ctx context.Context, taskID, claimerID string) error
 	}
 
 	lang := i18n.LanguageFromCtx(ctx)
-	s.notifyRepo.Create(ctx, task.PublisherID, "task_claimed",
+	notifyAndPush(ctx, s.notifyRepo, s.push, task.PublisherID, "task_claimed",
 		i18n.T(lang, "notif_task_claimed_title"),
 		i18n.T(lang, "notif_task_claimed_body", task.Title),
 		taskID)
@@ -204,7 +207,7 @@ func (s *TaskService) Submit(ctx context.Context, taskID, claimerID string, req 
 	}
 
 	lang := i18n.LanguageFromCtx(ctx)
-	s.notifyRepo.Create(ctx, task.PublisherID, "task_submitted",
+	notifyAndPush(ctx, s.notifyRepo, s.push, task.PublisherID, "task_submitted",
 		i18n.T(lang, "notif_task_submitted_title"),
 		i18n.T(lang, "notif_task_submitted_body", task.Title),
 		taskID)

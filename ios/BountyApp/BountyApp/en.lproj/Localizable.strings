@@ -202,6 +202,10 @@
 "profile_delete_account_action" = "Delete My Account";
 "profile_delete_account_failed" = "Failed to delete account";
 
+/* Distance units (imperial locales, e.g. US) */
+"distance_ft" = "%.0f ft";
+"distance_mi" = "%.1f mi";
+
 /* Messages */
 "messages_title" = "Messages";
 "messages_empty" = "No messages";

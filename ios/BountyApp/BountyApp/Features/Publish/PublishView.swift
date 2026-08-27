@@ -159,7 +159,7 @@ struct PublishView: View {
                     OptionGroupView(
                         title: L10n.publishRadius,
                         options: radiusOptions,
-                        display: { "\($0/1000)km" },
+                        display: { AppLocale.radiusDisplay($0) },
                         selection: $vm.radius
                     )
 

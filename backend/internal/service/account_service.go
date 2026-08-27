@@ -17,6 +17,7 @@ type AccountService struct {
 	notifyRepo     *repository.NotificationRepo
 	txRepo         *repository.TransactionRepo
 	rechargeRepo   *repository.RechargeRepo
+	deviceRepo     *repository.DeviceTokenRepo
 }
 
 func NewAccountService(
@@ -27,6 +28,7 @@ func NewAccountService(
 	notifyRepo *repository.NotificationRepo,
 	txRepo *repository.TransactionRepo,
 	rechargeRepo *repository.RechargeRepo,
+	deviceRepo *repository.DeviceTokenRepo,
 ) *AccountService {
 	return &AccountService{
 		userRepo:       userRepo,
@@ -36,6 +38,7 @@ func NewAccountService(
 		notifyRepo:     notifyRepo,
 		txRepo:         txRepo,
 		rechargeRepo:   rechargeRepo,
+		deviceRepo:     deviceRepo,
 	}
 }
 
@@ -79,6 +82,7 @@ func (s *AccountService) DeleteAccount(ctx context.Context, userID string) error
 	}
 
 	// 3) 删除个人数据与用户记录
+	_ = s.deviceRepo.DeleteByUser(ctx, userID) // 推送设备登记
 	if err := s.userRepo.DeleteCascade(ctx, userID); err != nil {
 		return fmt.Errorf("delete account: %w", err)
 	}

@@ -65,6 +65,19 @@ func RunMigrations(ctx context.Context, db *sql.DB, driver, migrationsDir string
 				return fmt.Errorf("删除旧 bounty 列失败: %w", err)
 			}
 		}
+		// APNs 推送：设备 token 登记（幂等）
+		if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS device_tokens (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			token TEXT NOT NULL UNIQUE,
+			platform TEXT NOT NULL DEFAULT 'ios',
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`); err != nil {
+			return fmt.Errorf("创建 device_tokens 表失败: %w", err)
+		}
+		if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id)`); err != nil {
+			return fmt.Errorf("创建 device_tokens 索引失败: %w", err)
+		}
 		fmt.Println("[Migration] ✓ sqlite_schema.sql")
 		return nil
 	}

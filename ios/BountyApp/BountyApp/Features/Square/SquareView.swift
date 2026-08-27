@@ -119,7 +119,7 @@ private struct RadiusFilterBar: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(radii, id: \.self) { r in
-                    RadiusChip(title: r == 0 ? L10n.squareFilterAll : "\(r/1000)km " + L10n.squareFilterWithin, isSelected: selected == r) {
+                    RadiusChip(title: r == 0 ? L10n.squareFilterAll : AppLocale.radiusDisplay(r) + " " + L10n.squareFilterWithin, isSelected: selected == r) {
                         withAnimation { selected = r }
                     }
                     .padding(.horizontal, 20)
