@@ -136,6 +136,9 @@ func (r *UserRepo) DeleteCascade(ctx context.Context, userID string) error {
 		{`DELETE FROM recharge_orders WHERE user_id = ?`, []interface{}{userID}},
 		{`DELETE FROM submissions WHERE claimer_id = ?`, []interface{}{userID}},
 		{`DELETE FROM task_messages WHERE sender_id = ?`, []interface{}{userID}},
+		// 他在别人任务下的接单记录：置空而非删行（发布人的历史任务保留，
+		// 前置检查已保证无进行中任务，此处只可能是终态任务）
+		{`UPDATE tasks SET claimer_id = NULL WHERE claimer_id = ?`, []interface{}{userID}},
 		{`DELETE FROM email_codes WHERE email = ?`, []interface{}{email}},
 	} {
 		if _, err := r.db.ExecContext(ctx, q.sql, q.args...); err != nil {
