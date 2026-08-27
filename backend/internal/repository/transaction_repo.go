@@ -75,6 +75,13 @@ func (r *TransactionRepo) FindByUser(ctx context.Context, userID string, page, s
 	return txs, total, nil
 }
 
+// UnlinkTask 任务删除前解除流水与任务的关联（task_id 置 NULL）。
+// 金豆流水是账本必须保留，仅切断外键引用，remark 中仍保留任务标题文字。
+func (r *TransactionRepo) UnlinkTask(ctx context.Context, taskID string) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE transactions SET task_id = NULL WHERE task_id = ?`, taskID)
+	return err
+}
+
 func (r *TransactionRepo) FindByTask(ctx context.Context, taskID string) ([]model.Transaction, error) {
 	query := `SELECT id, task_id, from_user_id, to_user_id, amount, fee, tx_type, tx_status, remark, created_at 
 			  FROM transactions WHERE task_id = ? ORDER BY created_at`

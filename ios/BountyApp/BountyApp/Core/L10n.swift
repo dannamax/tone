@@ -179,6 +179,19 @@ enum L10n {
     static var myTasksPublishedToast: String { localized("my_tasks_published_toast") }
     static var myTasksPublishFailed: String { localized("my_tasks_publish_failed") }
     static var myTasksLoadFailed: String { localized("my_tasks_load_failed") }
+    // 任务管理（批量删除）
+    static var myTasksManage: String { localized("my_tasks_manage") }
+    static var myTasksDone: String { localized("my_tasks_done") }
+    static var myTasksSelectAll: String { localized("my_tasks_select_all") }
+    static var myTasksDeselectAll: String { localized("my_tasks_deselect_all") }
+    static var myTasksDeleteSelected: String { localized("my_tasks_delete_selected") }
+    static var myTasksDeleteConfirmTitle: String { localized("my_tasks_delete_confirm_title") }
+    static var myTasksDeleteConfirmMsg: String { localized("my_tasks_delete_confirm_msg") }
+    static var myTasksDeleteConfirmAction: String { localized("my_tasks_delete_confirm_action") }
+    static var myTasksDeleteConfirmCancel: String { localized("my_tasks_delete_confirm_cancel") }
+    static var myTasksDeletedFmt: String { localized("my_tasks_deleted_fmt") }
+    static var myTasksDeletedSkippedFmt: String { localized("my_tasks_deleted_skipped_fmt") }
+    static var myTasksDeleteFailed: String { localized("my_tasks_delete_failed") }
 
     // MARK: - Messages
     static var messagesTitle: String { localized("messages_title") }

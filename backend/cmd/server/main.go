@@ -172,7 +172,7 @@ func main() {
 
 	authSvc := service.NewAuthService(userRepo, cfg, emailProv)
 	log.Printf("[Auth] Verification code store: %s", cfg.CodeStore.Kind)
-	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, hub, txRepo)
+	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, messageRepo, hub, txRepo)
 	subSvc := service.NewSubmissionService(submissionRepo)
 	paySvc := service.NewPaymentService(userRepo, taskRepo, txRepo, notifyRepo, hub)
 	walletSvc := service.NewWalletService(userRepo, txRepo, notifyRepo, taskRepo)
@@ -239,7 +239,9 @@ func main() {
 		api.GET("/tasks/square", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Square)
 		api.GET("/tasks/mine", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.MyTasks)
 		api.POST("/tasks", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Publish)
+		api.POST("/tasks/delete-batch", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.BatchDelete)
 		api.GET("/tasks/:id", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Get)
+		api.DELETE("/tasks/:id", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Delete)
 		api.POST("/tasks/:id/claim", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Claim)
 		api.POST("/tasks/:id/submit", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Submit)
 		api.GET("/tasks/:id/submission", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.GetSubmission)

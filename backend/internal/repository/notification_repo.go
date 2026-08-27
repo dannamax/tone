@@ -96,6 +96,18 @@ func (r *NotificationRepo) UnreadCount(ctx context.Context, userID string) (int,
 	return count, err
 }
 
+// DeleteByTaskID 删除任务相关的全部通知（任务删除时级联清理）。
+func (r *NotificationRepo) DeleteByTaskID(ctx context.Context, taskID string) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM notifications WHERE task_id = ?`, taskID)
+	return err
+}
+
+// DeleteByTaskID 删除任务的争议记录（任务删除时级联清理）。
+func (r *NotificationRepo) DeleteDisputeByTaskID(ctx context.Context, taskID string) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM disputes WHERE task_id = ?`, taskID)
+	return err
+}
+
 func (r *NotificationRepo) CreateDispute(ctx context.Context, taskID, reason string) (*model.Dispute, error) {
 	id := uuid.NewString()
 	query := `INSERT INTO disputes (id, task_id, reason) VALUES (?, ?, ?)`

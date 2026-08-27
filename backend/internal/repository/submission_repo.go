@@ -90,3 +90,15 @@ func (r *SubmissionRepo) IsPHashDuplicate(ctx context.Context, phash string) (bo
 	err := r.db.QueryRowContext(ctx, query, phash).Scan(&count)
 	return count > 0, err
 }
+
+// DeleteByTaskID 删除任务的提交记录及关联照片（任务删除时级联清理）。
+func (r *SubmissionRepo) DeleteByTaskID(ctx context.Context, taskID string) error {
+	// SQLite 默认未开启外键级联，先手动清理照片再删提交记录
+	if _, err := r.db.ExecContext(ctx,
+		`DELETE FROM submission_photos WHERE submission_id IN (SELECT id FROM submissions WHERE task_id = ?)`,
+		taskID); err != nil {
+		return err
+	}
+	_, err := r.db.ExecContext(ctx, `DELETE FROM submissions WHERE task_id = ?`, taskID)
+	return err
+}

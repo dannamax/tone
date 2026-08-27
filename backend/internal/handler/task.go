@@ -241,6 +241,7 @@ func (h *TaskHandler) MyTasks(c *gin.Context) {
 	response.Paginated(c, tasks, total, page, size)
 }
 
+// GetSubmission 获取任务提交证据
 func (h *TaskHandler) GetSubmission(c *gin.Context) {
 	taskID := c.Param("id")
 	sub, err := h.subSvc.GetByTaskID(c.Request.Context(), taskID)
@@ -249,6 +250,41 @@ func (h *TaskHandler) GetSubmission(c *gin.Context) {
 		return
 	}
 	response.Success(c, sub)
+}
+
+// Delete 发布人删除单个任务
+func (h *TaskHandler) Delete(c *gin.Context) {
+	lang := i18n.LanguageFromRequest(c.Request)
+	taskID := c.Param("id")
+	userID := middleware.GetUserID(c)
+
+	result, err := h.taskSvc.DeleteTasks(c.Request.Context(), userID, []string{taskID})
+	if err != nil {
+		fmt.Printf("[TaskDelete] userID=%s taskID=%s err=%v\n", userID, taskID, err)
+		response.BadRequest(c, i18n.T(lang, "task_delete_failed"))
+		return
+	}
+	response.SuccessWithMessage(c, i18n.T(lang, "task_deleted"), result)
+}
+
+// BatchDelete 发布人批量删除任务（未认领任务自动退豆，进行中任务跳过）
+func (h *TaskHandler) BatchDelete(c *gin.Context) {
+	lang := i18n.LanguageFromRequest(c.Request)
+
+	var req struct {
+		TaskIDs []string `json:"task_ids" binding:"required,min=1,max=100"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, i18n.T(lang, "bad_request"))
+		return
+	}
+
+	result, err := h.taskSvc.DeleteTasks(c.Request.Context(), middleware.GetUserID(c), req.TaskIDs)
+	if err != nil {
+		response.BadRequest(c, i18n.T(lang, "task_delete_failed"))
+		return
+	}
+	response.SuccessWithMessage(c, i18n.T(lang, "task_deleted"), result)
 }
 
 func (h *TaskHandler) SendMessage(c *gin.Context) {

@@ -260,6 +260,37 @@ else
   echo "  [SKIP] 无通知可标记（新号无通知属正常）"
 fi
 
+# ---------- 任务删除管理 ----------
+# T5: A 发布未认领任务 → 删除(自动退豆)
+pub=$(curl -s -X POST "$BASE/api/v1/tasks" -H "$AUTH" -H 'Content-Type: application/json' \
+  -d "{\"title\":\"e2e_del_$TS\",\"bounty_beans\":5,\"target_lat\":22.3,\"target_lng\":114.2,\"target_addr\":\"HK\",\"radius\":5000,\"time_limit\":30}")
+T5=$(jqget "$pub" id)
+check "T5 A 发布待删任务 201" "$([ -n "$T5" ] && echo 0 || echo 1)"
+wl=$(curl -s "$BASE/api/v1/wallet" -H "$AUTH"); BT5a=$(beans "$wl" beans_total)
+check "T5 发布后 A beans_total=0(扣豆)" "$([ "${BT5a:-x}" = "0" ] && echo 0 || echo 1)"
+
+code=$(curl -s -o /tmp/del.txt -w '%{http_code}' -X DELETE "$BASE/api/v1/tasks/$T5" -H "$AUTH")
+check "T5 删除未认领任务 200" "$([ "$code" = "200" ] && echo 0 || echo 1)"
+wl=$(curl -s "$BASE/api/v1/wallet" -H "$AUTH"); BT5b=$(beans "$wl" beans_total)
+check "T5 删除后自动退豆 beans_total=5" "$([ "${BT5b:-x}" = "5" ] && echo 0 || echo 1)"
+code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/v1/tasks/$T5" -H "$AUTH")
+check "T5 删除后详情 404" "$([ "$code" = "404" ] && echo 0 || echo 1)"
+
+# T6: 进行中任务删除被跳过（A 发布 → B 认领 → A 删除被拒）
+pub=$(curl -s -X POST "$BASE/api/v1/tasks" -H "$AUTH" -H 'Content-Type: application/json' \
+  -d "{\"title\":\"e2e_delprog_$TS\",\"bounty_beans\":5,\"target_lat\":22.3,\"target_lng\":114.2,\"target_addr\":\"HK\",\"radius\":5000,\"time_limit\":30}")
+T6=$(jqget "$pub" id)
+curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$T6/claim" -H "$AUTH2"
+code=$(curl -s -o /tmp/del2.txt -w '%{http_code}' -X DELETE "$BASE/api/v1/tasks/$T6" -H "$AUTH")
+check "T6 删除进行中任务跳过(200+skipped)" "$([ "$code" = "200" ] && grep -q '"skipped":\[' /tmp/del2.txt && echo 0 || echo 1)"; echo "    resp=$(head -c 200 /tmp/del2.txt)"
+
+# T7: 批量删除终态任务(T2 refunded + T3 cancelled)
+bd=$(curl -s -X POST "$BASE/api/v1/tasks/delete-batch" -H "$AUTH2" -H 'Content-Type: application/json' \
+  -d "{\"task_ids\":[\"$T2\",\"$T3\"]}")
+check "T7 批量删除 200 且 2 个全删" "$(echo "$bd" | grep -q '"deleted":\["'"$T2"'","'"$T3"'"\]' && echo 0 || echo 1)"; echo "    resp=$(head -c 220 <<<"$bd")"
+code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/v1/tasks/$T2" -H "$AUTH2")
+check "T7 批量删除后 T2 详情 404" "$([ "$code" = "404" ] && echo 0 || echo 1)"
+
 # ---------- 未授权 ----------
 code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/v1/wallet")
 check "无token访问受保护接口 401" "$([ "$code" = "401" ] && echo 0 || echo 1)"

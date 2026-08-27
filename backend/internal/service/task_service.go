@@ -36,6 +36,7 @@ type TaskService struct {
 	userRepo       *repository.UserRepo
 	notifyRepo     *repository.NotificationRepo
 	submissionRepo *repository.SubmissionRepo
+	messageRepo    *repository.MessageRepo
 	wsHub          *websocket.Hub
 	txRepo         *repository.TransactionRepo
 }
@@ -45,6 +46,7 @@ func NewTaskService(
 	userRepo *repository.UserRepo,
 	notifyRepo *repository.NotificationRepo,
 	submissionRepo *repository.SubmissionRepo,
+	messageRepo *repository.MessageRepo,
 	wsHub *websocket.Hub,
 	txRepo *repository.TransactionRepo,
 ) *TaskService {
@@ -53,6 +55,7 @@ func NewTaskService(
 		userRepo:       userRepo,
 		notifyRepo:     notifyRepo,
 		submissionRepo: submissionRepo,
+		messageRepo:    messageRepo,
 		wsHub:          wsHub,
 		txRepo:         txRepo,
 	}
@@ -220,6 +223,106 @@ func (s *TaskService) GetPublishedTasks(ctx context.Context, userID string, page
 
 func (s *TaskService) GetClaimedTasks(ctx context.Context, userID string, page, size int) ([]model.Task, int64, error) {
 	return s.taskRepo.FindClaimedByUser(ctx, userID, page, size)
+}
+
+// SkippedTask 批量删除时被跳过的任务及原因（前端展示用）
+type SkippedTask struct {
+	TaskID string `json:"task_id"`
+	Reason string `json:"reason"`
+}
+
+// DeleteTasksResult 批量删除结果
+type DeleteTasksResult struct {
+	Deleted []string      `json:"deleted"`
+	Refunded int          `json:"refunded"`   // 其中删除前自动退豆的任务数（原状态为 published）
+	Skipped []SkippedTask `json:"skipped"`
+}
+
+// isTerminalStatus 终态：金豆闭环已结束，可安全删除
+func isTerminalStatus(st model.TaskStatus) bool {
+	return st == model.StatusCompleted || st == model.StatusCancelled ||
+		st == model.StatusRefunded || st == model.StatusReleased
+}
+
+// DeleteTasks 发布人删除自己发布的任务（单个或批量）。
+// 金豆安全规则：
+//   - completed/cancelled/refunded/released 终态 → 直接删除（金豆已结算完毕）
+//   - published（未被认领）→ 删除后自动全额退豆（等同撤回）
+//   - claimed/submitted/disputed（进行中）→ 拒绝删除，跳过并返回原因
+//
+// 执行顺序（防刷豆）：先完成全部删除动作，最后才退豆 —— 若删除失败则
+// 退豆不会执行，避免"退豆成功但任务未删"被重复利用。
+// 级联清理：履约消息、提交记录、通知、争议；金豆流水保留作为账本
+// （仅解除 task_id 关联，remark 中保留任务标题文字）。
+func (s *TaskService) DeleteTasks(ctx context.Context, publisherID string, taskIDs []string) (*DeleteTasksResult, error) {
+	lang := i18n.LanguageFromCtx(ctx)
+	result := &DeleteTasksResult{Deleted: []string{}, Skipped: []SkippedTask{}}
+
+	for _, taskID := range taskIDs {
+		task, err := s.taskRepo.FindByID(ctx, taskID)
+		if err != nil {
+			return nil, err
+		}
+		if task == nil || task.PublisherID != publisherID {
+			result.Skipped = append(result.Skipped, SkippedTask{
+				TaskID: taskID,
+				Reason: i18n.T(lang, "task_not_found"),
+			})
+			continue
+		}
+
+		// 进行中任务不允许删除（保障猎人履约与金豆闭环）
+		if !isTerminalStatus(task.Status) && task.Status != model.StatusPublished {
+			result.Skipped = append(result.Skipped, SkippedTask{
+				TaskID: taskID,
+				Reason: i18n.T(lang, "task_delete_in_progress"),
+			})
+			continue
+		}
+
+		// 1) 解除金豆流水与任务的关联（账本行保留，仅置空 task_id）
+		if err := s.txRepo.UnlinkTask(ctx, taskID); err != nil {
+			return nil, fmt.Errorf("unlink transactions: %w", err)
+		}
+		// 2) 级联清理关联数据
+		if err := s.messageRepo.DeleteByTaskID(ctx, taskID); err != nil {
+			return nil, fmt.Errorf("delete messages: %w", err)
+		}
+		if err := s.submissionRepo.DeleteByTaskID(ctx, taskID); err != nil {
+			return nil, fmt.Errorf("delete submissions: %w", err)
+		}
+		if err := s.notifyRepo.DeleteByTaskID(ctx, taskID); err != nil {
+			return nil, fmt.Errorf("delete notifications: %w", err)
+		}
+		if err := s.notifyRepo.DeleteDisputeByTaskID(ctx, taskID); err != nil {
+			return nil, fmt.Errorf("delete disputes: %w", err)
+		}
+		// 3) 删除任务本身（校验归属）
+		if err := s.taskRepo.DeleteByOwner(ctx, taskID, publisherID); err != nil {
+			return nil, err
+		}
+
+		// 4) 任务删除成功后才退豆（未认领任务预扣赏金全额返还发布者）
+		if task.Status == model.StatusPublished {
+			if err := s.userRepo.AddBeans(ctx, publisherID, task.BountyBeans, false); err != nil {
+				// 任务已删但退豆失败：记录日志人工对账，不影响后续任务删除
+				fmt.Printf("[TaskDelete] REFUND FAILED taskID=%s publisher=%s beans=%d err=%v\n",
+					taskID, publisherID, task.BountyBeans, err)
+			} else {
+				s.txRepo.Create(ctx, &model.Transaction{
+					FromUserID: publisherID,
+					Type:       model.TxTypeBeanRefund,
+					Status:     model.TxStatusSuccess,
+					BeansDelta: task.BountyBeans,
+					Remark:     i18n.T(lang, "bean_refund", task.BountyBeans, task.Title),
+				})
+				result.Refunded++
+			}
+		}
+		result.Deleted = append(result.Deleted, taskID)
+	}
+
+	return result, nil
 }
 
 type SubmissionService struct {

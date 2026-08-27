@@ -59,6 +59,13 @@ func (r *MessageRepo) FindByTaskID(ctx context.Context, taskID string) ([]model.
 	return msgs, nil
 }
 
+// DeleteByTaskID 删除任务的全部履约对话消息（任务删除时级联清理）。
+func (r *MessageRepo) DeleteByTaskID(ctx context.Context, taskID string) error {
+	query := `DELETE FROM task_messages WHERE task_id = ?`
+	_, err := r.db.ExecContext(ctx, query, taskID)
+	return err
+}
+
 func (r *MessageRepo) FindByID(ctx context.Context, id string) (*model.TaskMessage, error) {
 	query := `SELECT id, task_id, sender_id, content, image_urls, created_at 
 			  FROM task_messages WHERE id = ?`

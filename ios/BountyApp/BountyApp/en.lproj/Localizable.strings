@@ -174,6 +174,20 @@
 "my_tasks_publish_failed" = "Publish failed";
 "my_tasks_load_failed" = "Failed to load tasks";
 
+/* Task management (batch delete) */
+"my_tasks_manage" = "Manage";
+"my_tasks_done" = "Done";
+"my_tasks_select_all" = "Select All";
+"my_tasks_deselect_all" = "Deselect All";
+"my_tasks_delete_selected" = "Delete (%d)";
+"my_tasks_delete_confirm_title" = "Delete Tasks?";
+"my_tasks_delete_confirm_msg" = "%d task(s) will be deleted. Unclaimed tasks will be refunded automatically; tasks in progress will be skipped.";
+"my_tasks_delete_confirm_action" = "Delete";
+"my_tasks_delete_confirm_cancel" = "Cancel";
+"my_tasks_deleted_fmt" = "Deleted %d task(s)";
+"my_tasks_deleted_skipped_fmt" = "Deleted %d, skipped %d (in progress)";
+"my_tasks_delete_failed" = "Failed to delete tasks";
+
 /* Messages */
 "messages_title" = "Messages";
 "messages_empty" = "No messages";

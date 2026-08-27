@@ -342,6 +342,19 @@ func (r *TaskRepo) FindExpiredTasks(ctx context.Context) ([]model.Task, error) {
 	return scanAllRows(rows), nil
 }
 
+// DeleteByOwner 发布人硬删除自己的任务记录（仅校验归属，状态校验由 service 层完成）。
+func (r *TaskRepo) DeleteByOwner(ctx context.Context, taskID, publisherID string) error {
+	query := `DELETE FROM tasks WHERE id = ? AND publisher_id = ?`
+	result, err := r.db.ExecContext(ctx, query, taskID, publisherID)
+	if err != nil {
+		return err
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task not found or not owned by user")
+	}
+	return nil
+}
+
 func (r *TaskRepo) listTasks(ctx context.Context, query string, total int64, arg string, limit, offset int) ([]model.Task, int64, error) {
 	rows, err := r.db.QueryContext(ctx, query, arg, limit, offset)
 	if err != nil {
