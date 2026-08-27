@@ -20,6 +20,7 @@
 - [ ] **年龄分级**：问卷（任务交易类，预期 12+/17+）
 - [ ] **价格与地区**：免费 + 排除中国大陆/香港/台湾，其余全开
 - [ ] **出口合规**：Info.plist 已设 `ITSAppUsesNonExemptEncryption=false` ✅（ASC 问卷同步选"仅 HTTPS"）
+- [ ] **⚠️ APNs 切换生产网关**：HK `/opt/bountyapp/.env` 里 `APNS_SANDBOX=true` → `false`，然后 `cd /opt/bountyapp/deploy && docker compose -f docker-compose.prod.yml up -d`。**提审前必须改**（审核版走生产网关，沙盒开关会导致审核员收不到推送）。Key（MTB47LK7VB @ B646TG3PZ6）沙盒+生产通用，无需重建。TestFlight 阶段可保持 true。
 
 ---
 
@@ -49,7 +50,11 @@
 
 | 模块 | 状态 | 说明 |
 |------|------|------|
-| 后端全链路 e2e | ✅ | **53 项全绿**（HK 生产实跑，金豆守恒断言：发布扣豆/确认入账/退款退豆/豆不足拦截/假 JWS 拒绝） |
+| 后端全链路 e2e | ✅ | **61 项全绿**（HK 生产实跑，金豆守恒断言：发布扣豆/确认入账/退款退豆/豆不足拦截/假 JWS 拒绝；含任务删除/批量删除用例） |
+| APNs 远程推送 | ✅ | .p8 已配置（MTB47LK7VB @ B646TG3PZ6，Sandbox&Production 通用）、7 个业务通知点挂钩、设备 token 登记；**沙盒网关已验证，提审前切生产（→ P0.2 末项）** |
+| 账户删除 + 恢复购买 | ✅ | DELETE /me（进行中任务 409 + 级联清理）+ POST /wallet/quota/restore + iOS 入口（5.1.1(v)/3.1.1 合规） |
+| 距离单位本地化 | ✅ | 随系统区域 km/m 或 mi/ft（美国用户 miles） |
+| 登录态持久化 | ✅ | 冷启动恢复 + 7 天 JWT + /me 后台校验 |
 | iOS 模拟器 UI 测试 | ✅ | iPhone 17 全绿（登录→发布→我的任务→消息 + mock 冒烟 5 项） |
 | 认证（发码/登录/注册） | ✅ | redis 存码 + 60s 冷却 + 注册礼 5 豆（代码显式发放） |
 | 金豆经济闭环 | ✅ | 双账本（purchased/earned）原子扣减、IAP 三 SKU 映射 |
