@@ -125,7 +125,8 @@ func (r *UserRepo) DeleteCascade(ctx context.Context, userID string) error {
 	if err := r.db.QueryRowContext(ctx, `SELECT email FROM users WHERE id = ?`, userID).Scan(&email); err != nil {
 		return err
 	}
-	// 2) 删除个人关联数据
+	// 2) 删除个人关联数据（含他在别人任务下的提交证据与聊天消息，
+	//    这些行带 REFERENCES users(id) 外键，不清会导致删用户失败）
 	for _, q := range []struct {
 		sql  string
 		args []interface{}
@@ -133,6 +134,8 @@ func (r *UserRepo) DeleteCascade(ctx context.Context, userID string) error {
 		{`DELETE FROM notifications WHERE user_id = ?`, []interface{}{userID}},
 		{`DELETE FROM transactions WHERE from_user_id = ? OR to_user_id = ?`, []interface{}{userID, userID}},
 		{`DELETE FROM recharge_orders WHERE user_id = ?`, []interface{}{userID}},
+		{`DELETE FROM submissions WHERE claimer_id = ?`, []interface{}{userID}},
+		{`DELETE FROM task_messages WHERE sender_id = ?`, []interface{}{userID}},
 		{`DELETE FROM email_codes WHERE email = ?`, []interface{}{email}},
 	} {
 		if _, err := r.db.ExecContext(ctx, q.sql, q.args...); err != nil {
