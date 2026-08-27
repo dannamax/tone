@@ -41,6 +41,15 @@ struct PublishView: View {
                             .padding(8)
                             .background(Color.white)
                             .cornerRadius(12)
+                            .overlay(alignment: .topLeading) {
+                                if vm.description.isEmpty {
+                                    Text(L10n.publishDescPlaceholder)
+                                        .font(.system(size: 15))
+                                        .foregroundColor(.bountyGray.opacity(0.7))
+                                        .padding(12)
+                                        .allowsHitTesting(false)
+                                }
+                            }
                             .accessibilityIdentifier("publishDescField")
                             .overlay(alignment: .bottomTrailing) {
                                 Text("\(vm.description.count)/200")

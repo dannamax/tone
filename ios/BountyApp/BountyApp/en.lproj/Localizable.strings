@@ -112,7 +112,8 @@
 /* Publish */
 "publish_title" = "Post Task";
 "publish_task_title" = "Task Title";
-"publish_title_placeholder" = "e.g. Help me buy milk tea";
+"publish_title_placeholder" = "e.g. Coffee run or package pickup";
+"publish_desc_placeholder" = "Add details: what to do, where to meet, and what photo proof you expect...";
 "publish_description" = "Description";
 "publish_bounty_amount" = "Bounty";
 "publish_currency" = "Currency";

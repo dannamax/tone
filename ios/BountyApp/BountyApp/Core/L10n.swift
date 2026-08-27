@@ -119,6 +119,7 @@ enum L10n {
     static var publishTitle: String { localized("publish_title") }
     static var publishTaskTitle: String { localized("publish_task_title") }
     static var publishTitlePlaceholder: String { localized("publish_title_placeholder") }
+    static var publishDescPlaceholder: String { localized("publish_desc_placeholder") }
     static var publishDescription: String { localized("publish_description") }
     static var publishBountyAmount: String { localized("publish_bounty_amount") }
     static var publishCurrency: String { localized("publish_currency") }
