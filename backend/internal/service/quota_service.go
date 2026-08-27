@@ -122,3 +122,88 @@ func (s *QuotaService) ConfirmAppleIAP(ctx context.Context, orderID, receiptData
 func (s *QuotaService) GetOrder(ctx context.Context, orderID string) (*model.RechargeOrder, error) {
 	return s.rechargeRepo.FindByID(ctx, orderID)
 }
+
+// RestoreResult 恢复购买结果统计
+type RestoreResult struct {
+	Restored int `json:"restored"` // 本次补发入账的笔数（已付款但未确认的订单）
+	Already  int `json:"already"`  // 早已入账、跳过的笔数
+	Unknown  int `json:"unknown"`  // 无法关联到任何订单的交易数
+}
+
+// RestoreAppleIAP 恢复购买：客户端上传 App Store 历史交易的 JWS 列表，
+// 后端逐笔验签并按 Apple transaction_id 关联本地订单：
+//   - 订单已 paid            → 跳过（早已入账，MarkPaid 幂等）
+//   - 订单 created（已付款但 confirm 中断）→ 补发金豆
+//   - 无订单 → 尝试用 product_id 绑定该用户最早的未支付同套餐订单 → 补发
+//   - 均无法关联（如他人交易/非本 App 商品）→ 计入 unknown
+//
+// 注意：金豆为消耗型（consumable），Apple 官方不保证可恢复；
+// 本接口的价值是补齐「付款成功但入账失败/中断」的边缘场景。
+func (s *QuotaService) RestoreAppleIAP(ctx context.Context, userID string, jwsList []string) (*RestoreResult, error) {
+	result := &RestoreResult{}
+
+	for _, jws := range jwsList {
+		// 宽松验签（不绑定单一 productId），随后按 product 反查套餐
+		claims, err := appleiap.VerifyJWS(jws, "")
+		if err != nil {
+			result.Unknown++
+			continue
+		}
+
+		// 只认本 App 的套餐商品
+		pkg, ok := model.GetQuotaPackageByAppleProductID(claims.ProductID)
+		if !ok {
+			result.Unknown++
+			continue
+		}
+
+		// 按 Apple transaction_id 精确匹配本地订单
+		order, err := s.rechargeRepo.FindByGateway(ctx, model.ChannelApple, claims.TransactionID)
+		if err != nil {
+			return nil, err
+		}
+		if order != nil {
+			if order.UserID != userID {
+				result.Unknown++ // 他人的交易，忽略
+				continue
+			}
+			if order.Status == model.OrderStatusPaid {
+				result.Already++ // 早已入账
+				continue
+			}
+			if _, err := s.redeemOrderWithTxID(ctx, order, claims.TransactionID); err != nil {
+				return nil, err
+			}
+			result.Restored++
+			continue
+		}
+
+		// 无精确匹配：尝试绑定该用户最早的未支付同套餐订单（付款后 confirm 中断的场景）
+		pending, err := s.rechargeRepo.FindOldestCreated(ctx, userID, pkg.ID)
+		if err != nil {
+			return nil, err
+		}
+		if pending == nil {
+			result.Unknown++
+			continue
+		}
+		if _, err := s.redeemOrderWithTxID(ctx, pending, claims.TransactionID); err != nil {
+			return nil, err
+		}
+		result.Restored++
+	}
+
+	return result, nil
+}
+
+// redeemOrderWithTxID 以指定 Apple transaction_id 幂等入账
+func (s *QuotaService) redeemOrderWithTxID(ctx context.Context, order *model.RechargeOrder, txID string) (*model.RechargeOrder, error) {
+	if order.Status == model.OrderStatusPaid {
+		return order, nil
+	}
+	order.GatewayOrderID = txID
+	if err := s.redeem(ctx, order); err != nil {
+		return nil, err
+	}
+	return s.rechargeRepo.FindByID(ctx, order.ID)
+}

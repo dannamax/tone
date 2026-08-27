@@ -77,6 +77,26 @@ func (r *RechargeRepo) FindByGateway(ctx context.Context, channel, gatewayOrderI
 	return o, nil
 }
 
+// FindOldestCreated 找用户在某套餐下最早一笔未支付订单。
+// 恢复购买场景：用户已付款但 confirm 中断（gateway_order_id 仍为空），
+// 用历史交易按 product_id 关联到该订单补发。
+func (r *RechargeRepo) FindOldestCreated(ctx context.Context, userID, packageID string) (*model.RechargeOrder, error) {
+	o := &model.RechargeOrder{}
+	query := `SELECT id, user_id, package_id, channel, amount, currency, beans_granted, status, gateway_order_id, receipt_data, paid_at, created_at
+			  FROM recharge_orders WHERE user_id = ? AND package_id = ? AND status = ?
+			  ORDER BY created_at ASC LIMIT 1`
+	var paidAt sql.NullTime
+	err := r.db.QueryRowContext(ctx, query, userID, packageID, model.OrderStatusCreated).Scan(
+		&o.ID, &o.UserID, &o.PackageID, &o.Channel, &o.Amount, &o.Currency, &o.BeansGranted, &o.Status, &o.GatewayOrderID, &o.ReceiptData, &paidAt, &o.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
 // MarkPaid 幂等标记订单为已支付并发放金豆。
 // 仅当订单处于 created 时才切换并加豆；已 paid 则直接返回成功（重复通知安全）。
 func (r *RechargeRepo) MarkPaid(ctx context.Context, id, gatewayOrderID string, beansGranted int, addBeans func(ctx context.Context, userID string, n int) error) (*model.RechargeOrder, error) {

@@ -1,6 +1,16 @@
 import Foundation
 import StoreKit
 
+/// 恢复购买结果（后端 /wallet/quota/restore 返回）
+/// - restored: 本次补发入账的笔数（付款成功但入账中断的订单）
+/// - already:  早已入账、跳过的笔数
+/// - unknown:  无法关联到任何订单的交易数
+struct RestoreResult: Codable {
+    let restored: Int
+    let already: Int
+    let unknown: Int
+}
+
 /// 发布额度充值管理器（方案1）
 ///
 /// iOS 端仅负责用 StoreKit 2 拉起 Apple 支付，拿到交易凭证后，
@@ -75,6 +85,37 @@ final class StoreKitManager: ObservableObject {
             throw StoreError.backendFailed(resp.message)
         }
         return order
+    }
+
+    // MARK: - Restore Purchases
+
+    /// 恢复购买：收集本 Apple ID 在本 App 的全部历史交易（StoreKit 2 `Transaction.all`，
+    /// 含已 finish 的），把 JWS 列表交给后端按 Apple transaction_id 幂等关联订单并补发。
+    /// 金豆为消耗型（consumable），Apple 不提供系统级恢复；此流程的价值是
+    /// 补齐「付款成功但入账中断」的边缘场景，并满足 App Store 3.1.1 审核要求。
+    @MainActor
+    func restorePurchases() async throws -> RestoreResult {
+        var jwsList: [String] = []
+        for await result in Transaction.all {
+            if case .verified(let tx) = result {
+                let jws = String(decoding: tx.jsonRepresentation, as: UTF8.self)
+                if !jws.isEmpty { jwsList.append(jws) }
+                await tx.finish()
+            }
+        }
+        guard !jwsList.isEmpty else {
+            return RestoreResult(restored: 0, already: 0, unknown: 0)
+        }
+        let resp: APIResponse<RestoreResult> = try await APIClient.shared.request(
+            "/wallet/quota/restore",
+            method: "POST",
+            body: ["jws_list": jwsList],
+            requiresAuth: true
+        )
+        guard let result = resp.data else {
+            throw StoreError.backendFailed(resp.message)
+        }
+        return result
     }
 
     enum StoreError: LocalizedError {

@@ -271,6 +271,30 @@ struct QuotaPackagesSheet: View {
                         }
                         .disabled(vm.isPurchasing)
                     }
+
+                    // 恢复购买（App Store 3.1.1 合规）：补齐付款成功但入账中断的订单
+                    Button {
+                        Task { await vm.restorePurchases() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if vm.isRestoring {
+                                ProgressView().tint(.bountyGray)
+                            }
+                            Text(L10n.walletRestorePurchases)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.bountyInfo)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                    }
+                    .disabled(vm.isPurchasing || vm.isRestoring)
+
+                    if let msg = vm.restoreMessage {
+                        Text(msg)
+                            .font(.system(size: 13))
+                            .foregroundColor(.bountyTextSecondary)
+                            .multilineTextAlignment(.center)
+                    }
                 }
                 .padding(20)
             }
@@ -287,6 +311,8 @@ class WalletViewModel: ObservableObject {
     @Published var completedTasks: Int = 0
     @Published var packages: [QuotaPackage] = []
     @Published var isPurchasing = false
+    @Published var isRestoring = false
+    @Published var restoreMessage: String?
     @Published var loadError: String?
 
     func load() {
@@ -352,6 +378,30 @@ class WalletViewModel: ObservableObject {
             await MainActor.run {
                 isPurchasing = false
                 loadError = error.localizedDescription
+            }
+        }
+    }
+
+    /// 恢复购买：上传历史交易给后端幂等补发，展示结果
+    func restorePurchases() async {
+        await MainActor.run { isRestoring = true; restoreMessage = nil; loadError = nil }
+        do {
+            let result = try await StoreKitManager.shared.restorePurchases()
+            await load()
+            await MainActor.run {
+                isRestoring = false
+                if result.restored > 0 {
+                    restoreMessage = String(format: L10n.walletRestoredFmt, result.restored)
+                } else if result.already > 0 {
+                    restoreMessage = L10n.walletRestoreAlready
+                } else {
+                    restoreMessage = L10n.walletRestoreNothing
+                }
+            }
+        } catch {
+            await MainActor.run {
+                isRestoring = false
+                restoreMessage = (error as? APIError)?.friendlyMessage ?? L10n.walletRestoreFailed
             }
         }
     }

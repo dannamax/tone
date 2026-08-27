@@ -82,6 +82,13 @@ func (r *TransactionRepo) UnlinkTask(ctx context.Context, taskID string) error {
 	return err
 }
 
+// DeleteByUser 删除用户的全部交易流水（账户删除用，GDPR 彻底清除）。
+func (r *TransactionRepo) DeleteByUser(ctx context.Context, userID string) error {
+	_, err := r.db.ExecContext(ctx,
+		`DELETE FROM transactions WHERE from_user_id = ? OR to_user_id = ?`, userID, userID)
+	return err
+}
+
 func (r *TransactionRepo) FindByTask(ctx context.Context, taskID string) ([]model.Transaction, error) {
 	query := `SELECT id, task_id, from_user_id, to_user_id, amount, fee, tx_type, tx_status, remark, created_at 
 			  FROM transactions WHERE task_id = ? ORDER BY created_at`

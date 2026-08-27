@@ -116,3 +116,36 @@ func (r *UserRepo) AddBeans(ctx context.Context, userID string, n int, earned bo
 		`UPDATE users SET `+col+` = `+col+` + ?, updated_at = ? WHERE id = ?`, n, time.Now(), userID)
 	return err
 }
+
+// DeleteCascade 彻底删除账户：个人关联数据 + 用户记录（GDPR / 审核合规）。
+// 前置条件：进行中任务检查与任务级联删除已由 AccountService 完成。
+func (r *UserRepo) DeleteCascade(ctx context.Context, userID string) error {
+	// 1) 取 email（删验证码记录用）
+	var email string
+	if err := r.db.QueryRowContext(ctx, `SELECT email FROM users WHERE id = ?`, userID).Scan(&email); err != nil {
+		return err
+	}
+	// 2) 删除个人关联数据
+	for _, q := range []struct {
+		sql  string
+		args []interface{}
+	}{
+		{`DELETE FROM notifications WHERE user_id = ?`, []interface{}{userID}},
+		{`DELETE FROM transactions WHERE from_user_id = ? OR to_user_id = ?`, []interface{}{userID, userID}},
+		{`DELETE FROM recharge_orders WHERE user_id = ?`, []interface{}{userID}},
+		{`DELETE FROM email_codes WHERE email = ?`, []interface{}{email}},
+	} {
+		if _, err := r.db.ExecContext(ctx, q.sql, q.args...); err != nil {
+			return err
+		}
+	}
+	// 3) 删除用户记录本身
+	res, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, userID)
+	if err != nil {
+		return err
+	}
+	if affected, _ := res.RowsAffected(); affected == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}

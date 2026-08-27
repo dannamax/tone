@@ -192,6 +192,18 @@ enum L10n {
     static var myTasksDeletedFmt: String { localized("my_tasks_deleted_fmt") }
     static var myTasksDeletedSkippedFmt: String { localized("my_tasks_deleted_skipped_fmt") }
     static var myTasksDeleteFailed: String { localized("my_tasks_delete_failed") }
+    // 恢复购买（App Store 3.1.1 合规）
+    static var walletRestorePurchases: String { localized("wallet_restore_purchases") }
+    static var walletRestoredFmt: String { localized("wallet_restored_fmt") }
+    static var walletRestoreAlready: String { localized("wallet_restore_already") }
+    static var walletRestoreNothing: String { localized("wallet_restore_nothing") }
+    static var walletRestoreFailed: String { localized("wallet_restore_failed") }
+    // 删除账户（App Store 5.1.1(v) / GDPR 合规）
+    static var profileDeleteAccount: String { localized("profile_delete_account") }
+    static var profileDeleteAccountConfirmTitle: String { localized("profile_delete_account_confirm_title") }
+    static var profileDeleteAccountConfirmMsg: String { localized("profile_delete_account_confirm_msg") }
+    static var profileDeleteAccountAction: String { localized("profile_delete_account_action") }
+    static var profileDeleteAccountFailed: String { localized("profile_delete_account_failed") }
 
     // MARK: - Messages
     static var messagesTitle: String { localized("messages_title") }

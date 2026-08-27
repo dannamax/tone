@@ -127,6 +127,11 @@ var enMessages = map[string]string{
 	"task_deleted":              "Task deleted",
 	"task_delete_failed":        "Failed to delete task",
 	"task_delete_in_progress":   "Task in progress cannot be deleted",
+
+	// --- Account deletion ---
+	"account_deleted":           "Account deleted",
+	"account_delete_failed":     "Failed to delete account",
+	"account_delete_active_tasks": "You have tasks in progress. Please complete or abandon them before deleting your account.",
 	"evidence_submitted":        "Evidence submitted",
 	"evidence_submitted_msg":    "Evidence submitted, waiting for review",
 	"evidence_submitted_with_note": "Evidence submitted (note: %s), waiting for review",

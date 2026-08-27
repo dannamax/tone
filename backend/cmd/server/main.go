@@ -178,9 +178,10 @@ func main() {
 	walletSvc := service.NewWalletService(userRepo, txRepo, notifyRepo, taskRepo)
 	rechargeRepo := repository.NewRechargeRepo(db)
 	quotaSvc := service.NewQuotaService(rechargeRepo, userRepo, txRepo, appleiap.NewVerifier(cfg.Apple.Password))
+	accountSvc := service.NewAccountService(userRepo, taskRepo, messageRepo, submissionRepo, notifyRepo, txRepo, rechargeRepo)
 
 	// --- Handlers ---
-	authHandler := handler.NewAuthHandler(authSvc, userRepo)
+	authHandler := handler.NewAuthHandler(authSvc, userRepo, accountSvc)
 	walletHandler := handler.NewWalletHandler(walletSvc, userRepo, txRepo, notifyRepo)
 	quotaHandler := handler.NewQuotaHandler(quotaSvc)
 	// --- Object storage backend ---
@@ -234,6 +235,8 @@ func main() {
 		api.POST("/auth/send-code", authHandler.SendCode)
 		api.POST("/auth/login", authHandler.RegisterOrLogin)
 		api.GET("/me", middleware.AuthMiddleware(cfg.JWT.Secret), authHandler.GetProfile)
+		// 账户删除（App Store 5.1.1(v) / GDPR 合规）
+		api.DELETE("/me", middleware.AuthMiddleware(cfg.JWT.Secret), authHandler.DeleteAccount)
 
 		// 任务广场 & 任务（具体路由必须放在 /tasks/:id 之前）
 		api.GET("/tasks/square", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Square)
@@ -266,6 +269,8 @@ func main() {
 		api.GET("/wallet/quota-packages", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.Packages)
 		api.POST("/wallet/quota/order", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.CreateOrder)
 		api.POST("/wallet/quota/confirm-apple", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.ConfirmApple)
+		// 恢复购买（App Store 3.1.1 合规）
+		api.POST("/wallet/quota/restore", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.Restore)
 		api.GET("/wallet/quota/order/:id", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.GetOrder)
 		api.GET("/notifications", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.GetNotifications)
 		api.POST("/notifications/:id/read", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.MarkRead)

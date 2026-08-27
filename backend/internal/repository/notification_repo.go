@@ -102,6 +102,12 @@ func (r *NotificationRepo) DeleteByTaskID(ctx context.Context, taskID string) er
 	return err
 }
 
+// DeleteByUser 删除用户的全部通知（账户删除用）。
+func (r *NotificationRepo) DeleteByUser(ctx context.Context, userID string) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM notifications WHERE user_id = ?`, userID)
+	return err
+}
+
 // DeleteByTaskID 删除任务的争议记录（任务删除时级联清理）。
 func (r *NotificationRepo) DeleteDisputeByTaskID(ctx context.Context, taskID string) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM disputes WHERE task_id = ?`, taskID)

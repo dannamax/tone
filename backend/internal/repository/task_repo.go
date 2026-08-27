@@ -355,6 +355,30 @@ func (r *TaskRepo) DeleteByOwner(ctx context.Context, taskID, publisherID string
 	return nil
 }
 
+// FindIDsByPublisher 列出用户发布的全部任务 ID（账户删除时级联清理用）
+func (r *TaskRepo) FindIDsByPublisher(ctx context.Context, publisherID string) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT id FROM tasks WHERE publisher_id = ?`, publisherID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// DeleteAllByPublisher 硬删除用户发布的全部任务（账户删除用，前置条件：无进行中任务）
+func (r *TaskRepo) DeleteAllByPublisher(ctx context.Context, publisherID string) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM tasks WHERE publisher_id = ?`, publisherID)
+	return err
+}
+
 func (r *TaskRepo) listTasks(ctx context.Context, query string, total int64, arg string, limit, offset int) ([]model.Task, int64, error) {
 	rows, err := r.db.QueryContext(ctx, query, arg, limit, offset)
 	if err != nil {

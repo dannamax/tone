@@ -73,6 +73,29 @@ func (h *QuotaHandler) ConfirmApple(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": order})
 }
 
+// Restore 恢复购买：客户端上传 App Store 历史交易 JWS 列表，按 transaction_id
+// 幂等关联本地订单并补发（App Store 3.1.1 恢复购买合规）。
+// POST /wallet/quota/restore  body: {jws_list: ["...", ...]}
+func (h *QuotaHandler) Restore(c *gin.Context) {
+	lang := i18n.LanguageFromRequest(c.Request)
+	userID := middleware.GetUserID(c)
+
+	var req struct {
+		JWSList []string `json:"jws_list" binding:"required,min=1,max=200"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": i18n.T(lang, "invalid_params")})
+		return
+	}
+
+	result, err := h.quotaSvc.RestoreAppleIAP(c.Request.Context(), userID, req.JWSList)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": result})
+}
+
 // GetOrder 查询充值订单状态
 // GET /wallet/quota/order/:id
 func (h *QuotaHandler) GetOrder(c *gin.Context) {

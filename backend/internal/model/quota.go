@@ -30,6 +30,16 @@ func GetQuotaPackage(id string) (QuotaPackage, bool) {
 	return p, ok
 }
 
+// GetQuotaPackageByAppleProductID 按 Apple 产品 ID 反查套餐（恢复购买时用）
+func GetQuotaPackageByAppleProductID(productID string) (QuotaPackage, bool) {
+	for _, p := range DefaultQuotaPackages {
+		if p.AppleProductID == productID {
+			return p, true
+		}
+	}
+	return QuotaPackage{}, false
+}
+
 // QuotaPackagesList 返回套餐列表（供前端展示）
 func QuotaPackagesList() []QuotaPackage {
 	list := make([]QuotaPackage, 0, len(DefaultQuotaPackages))

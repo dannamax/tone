@@ -188,6 +188,20 @@
 "my_tasks_deleted_skipped_fmt" = "Deleted %d, skipped %d (in progress)";
 "my_tasks_delete_failed" = "Failed to delete tasks";
 
+/* Restore Purchases */
+"wallet_restore_purchases" = "Restore Purchases";
+"wallet_restored_fmt" = "%d purchase(s) restored to your account";
+"wallet_restore_already" = "All purchases are already on your account";
+"wallet_restore_nothing" = "No purchases found to restore";
+"wallet_restore_failed" = "Restore failed. Please try again later";
+
+/* Delete Account */
+"profile_delete_account" = "Delete Account";
+"profile_delete_account_confirm_title" = "Delete Account?";
+"profile_delete_account_confirm_msg" = "This permanently deletes your account, tasks, chat history and bean balance. This cannot be undone. Tasks in progress must be completed first.";
+"profile_delete_account_action" = "Delete My Account";
+"profile_delete_account_failed" = "Failed to delete account";
+
 /* Messages */
 "messages_title" = "Messages";
 "messages_empty" = "No messages";

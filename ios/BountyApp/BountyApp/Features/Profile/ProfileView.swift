@@ -4,6 +4,31 @@ struct ProfileView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject private var lang = LanguageManager.shared
     @State private var showLogoutConfirm = false
+    @State private var showDeleteAccountConfirm = false
+    @State private var isDeletingAccount = false
+
+    /// 删除账户：调 DELETE /me 彻底清除服务端数据，成功后清空本地登录态。
+    /// 有进行中任务时后端返回 409，toast 提示先完成或放弃。
+    private func deleteAccount() {
+        guard !isDeletingAccount else { return }
+        isDeletingAccount = true
+        Task { @MainActor in
+            do {
+                let resp: APIResponse<EmptyResponse> = try await APIClient.shared.request(
+                    "/me", method: "DELETE"
+                )
+                isDeletingAccount = false
+                if resp.code == 0 {
+                    appState.logout()
+                } else {
+                    appState.showToast(resp.message.isEmpty ? L10n.profileDeleteAccountFailed : resp.message)
+                }
+            } catch {
+                isDeletingAccount = false
+                appState.showToast((error as? APIError)?.friendlyMessage ?? L10n.profileDeleteAccountFailed)
+            }
+        }
+    }
 
     private func openHelpAndFeedback() {
         let supportEmail = "support@gotseeker.com"
@@ -139,6 +164,15 @@ struct ProfileView: View {
                             .background(Color.white)
                             .cornerRadius(12)
                     }
+
+                    // Delete Account（App Store 5.1.1(v) / GDPR 合规）
+                    Button(action: { showDeleteAccountConfirm = true }) {
+                        Text(L10n.profileDeleteAccount)
+                            .font(.system(size: 13))
+                            .foregroundColor(.bountyGray)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
@@ -151,6 +185,15 @@ struct ProfileView: View {
                 appState.logout()
             }
             Button(L10n.cancel, role: .cancel) {}
+        }
+        // 删除账户二次确认：不可恢复，需无进行中任务
+        .confirmationDialog(L10n.profileDeleteAccountConfirmTitle, isPresented: $showDeleteAccountConfirm, titleVisibility: .visible) {
+            Button(L10n.profileDeleteAccountAction, role: .destructive) {
+                deleteAccount()
+            }
+            Button(L10n.cancel, role: .cancel) {}
+        } message: {
+            Text(L10n.profileDeleteAccountConfirmMsg)
         }
     }
 }
