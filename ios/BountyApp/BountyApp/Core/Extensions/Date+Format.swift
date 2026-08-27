@@ -37,6 +37,30 @@ extension Date {
 }
 
 extension String {
+    /// 解析后端 ISO8601/SQLite 时间字符串并转为相对时间展示（"2h ago"）。
+    /// SQLite CURRENT_TIMESTAMP 格式为 "2006-01-02 15:04:05"（UTC 无时区）；
+    /// 兼容 RFC3339（带 Z/时区偏移）两种形态。
+    var iso8601TimeAgo: String {
+        let formats = [
+            "yyyy-MM-dd HH:mm:ss",       // SQLite CURRENT_TIMESTAMP（UTC）
+            "yyyy-MM-dd'T'HH:mm:ssZZZZZ", // RFC3339 带 时区
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ",
+        ]
+        for fmt in formats {
+            let df = DateFormatter()
+            df.locale = Locale(identifier: "en_US_POSIX")
+            df.dateFormat = fmt
+            // SQLite 形态无时区，按 UTC 解释
+            if fmt == formats[0] { df.timeZone = TimeZone(identifier: "UTC") }
+            if let date = df.date(from: self) {
+                return date.timeAgoDisplay()
+            }
+        }
+        return self
+    }
+}
+
+extension String {
     func distanceDisplay(_ meters: Double) -> String {
         if AppLocale.usesMetric {
             if meters < 1000 {

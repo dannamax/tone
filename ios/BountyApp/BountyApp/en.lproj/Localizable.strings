@@ -195,6 +195,8 @@
 "wallet_restore_already" = "All purchases are already on your account";
 "wallet_restore_nothing" = "No purchases found to restore";
 "wallet_restore_failed" = "Restore failed. Please try again later";
+"wallet_tx_empty_title" = "No transactions yet";
+"wallet_tx_empty_subtitle" = "Your bean history will appear here after you publish or complete tasks";
 
 /* Delete Account */
 "profile_delete_account" = "Delete Account";

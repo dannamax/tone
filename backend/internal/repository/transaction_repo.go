@@ -46,8 +46,8 @@ func (r *TransactionRepo) FindByUser(ctx context.Context, userID string, page, s
 		return nil, 0, err
 	}
 
-	query := `SELECT id, task_id, from_user_id, to_user_id, amount, fee, tx_type, tx_status, remark, created_at 
-			  FROM transactions WHERE from_user_id = ? OR to_user_id = ? 
+	query := `SELECT id, task_id, from_user_id, to_user_id, amount, fee, tx_type, tx_status, remark, order_id, beans_delta, created_at
+			  FROM transactions WHERE from_user_id = ? OR to_user_id = ?
 			  ORDER BY created_at DESC LIMIT ? OFFSET ?`
 
 	rows, err := r.db.QueryContext(ctx, query, userID, userID, size, (page-1)*size)
@@ -59,16 +59,24 @@ func (r *TransactionRepo) FindByUser(ctx context.Context, userID string, page, s
 	var txs []model.Transaction
 	for rows.Next() {
 		var t model.Transaction
-		var taskIDNS sql.NullString
+		var taskIDNS, orderIDNS, toUserIDNS sql.NullString
 		if err := rows.Scan(
-			&t.ID, &taskIDNS, &t.FromUserID, &t.ToUserID,
-			&t.Amount, &t.Fee, &t.Type, &t.Status, &t.Remark, &t.CreatedAt,
+			&t.ID, &taskIDNS, &t.FromUserID, &toUserIDNS,
+			&t.Amount, &t.Fee, &t.Type, &t.Status, &t.Remark, &orderIDNS, &t.BeansDelta, &t.CreatedAt,
 		); err != nil {
 			return nil, 0, err
 		}
 		if taskIDNS.Valid {
 			v := taskIDNS.String
 			t.TaskID = &v
+		}
+		if toUserIDNS.Valid {
+			v := toUserIDNS.String
+			t.ToUserID = &v
+		}
+		if orderIDNS.Valid {
+			v := orderIDNS.String
+			t.OrderID = &v
 		}
 		txs = append(txs, t)
 	}

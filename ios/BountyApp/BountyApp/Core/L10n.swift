@@ -280,6 +280,8 @@ enum L10n {
     static var storePending: String { localized("store_pending") }
     static var storeUnknown: String { localized("store_unknown") }
     static var walletBounty: String { localized("wallet_bounty") }
+    static var walletTxEmptyTitle: String { localized("wallet_tx_empty_title") }
+    static var walletTxEmptySubtitle: String { localized("wallet_tx_empty_subtitle") }
 
     // MARK: - Profile
     static var profileTitle: String { localized("profile_title") }

@@ -407,24 +407,146 @@ class WalletViewModel: ObservableObject {
     }
 }
 
-struct TransactionListView: View {
-    @ObservedObject private var lang = LanguageManager.shared
-    var body: some View {
-        List {
-            ForEach(0..<5, id: \.self) { _ in
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(L10n.walletBounty).font(.system(size: 14, weight: .medium))
-                        Text(Date().timeAgoDisplay()).font(.system(size: 12)).foregroundColor(.bountyTextSecondary)
-                    }
-                    Spacer()
-                    Text("+¥18.00").font(.system(size: 16, weight: .medium)).foregroundColor(.bountySuccess)
+/// 金豆流水（后端 /wallet/transactions 返回，对应 model.Transaction）
+struct TransactionItem: Codable, Identifiable {
+    let id: String
+    let taskID: String?
+    let type: String
+    let status: String
+    let remark: String?
+    let beansDelta: Int
+    let createdAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case status
+        case remark
+        case createdAt = "created_at"
+        case taskID = "task_id"
+        case beansDelta = "beans_delta"
+    }
+
+    /// 金豆变动展示：正=入账绿 +N beans；负=扣减红 -N beans
+    var beansText: String {
+        beansDelta >= 0 ? "+\(beansDelta)" : "\(beansDelta)"
+    }
+
+    var isIncome: Bool { beansDelta >= 0 }
+
+    var icon: String {
+        switch type {
+        case "bean_spend": return "arrow.up.circle"
+        case "bean_reward": return "checkmark.seal"
+        case "bean_buy": return "plus.circle"
+        case "bean_refund": return "arrow.uturn.backward.circle"
+        case "bean_grant": return "gift"
+        default: return "list.bullet.circle"
+        }
+    }
+}
+
+@MainActor
+final class TransactionListViewModel: ObservableObject {
+    @Published var items: [TransactionItem] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    func load() {
+        isLoading = true
+        errorMessage = nil
+        Task {
+            do {
+                let resp: APIResponse<PaginatedResponse<TransactionItem>> = try await APIClient.shared.request(
+                    "/wallet/transactions?page=1&size=50"
+                )
+                if resp.code == 0 {
+                    items = resp.data?.items ?? []
+                } else {
+                    errorMessage = resp.message
                 }
-                .padding(.vertical, 4)
+                isLoading = false
+            } catch {
+                isLoading = false
+                errorMessage = error.localizedDescription
             }
         }
-        .navigationTitle(L10n.walletTransactions)
+    }
+}
+
+/// 交易流水页：读取真实金豆账本（/wallet/transactions），
+/// 按 beans_delta 展示每笔入账/扣减；流水为账本，不随任务删除而消失。
+struct TransactionListView: View {
+    @StateObject private var vm = TransactionListViewModel()
+    @ObservedObject private var lang = LanguageManager.shared
+
+    var body: some View {
+        Group {
+            if vm.isLoading && vm.items.isEmpty {
+                VStack(spacing: 12) { SkeletonCard(); SkeletonCard() }
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            } else if vm.items.isEmpty {
+                VStack(spacing: 8) {
+                    EmptyStateView(
+                        icon: "list.bullet.rectangle",
+                        title: L10n.walletTxEmptyTitle,
+                        subtitle: vm.errorMessage ?? L10n.walletTxEmptySubtitle
+                    )
+                    if vm.errorMessage != nil {
+                        Button(L10n.myTasksReload) { vm.load() }
+                            .foregroundColor(.bountyGold)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(vm.items) { tx in
+                            TransactionRow(item: tx)
+                            Divider().padding(.leading, 60)
+                        }
+                    }
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                }
+            }
+        }
         .background(Color.bountyBg)
+        .navigationTitle(L10n.walletTransactions)
+        .onAppear { vm.load() }
+    }
+}
+
+private struct TransactionRow: View {
+    let item: TransactionItem
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: item.icon)
+                .font(.system(size: 20))
+                .foregroundColor(item.isIncome ? .bountySuccess : .bountyDanger)
+                .frame(width: 32)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.remark?.isEmpty == false ? item.remark! : item.type)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.bountyText)
+                    .lineLimit(2)
+                Text(item.createdAt.iso8601TimeAgo)
+                    .font(.system(size: 12))
+                    .foregroundColor(.bountyTextSecondary)
+            }
+            Spacer()
+
+            Text("\(item.beansText) beans")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(item.isIncome ? .bountySuccess : .bountyDanger)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 }
 
