@@ -15,7 +15,7 @@
 
 ### P0.2 App Store Connect 提审材料
 - [ ] **截图**：6.7"（iPhone 17 Pro Max 等）+ 6.5" 两组；`scripts/generate_review_screenshot.py` 可生成占位图，建议用真机/模拟器截真实界面（广场、发布、钱包、任务详情）
-- [ ] **版本页**：1.0 — 描述文案（PRD 1.1/1.2 可提炼）、关键词、推广文本、支持 URL（support@gotseeker.com 或 gotseeker.com）
+- [ ] **版本页**：1.0 — 描述文案（PRD 1.1/1.2 可提炼）、关键词、推广文本、支持 URL（邮箱 seekerhubconnect@gmail.com 或网站 gotseeker.com）
 - [ ] **App 隐私标签**：Data Collection 问卷（对照 PrivacyInfo.xcprivacy：位置/照片/邮箱/设备 ID，不追踪）
 - [ ] **年龄分级**：问卷（任务交易类，预期 12+/17+）
 - [ ] **价格与地区**：免费 + 排除中国大陆/香港/台湾，其余全开

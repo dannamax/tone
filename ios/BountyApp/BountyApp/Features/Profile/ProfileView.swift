@@ -31,7 +31,7 @@ struct ProfileView: View {
     }
 
     private func openHelpAndFeedback() {
-        let supportEmail = "support@gotseeker.com"
+        let supportEmail = "seekerhubconnect@gmail.com"
         let subject = "[SeekerHub] App Feedback"
         let body = "App Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")\n"
         let mailto = "mailto:\(supportEmail)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "")"
