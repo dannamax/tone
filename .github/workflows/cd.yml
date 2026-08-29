@@ -48,12 +48,16 @@ jobs:
             echo " [WARN] HK_PUBLIC_BASE_URL not set, defaulting to $BASE"
           fi
           echo "==> expecting version=$EXPECTED on $BASE"
+          # 用前 7 位短 SHA 比较：手动 SSH 部署时常传短 SHA（镜像里烧的 version 也是短 SHA），
+          # 严格全串比较会把并发/手动部署误判为失败。
+          EXPECTED_SHORT="${EXPECTED:0:7}"
           for i in $(seq 1 10); do
             # 仅当回退到裸 IP 探测时才使用 -k；若使用域名证书则正常校验。
             HTTP_CODE=$(curl -sS $CURL_OPTS -o /tmp/healthz.json -w "%{http_code}" "$BASE/healthz" 2>/tmp/curl.err || true)
             GOT=$(grep -o '"version":"[^"]*"' /tmp/healthz.json 2>/dev/null | cut -d'"' -f4 || true)
-            if [ "$GOT" = "$EXPECTED" ]; then
-              echo " [OK] online version matches $EXPECTED"
+            GOT_SHORT="${GOT:0:7}"
+            if [ -n "$GOT" ] && [ "$GOT_SHORT" = "$EXPECTED_SHORT" ]; then
+              echo " [OK] online version matches $GOT (expected $EXPECTED)"
               exit 0
             fi
             echo " wait ($i): http=$HTTP_CODE got='$GOT' want='$EXPECTED'"
