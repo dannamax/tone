@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"seeker/internal/model"
 	"seeker/internal/repository"
@@ -218,6 +219,49 @@ func (s *TaskService) Submit(ctx context.Context, taskID, claimerID string, req 
 	})
 
 	return created, nil
+}
+
+// RequestChanges 发布人"要求补充证据"：submitted → claimed（非 disputed）。
+// 任务退回接单人，附系统消息说明原因，接单人可修改后再次提交（支持多轮）。
+// Disputed 保留给真正的纠纷通道（仲裁/退款）。
+func (s *TaskService) RequestChanges(ctx context.Context, taskID, publisherID, reason string) error {
+	task, err := s.taskRepo.FindByID(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	if task == nil || task.PublisherID != publisherID {
+		return errors.New(i18n.TCtx(ctx, "not_publisher"))
+	}
+	if task.Status != model.StatusSubmitted {
+		return errors.New(i18n.TCtx(ctx, "task_status_invalid"))
+	}
+
+	if err := s.taskRepo.RequestChanges(ctx, taskID); err != nil {
+		return err
+	}
+
+	// 聊天里留一条系统说明，双方都能看到原因
+	if msg := strings.TrimSpace(reason); msg != "" {
+		_, _ = s.messageRepo.Create(ctx, &model.TaskMessage{
+			TaskID:   taskID,
+			SenderID: publisherID,
+			Content:  i18n.T(i18n.LanguageFromCtx(ctx), "msg_changes_requested", msg),
+		})
+	}
+
+	if task.ClaimerID != nil {
+		lang := i18n.LanguageFromCtx(ctx)
+		notifyAndPush(ctx, s.notifyRepo, s.push, *task.ClaimerID, "task_changes_requested",
+			i18n.T(lang, "notif_task_changes_requested_title"),
+			i18n.T(lang, "notif_task_changes_requested_body", task.Title),
+			taskID)
+		s.wsHub.SendToUser(*task.ClaimerID, websocket.Message{
+			Type:    websocket.MsgTypeTaskClaimed, // 复用 claimed 通知，客户端刷新任务状态
+			Payload: map[string]string{"task_id": taskID},
+		})
+	}
+
+	return nil
 }
 
 func (s *TaskService) GetPublishedTasks(ctx context.Context, userID string, page, size int) ([]model.Task, int64, error) {

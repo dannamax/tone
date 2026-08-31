@@ -182,37 +182,7 @@ struct TaskDetailView: View {
 
                     // 发布人的审核按钮
                     if task.status == "submitted" && isOwnTask {
-                        HStack(spacing: 10) {
-                            Button {
-                                vm.confirmTask(taskID: taskID) { msg in
-                                    appState.showToast(msg)
-                                    appState.refreshMyTasksTrigger.toggle()
-                                    appState.refreshSquareTrigger.toggle()
-                                }
-                            } label: {
-                                if vm.isReviewing {
-                                    ProgressView().tint(.white)
-                                } else {
-                                    Label(L10n.taskConfirmPass, systemImage: "checkmark.seal")
-                                        .font(.system(size: 14, weight: .semibold))
-                                }
-                            }
-                            .bountyButton(color: .bountySuccess)
-                            .disabled(vm.isReviewing)
-
-                            Button {
-                                vm.disputeTask(taskID: taskID, reason: "evidence_not_sufficient") { msg in
-                                    appState.showToast(msg)
-                                    appState.refreshMyTasksTrigger.toggle()
-                                }
-                            } label: {
-                                Label(L10n.taskRequestMore, systemImage: "arrow.triangle.2.circlepath")
-                                    .font(.system(size: 14, weight: .medium))
-                            }
-                            .bountyButton(color: .bountyWarning)
-                            .disabled(vm.isReviewing)
-                        }
-                        .padding(.top, 4)
+                        reviewButtons
                     }
                 }
                 .padding(12)
@@ -225,11 +195,54 @@ struct TaskDetailView: View {
                 HStack { ProgressView(); Text(L10n.loading).font(.system(size: 13)).foregroundColor(.bountyGray) }
                     .padding(16).frame(maxWidth: .infinity)
             } else {
-                Text(L10n.taskEvidenceLoadFailed)
-                    .font(.system(size: 13)).foregroundColor(.bountyGray)
-                    .padding(16).frame(maxWidth: .infinity)
+                // 证据拉取失败也不能卡死审核流程：发布方仍可确认/要求补充
+                VStack(spacing: 10) {
+                    Text(L10n.taskEvidenceLoadFailed)
+                        .font(.system(size: 13)).foregroundColor(.bountyGray)
+                    if task.status == "submitted" && isOwnTask {
+                        reviewButtons
+                    }
+                }
+                .padding(16).frame(maxWidth: .infinity)
             }
         }
+    }
+
+    /// 发布人审核操作（确认放款 / 要求补充证据）。
+    /// 独立成子视图，确保证据加载失败时审核入口依然可用。
+    @ViewBuilder
+    private var reviewButtons: some View {
+        HStack(spacing: 10) {
+            Button {
+                vm.confirmTask(taskID: taskID) { msg in
+                    appState.showToast(msg)
+                    appState.refreshMyTasksTrigger.toggle()
+                    appState.refreshSquareTrigger.toggle()
+                }
+            } label: {
+                if vm.isReviewing {
+                    ProgressView().tint(.white)
+                } else {
+                    Label(L10n.taskConfirmPass, systemImage: "checkmark.seal")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+            }
+            .bountyButton(color: .bountySuccess)
+            .disabled(vm.isReviewing)
+
+            Button {
+                vm.requestChanges(taskID: taskID, reason: "evidence_not_sufficient") { msg in
+                    appState.showToast(msg)
+                    appState.refreshMyTasksTrigger.toggle()
+                }
+            } label: {
+                Label(L10n.taskRequestMore, systemImage: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .bountyButton(color: .bountyWarning)
+            .disabled(vm.isReviewing)
+        }
+        .padding(.top, 4)
     }
 
     // MARK: - Messages Section
@@ -397,16 +410,23 @@ struct TaskDetailView: View {
     }
 
     private func buildImageURL(_ path: String) -> URL? {
-        if path.hasPrefix("http") { return URL(string: path) }
-        if path.hasPrefix("/uploads/") {
-            let host = AppConfig.baseHost
-            return URL(string: "\(host)\(path)")
-        }
-        return URL(string: path)
+        resolveImageURL(path)
     }
 }
 
-// MARK: - Message Bubble
+// MARK: - 图片 URL 解析（全局 helper，消息气泡与证据图共用）
+
+/// 把后端返回的图片路径解析为可加载的 URL：
+/// - 绝对 http(s) URL（COS 生产）直接使用；
+/// - 相对路径（本地存储 "/uploads/..."）拼到 APIClient 当前生效 origin，
+///   保证与 API 请求同源（自动发现后的局域网地址 / 生产域名）。
+func resolveImageURL(_ path: String) -> URL? {
+    if path.hasPrefix("http") { return URL(string: path) }
+    if path.hasPrefix("/uploads/") {
+        return URL(string: APIClient.shared.currentOrigin + path)
+    }
+    return URL(string: path)
+}
 
 struct MessageBubble: View {
     let message: TaskMessage
@@ -463,12 +483,7 @@ struct MessageBubble: View {
     }
 
     private func buildImageURL(_ path: String) -> URL? {
-        if path.hasPrefix("http") { return URL(string: path) }
-        if path.hasPrefix("/uploads/") {
-            let host = AppConfig.baseHost
-            return URL(string: "\(host)\(path)")
-        }
-        return URL(string: path)
+        resolveImageURL(path)
     }
 
     private func formatTime(_ raw: String) -> String {
@@ -786,12 +801,14 @@ class TaskDetailViewModel: ObservableObject {
         }
     }
 
-    func disputeTask(taskID: String, reason: String, onError: @escaping (String) -> Void) {
+    /// 发布人"要求补充证据"：任务回退 claimed，接单人可修改后重新提交。
+    /// 注意不是 dispute——争议是独立的纠纷通道，不应被审核操作误触发。
+    func requestChanges(taskID: String, reason: String, onError: @escaping (String) -> Void) {
         Task { @MainActor in
             isReviewing = true
             do {
                 let resp: APIResponse<EmptyResponse> = try await APIClient.shared.request(
-                    "/tasks/\(taskID)/dispute", method: "POST",
+                    "/tasks/\(taskID)/request-changes", method: "POST",
                     body: ["reason": reason]
                 )
                 if resp.code == 0 {

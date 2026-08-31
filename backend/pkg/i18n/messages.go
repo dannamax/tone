@@ -28,6 +28,10 @@ var enMessages = map[string]string{
 	"invalid_nickname":          "Nickname must be 1-32 characters",
 	"profile_update_failed":     "Failed to update profile",
 	"default_nickname":          "Hunter%s",
+	"changes_requested":         "Changes requested. The task has been sent back to the claimer.",
+	"msg_changes_requested":     "Publisher requested changes: %s. Please update and resubmit.",
+	"notif_task_changes_requested_title": "Changes requested",
+	"notif_task_changes_requested_body":  "The publisher requested changes for \"%s\". Please update and resubmit.",
 
 	// --- Auth ---
 	"auth_header_missing":       "Authorization header is required",

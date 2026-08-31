@@ -255,6 +255,7 @@ func main() {
 		api.POST("/tasks/:id/submit", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Submit)
 		api.GET("/tasks/:id/submission", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.GetSubmission)
 		api.POST("/tasks/:id/confirm", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Confirm)
+		api.POST("/tasks/:id/request-changes", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.RequestChanges)
 		api.POST("/tasks/:id/dispute", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Dispute)
 		api.POST("/tasks/:id/cancel", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Abandon)
 		api.POST("/tasks/:id/refund", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Refund)

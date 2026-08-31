@@ -273,6 +273,17 @@ final class APIClient: @unchecked Sendable {
 
     /// 后端基准地址，可被自动发现逻辑更新（换局域网自愈）
     private(set) var baseURL: String = AppConfig.apiBaseURL
+
+    /// 当前实际生效的后端 origin（如 http://192.168.1.9:8080 或 https://api.gotseeker.com）。
+    /// 由 baseURL（.../api/v1）去掉路径得到。静态资源（上传图片等）URL 拼接
+    /// 必须使用它而不是 AppConfig.baseHost，保证与 API 请求同源、自动发现一致。
+    public var currentOrigin: String {
+        if let r = baseURL.range(of: "/api/v1") {
+            return String(baseURL[..<r.lowerBound])
+        }
+        return baseURL
+    }
+
     private let session: URLSession
     private let decoder: JSONDecoder
     /// 当前进行中的请求任务，用于网络切换时主动取消（方案A）

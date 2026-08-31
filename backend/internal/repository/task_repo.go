@@ -318,6 +318,22 @@ func (r *TaskRepo) MarkDisputed(ctx context.Context, taskID string) error {
 	return nil
 }
 
+// RequestChanges "要求补充证据"：submitted → claimed。
+// 任务退回接单人，允许其修改后再次提交（支持多轮）；
+// 与 Disputed（真正的纠纷，走仲裁/退款）严格区分。
+func (r *TaskRepo) RequestChanges(ctx context.Context, taskID string) error {
+	now := time.Now()
+	query := `UPDATE tasks SET status = ?, updated_at = ? WHERE id = ? AND status = 'submitted'`
+	result, err := r.db.ExecContext(ctx, query, model.StatusClaimed, now, taskID)
+	if err != nil {
+		return err
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task status invalid for request changes")
+	}
+	return nil
+}
+
 func (r *TaskRepo) Refund(ctx context.Context, taskID string) error {
 	query := `UPDATE tasks SET status = ?, refunded_at = ?, updated_at = ? WHERE id = ?`
 	result, err := r.db.ExecContext(ctx, query, model.StatusRefunded, time.Now(), time.Now(), taskID)

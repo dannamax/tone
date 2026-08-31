@@ -174,6 +174,28 @@ func (h *TaskHandler) Dispute(c *gin.Context) {
 	response.SuccessWithMessage(c, i18n.T(lang, "dispute_submitted"), nil)
 }
 
+// RequestChanges 发布人"要求补充证据"：任务回退 claimed，接单人可修改后重新提交。
+func (h *TaskHandler) RequestChanges(c *gin.Context) {
+	lang := i18n.LanguageFromRequest(c.Request)
+	taskID := c.Param("id")
+	userID := middleware.GetUserID(c)
+
+	var req struct {
+		Reason string `json:"reason" binding:"required,min=1,max=500"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, i18n.T(lang, "bad_request"))
+		return
+	}
+
+	if err := h.taskSvc.RequestChanges(c.Request.Context(), taskID, userID, req.Reason); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	response.SuccessWithMessage(c, i18n.T(lang, "changes_requested"), nil)
+}
+
 func (h *TaskHandler) Abandon(c *gin.Context) {
 	taskID := c.Param("id")
 	userID := middleware.GetUserID(c)
