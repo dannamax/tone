@@ -232,7 +232,7 @@ func (s *TaskService) RequestChanges(ctx context.Context, taskID, publisherID, r
 	if task == nil || task.PublisherID != publisherID {
 		return errors.New(i18n.TCtx(ctx, "not_publisher"))
 	}
-	if task.Status != model.StatusSubmitted {
+	if task.Status != model.StatusSubmitted && task.Status != model.StatusDisputed {
 		return errors.New(i18n.TCtx(ctx, "task_status_invalid"))
 	}
 

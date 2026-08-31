@@ -181,7 +181,7 @@ struct TaskDetailView: View {
                     }
 
                     // 发布人的审核按钮
-                    if task.status == "submitted" && isOwnTask {
+                    if (task.status == "submitted" || task.status == "disputed") && isOwnTask {
                         reviewButtons
                     }
                 }
@@ -199,7 +199,7 @@ struct TaskDetailView: View {
                 VStack(spacing: 10) {
                     Text(L10n.taskEvidenceLoadFailed)
                         .font(.system(size: 13)).foregroundColor(.bountyGray)
-                    if task.status == "submitted" && isOwnTask {
+                    if (task.status == "submitted" || task.status == "disputed") && isOwnTask {
                         reviewButtons
                     }
                 }
@@ -210,25 +210,28 @@ struct TaskDetailView: View {
 
     /// 发布人审核操作（确认放款 / 要求补充证据）。
     /// 独立成子视图，确保证据加载失败时审核入口依然可用。
+    /// disputed 状态下"要求补充"即撤销争议，任务回退 claimed 让接单人重新提交。
     @ViewBuilder
     private var reviewButtons: some View {
         HStack(spacing: 10) {
-            Button {
-                vm.confirmTask(taskID: taskID) { msg in
-                    appState.showToast(msg)
-                    appState.refreshMyTasksTrigger.toggle()
-                    appState.refreshSquareTrigger.toggle()
+            if vm.task?.status != "disputed" {
+                Button {
+                    vm.confirmTask(taskID: taskID) { msg in
+                        appState.showToast(msg)
+                        appState.refreshMyTasksTrigger.toggle()
+                        appState.refreshSquareTrigger.toggle()
+                    }
+                } label: {
+                    if vm.isReviewing {
+                        ProgressView().tint(.white)
+                    } else {
+                        Label(L10n.taskConfirmPass, systemImage: "checkmark.seal")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
                 }
-            } label: {
-                if vm.isReviewing {
-                    ProgressView().tint(.white)
-                } else {
-                    Label(L10n.taskConfirmPass, systemImage: "checkmark.seal")
-                        .font(.system(size: 14, weight: .semibold))
-                }
+                .bountyButton(color: .bountySuccess)
+                .disabled(vm.isReviewing)
             }
-            .bountyButton(color: .bountySuccess)
-            .disabled(vm.isReviewing)
 
             Button {
                 vm.requestChanges(taskID: taskID, reason: "evidence_not_sufficient") { msg in
@@ -283,7 +286,10 @@ struct TaskDetailView: View {
                     HStack(spacing: 12) {
                         Spacer()
                         Button {
-                            vm.claimTask(taskID: taskID)
+                            vm.claimTask(taskID: taskID) { msg in
+                                appState.showToast(msg)
+                                appState.refreshSquareTrigger.toggle()
+                            }
                         } label: {
                             HStack(spacing: 6) {
                                 if vm.isClaiming {
@@ -760,7 +766,7 @@ class TaskDetailViewModel: ObservableObject {
         }
     }
 
-    func claimTask(taskID: String) {
+    func claimTask(taskID: String, onError: @escaping (String) -> Void) {
         Task { @MainActor in
             isClaiming = true
             do {
@@ -772,10 +778,10 @@ class TaskDetailViewModel: ObservableObject {
                     loadMessages(taskID: taskID)
                     loadSubmission(taskID: taskID)
                 } else {
-                    print("[Claim] failed: \(resp.message)")
+                    onError(resp.message.isEmpty ? L10n.taskOpsFailShort : resp.message)
                 }
             } catch {
-                print("[Claim] error: \(error)")
+                onError(L10n.taskOpsFailed)
             }
             isClaiming = false
         }

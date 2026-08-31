@@ -415,6 +415,8 @@ struct TransactionItem: Codable, Identifiable {
     let status: String
     let remark: String?
     let beansDelta: Int
+    let fromUserID: String?
+    let toUserID: String?
     let createdAt: String
 
     enum CodingKeys: String, CodingKey {
@@ -425,14 +427,40 @@ struct TransactionItem: Codable, Identifiable {
         case createdAt = "created_at"
         case taskID = "task_id"
         case beansDelta = "beans_delta"
+        case fromUserID = "from_user_id"
+        case toUserID = "to_user_id"
     }
 
-    /// 金豆变动展示：正=入账绿 +N beans；负=扣减红 -N beans
-    var beansText: String {
-        beansDelta >= 0 ? "+\(beansDelta)" : "\(beansDelta)"
+    /// 流水视角：同一笔转账记录，付款方与收款方看到的金额方向相反。
+    enum Perspective {
+        case income      // 收款：+N 绿色
+        case expense     // 支出：-N 红色
+        case transferOut // 赏金放款（from 视角的 bean_reward）：余额不变，中性显示
     }
 
-    var isIncome: Bool { beansDelta >= 0 }
+    func perspective(for currentUserID: String?) -> Perspective {
+        if let to = toUserID, to == currentUserID, beansDelta >= 0 { return .income }
+        if let from = fromUserID, from == currentUserID, type == "bean_reward" { return .transferOut }
+        return beansDelta >= 0 ? .income : .expense
+    }
+
+    func beansText(for currentUserID: String?) -> String {
+        switch perspective(for: currentUserID) {
+        case .income: return "+\(beansDelta)"
+        case .expense: return "\(beansDelta)"
+        case .transferOut: return "→"
+        }
+    }
+
+    func isIncome(for currentUserID: String?) -> Bool {
+        perspective(for: currentUserID) == .income
+    }
+
+    /// 展示标题：from 视角的 reward 换成支付语义（remark 里的 "earned" 文案不适用于付款方）
+    func displayTitle(for currentUserID: String?) -> String {
+        if perspective(for: currentUserID) == .transferOut { return L10n.walletTxBountyPaid }
+        return remark?.isEmpty == false ? remark! : type
+    }
 
     var icon: String {
         switch type {
@@ -479,6 +507,7 @@ final class TransactionListViewModel: ObservableObject {
 struct TransactionListView: View {
     @StateObject private var vm = TransactionListViewModel()
     @ObservedObject private var lang = LanguageManager.shared
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         Group {
@@ -503,7 +532,7 @@ struct TransactionListView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(vm.items) { tx in
-                            TransactionRow(item: tx)
+                            TransactionRow(item: tx, currentUserID: appState.currentUser?.id)
                             Divider().padding(.leading, 60)
                         }
                     }
@@ -522,16 +551,17 @@ struct TransactionListView: View {
 
 private struct TransactionRow: View {
     let item: TransactionItem
+    var currentUserID: String? = nil
 
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: item.icon)
                 .font(.system(size: 20))
-                .foregroundColor(item.isIncome ? .bountySuccess : .bountyDanger)
+                .foregroundColor(item.isIncome(for: currentUserID) ? .bountySuccess : (item.perspective(for: currentUserID) == .transferOut ? .bountyTextSecondary : .bountyDanger))
                 .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.remark?.isEmpty == false ? item.remark! : item.type)
+                Text(item.displayTitle(for: currentUserID))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.bountyText)
                     .lineLimit(2)
@@ -541,9 +571,9 @@ private struct TransactionRow: View {
             }
             Spacer()
 
-            Text("\(item.beansText) beans")
+            Text("\(item.beansText(for: currentUserID)) beans")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(item.isIncome ? .bountySuccess : .bountyDanger)
+                .foregroundColor(item.perspective(for: currentUserID) == .transferOut ? .bountyTextSecondary : (item.isIncome(for: currentUserID) ? .bountySuccess : .bountyDanger))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)

@@ -282,6 +282,7 @@ enum L10n {
     static var walletBounty: String { localized("wallet_bounty") }
     static var walletTxEmptyTitle: String { localized("wallet_tx_empty_title") }
     static var walletTxEmptySubtitle: String { localized("wallet_tx_empty_subtitle") }
+    static var walletTxBountyPaid: String { localized("wallet_tx_bounty_paid") }
 
     // MARK: - Profile
     static var profileTitle: String { localized("profile_title") }

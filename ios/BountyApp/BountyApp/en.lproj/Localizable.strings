@@ -69,7 +69,8 @@
 /* Task Detail */
 "task_detail_title" = "Task Details";
 "task_not_found" = "Task not found";
-"task_not_found_hint" = "Maybe it was cancelled";
+"task_not_found_hint" = "Couldn't load this task. Pull down to retry.";
+"wallet_tx_bounty_paid" = "Bounty paid to claimer";
 "task_no_location" = "No location info";
 "task_in_progress" = "In progress, waiting for completion";
 "task_received_submit" = "Task submitted, waiting for review";
