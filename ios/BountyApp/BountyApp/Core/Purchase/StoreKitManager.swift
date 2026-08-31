@@ -46,9 +46,10 @@ final class StoreKitManager: ObservableObject {
             }
 
             // 4. 把 StoreKit 2 的 JWS 原文交给后端校验并发放额度
-            //    （transaction.jsonRepresentation 是 Apple 签名过的 signed transaction，
-            //     类型为 Data，其 UTF-8 内容即为 JWS 字符串；后端用 Apple 根证书本地验签。）
-            let jws = String(decoding: transaction.jsonRepresentation, as: UTF8.self)
+            //    （jwsRepresentation 在 VerificationResult 上，是 Apple 签名的 raw JWS
+            //     字符串 header.payload.signature；注意 Transaction.jsonRepresentation
+            //     是未签名的纯 JSON，不能用于后端验签。）
+            let jws = verification.jwsRepresentation
             guard !jws.isEmpty else {
                 throw StoreError.unknown
             }
@@ -97,8 +98,10 @@ final class StoreKitManager: ObservableObject {
     func restorePurchases() async throws -> RestoreResult {
         var jwsList: [String] = []
         for await result in Transaction.all {
+            // jwsRepresentation 挂在 VerificationResult 上（Apple 签名的 raw JWS），
+            // Transaction.jsonRepresentation 只是未签名 JSON。
+            let jws = result.jwsRepresentation
             if case .verified(let tx) = result {
-                let jws = String(decoding: tx.jsonRepresentation, as: UTF8.self)
                 if !jws.isEmpty { jwsList.append(jws) }
                 await tx.finish()
             }

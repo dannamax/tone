@@ -16,12 +16,32 @@ import (
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 )
+
+// esig 是 ECDSA 签名的 ASN.1 DER 序列化结构（RFC 5480）。
+type esig struct {
+	R, S *big.Int
+}
+
+// rawToDERSignature 把 JWS ES256 的 raw r||s 签名（固定 64 字节，RFC 7518 §3.4）
+// 转换为 Go ecdsa.VerifyASN1 所需的 ASN.1 DER 格式。
+// 若传入的签名长度不是 64 字节（即已是 DER，如单测用 SignASN1 构造），原样返回。
+func rawToDERSignature(sig []byte) ([]byte, error) {
+	if len(sig) != 64 {
+		// 可能已经是 DER：让 VerifyASN1 自己判断合法性。
+		return sig, nil
+	}
+	r := new(big.Int).SetBytes(sig[:32])
+	s := new(big.Int).SetBytes(sig[32:])
+	return asn1.Marshal(esig{R: r, S: s})
+}
 
 // appleRootCAG3 是 Apple 用于签署 App Store 交易的信任锚（Apple Root CA - G3）。
 // 来源：https://www.apple.com/certificateauthority/AppleRootCA-G3.cer （DER -> PEM）
@@ -62,7 +82,7 @@ type JWSClaims struct {
 	AppAccountToken    string `json:"appAccountToken,omitempty"`
 }
 
-// parseJWS 解析 JWS 字符串为 header、payload（JSON）、签名（原始字节）。
+// parseJWS 解析 JWS 字符串为 header、payload、签名（原始字节）。
 func parseJWS(token string) (*jwsHeader, []byte, []byte, error) {
 	parts := strings.Split(strings.TrimSpace(token), ".")
 	if len(parts) != 3 {
@@ -181,9 +201,16 @@ func VerifyJWS(token, expectedProductID string) (*JWSClaims, error) {
 	}
 
 	// 3) 验签：signing input = header.payload，算法 ES256（SHA256 + ECDSA）。
+	//    Apple 按 RFC 7518 §3.4 生成的 JWS 签名是 raw r||s（64 字节），
+	//    而 Go 的 ecdsa.VerifyASN1 需要 ASN.1 DER 格式，需先转换；
+	//    兼容直接传 DER 的场景（如单测 SignASN1 构造）。
 	signingInput := []byte(strings.Split(token, ".")[0] + "." + strings.Split(token, ".")[1])
 	hash := sha256.Sum256(signingInput)
-	if !ecdsa.VerifyASN1(pub, hash[:], sig) {
+	sigDER, err := rawToDERSignature(sig)
+	if err != nil {
+		return nil, fmt.Errorf("convert jws signature: %w", err)
+	}
+	if !ecdsa.VerifyASN1(pub, hash[:], sigDER) {
 		return nil, fmt.Errorf("jws signature verification failed")
 	}
 

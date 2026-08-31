@@ -86,6 +86,59 @@ func buildJWS(t *testing.T, leafCert *x509.Certificate, leafKey *ecdsa.PrivateKe
 	return strings.Join([]string{hB64, pB64, sB64}, ".")
 }
 
+// buildJWSRawSig 用 Apple 真实使用的 raw r||s（64 字节）签名格式构造 JWS
+// （RFC 7518 §3.4），用于验证后端对真机 JWS 的兼容性。
+func buildJWSRawSig(t *testing.T, leafCert *x509.Certificate, leafKey *ecdsa.PrivateKey, claims JWSClaims) string {
+	header := jwsHeader{
+		Alg: "ES256",
+		X5C: []string{
+			base64.StdEncoding.EncodeToString(leafCert.Raw),
+			base64.StdEncoding.EncodeToString(leafCert.Raw),
+		},
+		Kid: "test",
+	}
+	hJSON, _ := json.Marshal(header)
+	pJSON, _ := json.Marshal(claims)
+
+	hB64 := base64.RawURLEncoding.EncodeToString(hJSON)
+	pB64 := base64.RawURLEncoding.EncodeToString(pJSON)
+	signingInput := hB64 + "." + pB64
+	hash := sha256.Sum256([]byte(signingInput))
+	// ecdsa.Sign 返回 r, s 两个大整数；拼接为 64 字节 raw 签名（Apple 格式）。
+	r, s, err := ecdsa.Sign(rand.Reader, leafKey, hash[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw := make([]byte, 64)
+	r.FillBytes(raw[:32])
+	s.FillBytes(raw[32:])
+	sB64 := base64.RawURLEncoding.EncodeToString(raw)
+	return strings.Join([]string{hB64, pB64, sB64}, ".")
+}
+
+func TestVerifyJWS_RawSignature_OK(t *testing.T) {
+	rootPEM, leafCert, leafKey := makeChain(t)
+	orig := appleRootCAG3
+	appleRootCAG3 = rootPEM
+	defer func() { appleRootCAG3 = orig }()
+
+	claims := JWSClaims{
+		TransactionID: "1000000000000002",
+		ProductID:     "com.gotseeker.quota.pro",
+		PurchaseDate:  time.Now().UnixMilli(),
+	}
+	// 用 Apple 真实的 raw r||s 签名格式（64 字节）——修复前此用例必失败。
+	token := buildJWSRawSig(t, leafCert, leafKey, claims)
+
+	got, err := VerifyJWS(token, "com.gotseeker.quota.pro")
+	if err != nil {
+		t.Fatalf("expected OK for raw r||s signature, got err: %v", err)
+	}
+	if got.TransactionID != claims.TransactionID {
+		t.Fatalf("transactionId mismatch: %s", got.TransactionID)
+	}
+}
+
 func TestVerifyJWS_OK(t *testing.T) {
 	rootPEM, leafCert, leafKey := makeChain(t)
 	// 临时替换内置根证书为自签根
