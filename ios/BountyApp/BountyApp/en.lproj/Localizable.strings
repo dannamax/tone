@@ -96,8 +96,8 @@
 "task_publishing" = "Publishing...";
 "task_balance_low" = "Insufficient balance";
 "task_recharge_hint" = "Please recharge first";
-"task_quota_low" = "Not enough publish quota";
-"task_quota_hint" = "Purchase quota in Wallet";
+"task_quota_low" = "Not enough beans";
+"task_quota_hint" = "Get beans in Wallet";
 "task_confirm_pass" = "Confirm completion";
 "task_request_more" = "Request more evidence";
 "task_sender_pub" = "Publisher";
@@ -151,8 +151,8 @@
 "publish_confirm_msg" = "Are you sure you want to publish this task?";
 "publish_pay_btn" = "Pay & Publish";
 "publish_quota_hint" = "Publish Cost";
-"publish_quota_cost" = "1 Quota";
-"publish_quota_desc" = "Publishing a task consumes 1 publish quota.";
+"publish_quota_cost" = "Beans";
+"publish_quota_desc" = "Publishing a task costs beans.";
 "publish_beans_title" = "Bounty Beans";
 "publish_beans_cost" = "Cost: %d beans";
 "publish_beans_hint" = "Hunter earns the full bounty (5-50)";
@@ -163,7 +163,7 @@
 "publish_success" = "Task published!";
 "publish_success_pending" = "Task is under review";
 "publish_balance_low" = "Insufficient balance for bounty";
-"publish_quota_low" = "Not enough publish quota. Please purchase more in Wallet.";
+"publish_quota_low" = "Not enough beans. Get more in Wallet.";
 "publish_bad_params" = "Please fill in all fields";
 "publish_expired" = "Login expired, please log in again";
 "publish_network_error" = "Network error, please try again";
@@ -254,11 +254,11 @@
 "wallet_auth_expired" = "Login expired";
 "wallet_bounty" = "Bounty";
 
-/* Publish Quota (方案1) */
-"quota_remaining_title" = "Remaining Publishing Quota";
+/* Publish Quota (方案1) — repurposed for Beans economy */
+"quota_remaining_title" = "Beans Balance";
 "quota_used_fmt" = "Used: %d";
-"quota_buy_button" = "Buy Quota";
-"quota_packages_title" = "Buy Publishing Quota";
+"quota_buy_button" = "Get Beans";
+"quota_packages_title" = "Get Beans";
 
 /* Beans (金豆经济) */
 "beans_balance_title" = "Beans Balance";
@@ -281,7 +281,7 @@
 "rewards_rule_no_transfer" = "Beans are personal and cannot be transferred between accounts.";
 "rewards_rule_final_note" = "Final rules will be published at launch.";
 "quota_loading" = "Loading packages...";
-"quota_package_count_fmt" = "%d tasks";
+"quota_package_count_fmt" = "%d Beans";
 "quota_purchasing" = "Processing purchase...";
 "common_close" = "Close";
 
