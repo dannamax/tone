@@ -223,6 +223,8 @@ struct PublishView: View {
                             Task { await doPublish() }
                         }
                     }
+                    .disabled(vm.isSubmitting)
+                    .opacity(vm.isSubmitting ? 0.6 : 1.0)
                     .bountyButton()
                     .accessibilityIdentifier("publishConfirmButton")
                     .disabled(!vm.hasSelectedLocation)
@@ -245,6 +247,9 @@ struct PublishView: View {
 
     @MainActor
     private func doPublish() async {
+        guard !vm.isSubmitting else { return }
+        vm.isSubmitting = true
+        defer { vm.isSubmitting = false }
         let success = await vm.publish(appState: appState)
         if success { dismiss() }
     }
@@ -285,6 +290,8 @@ class PublishViewModel: ObservableObject {
     @Published var publishError: String?
     /// non-nil = edit mode (PATCH /tasks/:id); nil = new publish (POST /tasks)
     @Published var editTaskID: String?
+    /// 提交防抖：请求进行中禁止重复提交（双击会发布两条重复任务）
+    @Published var isSubmitting = false
 
     /// Pre-fill fields when editing an existing published task
     func loadForEditing(task: TaskItem) {
