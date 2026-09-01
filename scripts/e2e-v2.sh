@@ -61,7 +61,10 @@ check "A publish 7-bean task" "$([ -n "$TID" ] && echo 0 || echo 1)"
 AB1=$(wbeans "$TA")
 check "A beans deducted (-7)" "$([ $((AB0 - AB1)) = "7" ] && echo 0 || echo 1)"
 
-c=$(codeof -X POST "$BASE/api/v1/tasks/$TID/claim" -H "Authorization: Bearer $TB")
+# 超围栏拒绝用例：北京坐标（39.79）领取 22.3 的任务 → 400
+ooc=$(codeof -X POST "$BASE/api/v1/tasks/$TID/claim" -H "Authorization: Bearer $TB" -H "Content-Type: application/json" -d '{"lat":39.79,"lng":116.33}')
+check "out-of-radius claim rejected (400)" "$([ "$ooc" = "400" ] && echo 0 || echo 1)"
+c=$(codeof -X POST "$BASE/api/v1/tasks/$TID/claim" -H "Authorization: Bearer $TB" -H "Content-Type: application/json" -d '{"lat":22.3,"lng":114.2}')
 check "B claim 200" "$([ "$c" = "200" ] && echo 0 || echo 1)"
 check "  status=claimed" "$([ "$(dstat "$TID" "$TB")" = "claimed" ] && echo 0 || echo 1)"
 
@@ -93,7 +96,7 @@ PUB2=$(curl -s -X POST "$BASE/api/v1/tasks" -H "Authorization: Bearer $TA" -H 'C
 TID2=$(jqget "$PUB2" id)
 check "A publish 2nd task (6 beans)" "$([ -n "$TID2" ] && echo 0 || echo 1)"
 [ -z "$TID2" ] && exit 1
-curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$TID2/claim" -H "Authorization: Bearer $TB"
+curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$TID2/claim" -H "Authorization: Bearer $TB" -H "Content-Type: application/json" -d '{"lat":22.3,"lng":114.2}'
 curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$TID2/submit" -H "Authorization: Bearer $TB" -H 'Content-Type: application/json' -d '{"note":"evidence v2","submit_lat":22.3,"submit_lng":114.2}'
 c=$(codeof -X POST "$BASE/api/v1/tasks/$TID2/dispute" -H "Authorization: Bearer $TA" -H 'Content-Type: application/json' -d '{"reason":"quality issue"}')
 check "A dispute 200" "$([ "$c" = "200" ] && echo 0 || echo 1)"

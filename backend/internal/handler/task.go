@@ -134,15 +134,23 @@ func (h *TaskHandler) Get(c *gin.Context) {
 }
 
 func (h *TaskHandler) Claim(c *gin.Context) {
+	lang := i18n.LanguageFromRequest(c.Request)
 	taskID := c.Param("id")
 	userID := middleware.GetUserID(c)
 
-	if err := h.taskSvc.Claim(c.Request.Context(), taskID, userID); err != nil {
+	// 定向领取：必须携带领取者当前位置（不在围栏内一律拒绝）
+	var req model.ClaimRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, i18n.T(lang, "not_in_radius", 0))
+		return
+	}
+
+	if err := h.taskSvc.Claim(c.Request.Context(), taskID, userID, &req); err != nil {
 		response.BadRequest(c, err.Error())
 		return
 	}
 
-	response.SuccessWithMessage(c, i18n.T(i18n.LanguageFromRequest(c.Request), "task_claimed_ok"), nil)
+	response.SuccessWithMessage(c, i18n.T(lang, "task_claimed_ok"), nil)
 }
 
 func (h *TaskHandler) Submit(c *gin.Context) {

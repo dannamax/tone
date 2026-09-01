@@ -56,6 +56,12 @@ type PublishTaskRequest struct {
 	BountyBeans int     `json:"bounty_beans" binding:"required,gte=5,lte=50"`
 }
 
+// ClaimRequest 领取任务请求：必须携带领取者当前位置（定向领取围栏校验）
+type ClaimRequest struct {
+	Lat float64 `json:"lat" binding:"required"`
+	Lng float64 `json:"lng" binding:"required"`
+}
+
 type SquareListRequest struct {
 	Lat    float64 `form:"lat"`
 	Lng    float64 `form:"lng"`

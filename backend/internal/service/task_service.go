@@ -127,7 +127,7 @@ func (s *TaskService) SquareList(ctx context.Context, req *model.SquareListReque
 	return s.taskRepo.SquareList(ctx, req.Lat, req.Lng, req.DefaultRadius(), req.DefaultSize(), req.Offset(), req.NormalizedSort())
 }
 
-func (s *TaskService) Claim(ctx context.Context, taskID, claimerID string) error {
+func (s *TaskService) Claim(ctx context.Context, taskID, claimerID string, req *model.ClaimRequest) error {
 	activeCount, err := s.taskRepo.CountClaimedByUser(ctx, claimerID)
 	if err != nil {
 		return err
@@ -148,6 +148,13 @@ func (s *TaskService) Claim(ctx context.Context, taskID, claimerID string) error
 	}
 	if task.Status != model.StatusPublished {
 		return errors.New(i18n.TCtx(ctx, "task_already_claimed"))
+	}
+
+	// 定向领取：领取时用户必须位于任务领取围栏内（与提交围栏同一把尺子）。
+	// 不携带定位（旧版本 App / 未授权定位）一律拒绝，一步到位。
+	if req == nil || req.Lat == 0 || req.Lng == 0 ||
+		!geo.IsWithinRadius(task.TargetLat, task.TargetLng, req.Lat, req.Lng, task.Radius) {
+		return errors.New(i18n.TCtx(ctx, "not_in_radius", task.Radius))
 	}
 
 	if err := s.taskRepo.Claim(ctx, taskID, claimerID); err != nil {

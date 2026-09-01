@@ -139,8 +139,8 @@ func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, lim
 			return nil, 0, err
 		}
 	} else {
-		countQ := fmt.Sprintf(`SELECT COUNT(*) FROM tasks t WHERE t.status = 'published' AND %s <= ?`, dExpr)
-		if err := r.db.QueryRowContext(ctx, countQ, lat, lng, lat, radius).Scan(&total); err != nil {
+		countQ := fmt.Sprintf(`SELECT COUNT(*) FROM tasks t WHERE t.status = 'published' AND %s <= ? AND %s <= t.radius`, dExpr, dExpr)
+		if err := r.db.QueryRowContext(ctx, countQ, lat, lng, lat, lat, lng, lat, radius).Scan(&total); err != nil {
 			return nil, 0, err
 		}
 	}
@@ -150,8 +150,9 @@ func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, lim
 		query = fmt.Sprintf(`SELECT %s, %s AS distance FROM tasks t
 				  WHERE t.status = 'published' ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, order)
 	} else {
+		// Nearby = executable filter: distance within user filter radius AND within task claim radius
 		query = fmt.Sprintf(`SELECT %s, %s AS distance FROM tasks t
-				  WHERE t.status = 'published' AND %s <= ? ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, dExpr, order)
+				  WHERE t.status = 'published' AND %s <= ? AND %s <= t.radius ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, dExpr, dExpr, order)
 	}
 
 	var rows *sql.Rows
@@ -159,7 +160,7 @@ func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, lim
 	if radius <= 0 {
 		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, limit, offset)
 	} else {
-		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, lat, lng, lat, radius, limit, offset)
+		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, lat, lng, lat, radius, lat, lng, lat, limit, offset)
 	}
 	if err != nil {
 		return nil, 0, err

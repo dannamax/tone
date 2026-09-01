@@ -74,6 +74,9 @@
 "task_edit_title" = "Edit Task";
 "task_edit_save" = "Save Changes";
 "task_edit_success" = "Task updated";
+"claim_need_location" = "Enable Location";
+"claim_need_location_hint" = "Location permission is required to claim nearby tasks";
+"claim_out_of_range" = "You are %dm away — outside the %dm claim radius";
 "task_no_location" = "No location info";
 "task_in_progress" = "In progress, waiting for completion";
 "task_received_submit" = "Task submitted, waiting for review";

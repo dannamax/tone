@@ -300,33 +300,52 @@ struct TaskDetailView: View {
         if let task = vm.task {
             // published 状态且不是自己的任务 → 领取按钮
             if task.status == "published" && !isOwnTask {
+                // 定向领取：计算用户与任务地点距离，超出领取围栏则置灰并提示
+                let userLoc = CLLocation(latitude: appState.userLat, longitude: appState.userLng)
+                let taskLoc = CLLocation(latitude: task.targetLat, longitude: task.targetLng)
+                let distanceM = userLoc.distance(from: taskLoc)
+                let inRange = distanceM <= Double(task.radius)
+                let outOfRange = appState.userLat == 0 && appState.userLng == 0
+
                 VStack(spacing: 0) {
                     Divider()
                     HStack(spacing: 12) {
                         Spacer()
-                        Button {
-                            vm.claimTask(taskID: taskID) { msg in
-                                appState.showToast(msg)
-                                appState.refreshSquareTrigger.toggle()
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                if vm.isClaiming {
-                                    ProgressView().tint(.white)
-                                } else {
-                                    Image(systemName: "hand.raised.fill")
-                                        .font(.system(size: 16))
+                        VStack(spacing: 4) {
+                            Button {
+                                vm.claimTask(taskID: taskID, lat: appState.userLat, lng: appState.userLng) { msg in
+                                    appState.showToast(msg)
+                                    appState.refreshSquareTrigger.toggle()
                                 }
-                                Text(vm.isClaiming ? L10n.taskClaiming : L10n.taskClaim)
-                                    .font(.system(size: 16, weight: .semibold))
+                            } label: {
+                                HStack(spacing: 6) {
+                                    if vm.isClaiming {
+                                        ProgressView().tint(.white)
+                                    } else {
+                                        Image(systemName: inRange ? "hand.raised.fill" : "location.slash.fill")
+                                            .font(.system(size: 16))
+                                    }
+                                    Text(vm.isClaiming ? L10n.taskClaiming : (outOfRange ? L10n.claimNeedLocation : L10n.taskClaim))
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 32)
+                                .padding(.vertical, 14)
+                                .background((vm.isClaiming || !inRange || outOfRange) ? Color.bountyGold.opacity(0.4) : Color.bountyGold)
+                                .cornerRadius(12)
                             }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 32)
-                            .padding(.vertical, 14)
-                            .background(vm.isClaiming ? Color.bountyGold.opacity(0.6) : Color.bountyGold)
-                            .cornerRadius(12)
+                            .disabled(vm.isClaiming || !inRange || outOfRange)
+                            if !inRange && !outOfRange {
+                                Text(String(format: L10n.claimOutOfRange, Int(distanceM), task.radius))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.bountyDanger)
+                            }
+                            if outOfRange {
+                                Text(L10n.claimNeedLocationHint)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.bountyTextSecondary)
+                            }
                         }
-                        .disabled(vm.isClaiming)
                         Spacer()
                     }
                     .padding(.horizontal, 16)
@@ -787,12 +806,13 @@ class TaskDetailViewModel: ObservableObject {
         }
     }
 
-    func claimTask(taskID: String, onError: @escaping (String) -> Void) {
+    func claimTask(taskID: String, lat: Double, lng: Double, onError: @escaping (String) -> Void) {
         Task { @MainActor in
             isClaiming = true
             do {
                 let resp: APIResponse<EmptyResponse> = try await APIClient.shared.request(
-                    "/tasks/\(taskID)/claim", method: "POST"
+                    "/tasks/\(taskID)/claim", method: "POST",
+                    body: ["lat": lat, "lng": lng]
                 )
                 if resp.code == 0 {
                     loadTask(id: taskID)

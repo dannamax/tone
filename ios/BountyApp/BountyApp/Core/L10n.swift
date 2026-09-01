@@ -286,6 +286,9 @@ enum L10n {
     static var taskEditTitle: String { localized("task_edit_title") }
     static var taskEditSave: String { localized("task_edit_save") }
     static var taskEditSuccess: String { localized("task_edit_success") }
+    static var claimNeedLocation: String { localized("claim_need_location") }
+    static var claimNeedLocationHint: String { localized("claim_need_location_hint") }
+    static var claimOutOfRange: String { localized("claim_out_of_range") }
 
     // MARK: - Profile
     static var profileTitle: String { localized("profile_title") }
