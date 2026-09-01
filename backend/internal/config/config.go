@@ -18,6 +18,13 @@ type Config struct {
 	Email     EmailConfig
 	Exchange  ExchangeRateConfig
 	Apple     AppleConfig
+	Reviewer  ReviewerConfig
+}
+
+// ReviewerConfig App Review 演示账号：固定验证码（白名单），未配置则禁用
+type ReviewerConfig struct {
+	Email string
+	Code  string
 }
 
 // ...
@@ -199,6 +206,10 @@ func Load() *Config {
 		Apple: AppleConfig{
 			Password: getEnv("APPLE_IAP_PASSWORD", ""),
 			Env:      getEnv("APPLE_IAP_ENV", "auto"),
+		},
+		Reviewer: ReviewerConfig{
+			Email: getEnv("REVIEWER_EMAIL", ""),
+			Code:  getEnv("REVIEWER_CODE", ""),
 		},
 	}
 }

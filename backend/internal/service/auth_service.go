@@ -40,6 +40,8 @@ const (
 )
 
 type AuthService struct {
+	reviewerEmail string
+	reviewerCode  string
 	userRepo  *repository.UserRepo
 	cfg       *config.Config
 	emailProv email.Provider
@@ -57,8 +59,10 @@ func NewAuthService(userRepo *repository.UserRepo, cfg *config.Config, emailProv
 		userRepo:  userRepo,
 		cfg:       cfg,
 		emailProv: emailProv,
-		store:     store,
-		codeRand:  rand.Reader,
+		store:         store,
+		codeRand:      rand.Reader,
+		reviewerEmail: strings.ToLower(strings.TrimSpace(cfg.Reviewer.Email)),
+		reviewerCode:  strings.TrimSpace(cfg.Reviewer.Code),
 	}
 }
 
@@ -84,6 +88,13 @@ func (s *AuthService) SendCode(ctx context.Context, emailAddr string) error {
 		// crypto/rand failure is a serious entropy problem; refuse to issue a
 		// code rather than falling back to a predictable value.
 		return i18n.NewAPIError(500, i18n.ErrCodeInternalError, i18n.TCtx(ctx, "email_send_failed"))
+	}
+
+	// App Review whitelist: a dedicated demo account uses a fixed verification
+	// code so Apple reviewers can sign in without receiving real emails.
+	// Disabled unless REVIEWER_EMAIL/REVIEWER_CODE are configured.
+	if s.reviewerEmail != "" && s.reviewerCode != "" && emailAddr == s.reviewerEmail {
+		code = s.reviewerCode
 	}
 
 	// Store verification code (expires in 5 minutes).
