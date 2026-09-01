@@ -36,8 +36,9 @@ func (r *MessageRepo) Create(ctx context.Context, m *model.TaskMessage) (*model.
 }
 
 func (r *MessageRepo) FindByTaskID(ctx context.Context, taskID string) ([]model.TaskMessage, error) {
-	query := `SELECT id, task_id, sender_id, content, image_urls, created_at 
-			  FROM task_messages WHERE task_id = ? ORDER BY created_at ASC`
+	query := `SELECT m.id, m.task_id, m.sender_id, COALESCE(u.nickname,''), m.content, m.image_urls, m.created_at
+			  FROM task_messages m LEFT JOIN users u ON u.id = m.sender_id
+			  WHERE m.task_id = ? ORDER BY m.created_at ASC`
 	rows, err := r.db.QueryContext(ctx, query, taskID)
 	if err != nil {
 		return nil, err
@@ -48,7 +49,7 @@ func (r *MessageRepo) FindByTaskID(ctx context.Context, taskID string) ([]model.
 	for rows.Next() {
 		var m model.TaskMessage
 		var imageJSON string
-		if err := rows.Scan(&m.ID, &m.TaskID, &m.SenderID, &m.Content, &imageJSON, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.TaskID, &m.SenderID, &m.SenderNickname, &m.Content, &imageJSON, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(imageJSON), &m.ImageURLs); err != nil {

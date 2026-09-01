@@ -66,6 +66,7 @@ struct TaskMessage: Codable, Identifiable {
     let id: String
     let taskID: String
     let senderID: String
+    let senderNickname: String?
     let content: String
     let imageURLs: [String]
     let createdAt: String
@@ -74,6 +75,7 @@ struct TaskMessage: Codable, Identifiable {
         case id, content
         case taskID = "task_id"
         case senderID = "sender_id"
+        case senderNickname = "sender_nickname"
         case imageURLs = "image_urls"
         case createdAt = "created_at"
     }
@@ -83,6 +85,7 @@ struct TaskMessage: Codable, Identifiable {
         id = try container.decode(String.self, forKey: .id)
         taskID = try container.decode(String.self, forKey: .taskID)
         senderID = try container.decode(String.self, forKey: .senderID)
+        senderNickname = try container.decodeIfPresent(String.self, forKey: .senderNickname)
         content = try container.decode(String.self, forKey: .content)
         imageURLs = try container.decodeIfPresent([String].self, forKey: .imageURLs) ?? []
         createdAt = try container.decode(String.self, forKey: .createdAt)

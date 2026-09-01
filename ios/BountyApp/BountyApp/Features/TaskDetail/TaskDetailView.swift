@@ -463,9 +463,11 @@ struct MessageBubble: View {
             if isMine { Spacer(minLength: 50) }
 
             VStack(alignment: isMine ? .trailing : .leading, spacing: 4) {
-                // 发送者标签
+                // 发送者标签：角色 + 昵称（账户名）
                 if !isMine {
-                    let label = message.senderID == task?.publisherID ? L10n.taskSenderPub : L10n.taskSenderClaimer
+                    let role = message.senderID == task?.publisherID ? L10n.taskSenderPub : L10n.taskSenderClaimer
+                    let nick = message.senderNickname ?? ""
+                    let label = nick.isEmpty ? role : "\(role) · \(nick)"
                     Text(label).font(.system(size: 11)).foregroundColor(.bountyGray)
                         .padding(.leading, 2)
                 }
