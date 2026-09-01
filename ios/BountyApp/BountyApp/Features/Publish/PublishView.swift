@@ -9,6 +9,10 @@ struct PublishView: View {
     @Environment(\.dismiss) var dismiss
     /// 发布前确认弹窗（目标地址仍采用当前位置时）
     @State private var showLocationConfirm = false
+    /// 编辑模式：传入待编辑任务；nil = 新发布
+    var editingTask: TaskItem?
+    /// 防止 onAppear 重复预填
+    @State private var didPrefill = false
 
     let timeOptions = [5, 15, 30, 60, 120]
     let radiusOptions = [1000, 3000, 5000, 10000]
@@ -184,7 +188,7 @@ struct PublishView: View {
                 .padding(.bottom, 100)
             }
             .background(Color.bountyBg)
-            .navigationTitle(L10n.publishTitle)
+            .navigationTitle(editingTask != nil ? L10n.taskEditTitle : L10n.publishTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -192,6 +196,10 @@ struct PublishView: View {
                 }
             }
             .onAppear {
+                if let t = editingTask, !didPrefill {
+                    vm.loadForEditing(task: t)
+                    didPrefill = true
+                }
                 autoFillCurrentLocationIfNeeded()
             }
             .onChange(of: appState.userLat) { _ in
@@ -207,7 +215,7 @@ struct PublishView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                     }
-                    Button(L10n.publishSubmitBtn) {
+                    Button(editingTask != nil ? L10n.taskEditSave : L10n.publishSubmitBtn) {
                         if vm.isLocationAutoFilled {
                             // 目标地址仍采用发布人当前位置，发布前需确认
                             showLocationConfirm = true
@@ -275,6 +283,23 @@ class PublishViewModel: ObservableObject {
     // 避免默认值(10)超过注册礼(5)导致首单必失败(402)。
     @Published var bountyBeans = 5
     @Published var publishError: String?
+    /// non-nil = edit mode (PATCH /tasks/:id); nil = new publish (POST /tasks)
+    @Published var editTaskID: String?
+
+    /// Pre-fill fields when editing an existing published task
+    func loadForEditing(task: TaskItem) {
+        editTaskID = task.id
+        title = task.title
+        description = task.description
+        targetLat = task.targetLat
+        targetLng = task.targetLng
+        targetAddr = task.targetAddr ?? ""
+        radius = task.radius
+        timeLimit = task.timeLimit
+        bountyBeans = task.bountyBeans
+        hasSelectedLocation = true
+        isLocationAutoFilled = false
+    }
 
     /// 将当前已填入的 targetLat/targetLng 反向解析为地址（用于自动采用当前位置后填充地址文本）
     func reverseGeocodeCurrentLocation() {
@@ -315,14 +340,13 @@ class PublishViewModel: ObservableObject {
             bountyBeans: bountyBeans
         )
         do {
-            print("[Publish] request body: title=\(title), lat=\(targetLat), lng=\(targetLng), radius=\(radius), timeLimit=\(timeLimit), beans=\(bountyBeans)")
-            print("[Publish] currentUserID: \(appState.currentUser?.id ?? "nil"), tokenPrefix: \(APIClient.shared.token?.prefix(20) ?? "nil")")
+            // Edit mode: PATCH /tasks/:id; new publish: POST /tasks
+            let isEdit = editTaskID != nil
             let resp: APIResponse<TaskItem> = try await APIClient.shared.request(
-                "/tasks",
-                method: "POST",
+                isEdit ? "/tasks/\(editTaskID!)" : "/tasks",
+                method: isEdit ? "PATCH" : "POST",
                 body: body
             )
-            print("[Publish] response code=\(resp.code) taskID: \(resp.data?.id ?? "nil")")
 
             // 检查业务错误码
             guard resp.code == 0, let taskData = resp.data else {
@@ -335,7 +359,7 @@ class PublishViewModel: ObservableObject {
             await MainActor.run {
                 appState.refreshMyTasksTrigger.toggle()
                 appState.refreshSquareTrigger.toggle()
-                appState.showToast(L10n.publishSuccess)
+                appState.showToast(isEdit ? L10n.taskEditSuccess : L10n.publishSuccess)
             }
             publishError = nil
             return true

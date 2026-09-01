@@ -335,6 +335,24 @@ func (r *TaskRepo) RequestChanges(ctx context.Context, taskID string) error {
 	return nil
 }
 
+// UpdateTask 编辑已发布（未被领取）的任务内容。
+// 仅 status='published' 可编辑：claimed 之后任务已被接单人执行，内容变更不公平。
+func (r *TaskRepo) UpdateTask(ctx context.Context, taskID string, req *model.PublishTaskRequest) error {
+	now := time.Now()
+	query := `UPDATE tasks SET title=?, description=?, target_lat=?, target_lng=?, target_addr=?, radius=?, time_limit=?, bounty_beans=?, updated_at=?
+	          WHERE id=? AND status='published'`
+	result, err := r.db.ExecContext(ctx, query,
+		req.Title, req.Description, req.TargetLat, req.TargetLng, req.TargetAddr,
+		req.Radius, req.TimeLimit, req.BountyBeans, now, taskID)
+	if err != nil {
+		return err
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return fmt.Errorf("task not editable (not found or already claimed)")
+	}
+	return nil
+}
+
 func (r *TaskRepo) Refund(ctx context.Context, taskID string) error {
 	query := `UPDATE tasks SET status = ?, refunded_at = ?, updated_at = ? WHERE id = ?`
 	result, err := r.db.ExecContext(ctx, query, model.StatusRefunded, time.Now(), time.Now(), taskID)

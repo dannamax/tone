@@ -43,6 +43,45 @@ func (h *TaskHandler) Square(c *gin.Context) {
 	response.Paginated(c, tasks, total, req.DefaultPage(), req.DefaultSize())
 }
 
+// EditTask 编辑未被领取的任务（发布者本人）。
+func (h *TaskHandler) EditTask(c *gin.Context) {
+	lang := i18n.LanguageFromRequest(c.Request)
+	taskID := c.Param("id")
+	userID := middleware.GetUserID(c)
+
+	var req model.PublishTaskRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, i18n.T(lang, "bad_request"))
+		return
+	}
+	if req.Title == "" {
+		response.BadRequest(c, i18n.T(lang, "bad_request"))
+		return
+	}
+	if req.TargetAddr == "" && (req.TargetLat == 0 && req.TargetLng == 0) {
+		response.BadRequest(c, i18n.T(lang, "no_location"))
+		return
+	}
+
+	task, err := h.taskSvc.UpdateTask(c.Request.Context(), taskID, userID, &req)
+	if err != nil {
+		if taskErr, ok := err.(*service.TaskError); ok {
+			if taskErr.Code == service.ErrInsufficientQuota {
+				response.PaymentRequired(c, taskErr.Message)
+				return
+			}
+			if taskErr.Code == service.ErrTaskNotFound {
+				response.NotFound(c, taskErr.Message)
+				return
+			}
+		}
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	response.Success(c, task)
+}
+
 func (h *TaskHandler) Publish(c *gin.Context) {
 	lang := i18n.LanguageFromRequest(c.Request)
 	var req model.PublishTaskRequest

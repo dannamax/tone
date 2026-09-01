@@ -248,6 +248,7 @@ func main() {
 		api.GET("/tasks/square", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Square)
 		api.GET("/tasks/mine", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.MyTasks)
 		api.POST("/tasks", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Publish)
+		api.PATCH("/tasks/:id", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.EditTask)
 		api.POST("/tasks/delete-batch", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.BatchDelete)
 		api.GET("/tasks/:id", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Get)
 		api.DELETE("/tasks/:id", middleware.AuthMiddleware(cfg.JWT.Secret), taskHandler.Delete)

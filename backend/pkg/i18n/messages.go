@@ -30,6 +30,7 @@ var enMessages = map[string]string{
 	"default_nickname":          "Hunter%s",
 	"changes_requested":         "Changes requested. The task has been sent back to the claimer.",
 	"msg_changes_requested":     "Publisher requested changes: %s. Please update and resubmit.",
+	"task_edit_not_allowed":             "Only tasks that are still published (not yet claimed) can be edited",
 	"notif_task_changes_requested_title": "Changes requested",
 	"notif_task_changes_requested_body":  "The publisher requested changes for \"%s\". Please update and resubmit.",
 

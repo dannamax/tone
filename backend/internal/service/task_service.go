@@ -16,6 +16,8 @@ import (
 // 业务错误码
 const (
 	ErrInsufficientQuota = "INSUFFICIENT_QUOTA"
+	ErrTaskNotFound      = "TASK_NOT_FOUND"
+	ErrTaskStatusInvalid = "TASK_STATUS_INVALID"
 )
 
 // TaskError 任务业务错误
@@ -262,6 +264,64 @@ func (s *TaskService) RequestChanges(ctx context.Context, taskID, publisherID, r
 	}
 
 	return nil
+}
+
+// UpdateTask 编辑未被领取的任务：标题/描述/位置/半径/时限/赏金均可修改。
+// 赏金差额实时结算：增加→补扣（不足 402），减少→退回（purchased 优先）；
+// 各写一笔审计流水。仅 status=published 可编辑。
+func (s *TaskService) UpdateTask(ctx context.Context, taskID, publisherID string, req *model.PublishTaskRequest) (*model.Task, error) {
+	task, err := s.taskRepo.FindByID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if task == nil || task.PublisherID != publisherID {
+		return nil, NewTaskError(ErrTaskNotFound, i18n.TCtx(ctx, "task_not_found"))
+	}
+	if task.Status != model.StatusPublished {
+		return nil, NewTaskError(ErrTaskStatusInvalid, i18n.TCtx(ctx, "task_edit_not_allowed"))
+	}
+
+	delta := req.BountyBeans - task.BountyBeans
+	if delta > 0 {
+		if err := s.userRepo.DecBeans(ctx, publisherID, delta); err != nil {
+			if err == repository.ErrQuotaInsufficient {
+				return nil, NewTaskError(ErrInsufficientQuota, i18n.TCtx(ctx, "insufficient_beans", delta))
+			}
+			return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "bean_spend_failed"), err)
+		}
+		_, _ = s.txRepo.Create(ctx, &model.Transaction{
+			TaskID:     &taskID,
+			FromUserID: publisherID,
+			Type:       model.TxTypeBeanSpend,
+			Status:     model.TxStatusSuccess,
+			BeansDelta: -delta,
+			Remark:     fmt.Sprintf("Edit task, increased bounty by %d beans: %s", delta, req.Title),
+		})
+	} else if delta < 0 {
+		refund := -delta
+		if err := s.userRepo.AddBeans(ctx, publisherID, refund, false); err != nil {
+			return nil, fmt.Errorf("%s: %w", i18n.TCtx(ctx, "bean_refund_failed"), err)
+		}
+		_, _ = s.txRepo.Create(ctx, &model.Transaction{
+			TaskID:     &taskID,
+			FromUserID: publisherID,
+			Type:       model.TxTypeBeanRefund,
+			Status:     model.TxStatusSuccess,
+			BeansDelta: refund,
+			Remark:     fmt.Sprintf("Edit task, refunded %d beans: %s", refund, req.Title),
+		})
+	}
+
+	if err := s.taskRepo.UpdateTask(ctx, taskID, req); err != nil {
+		if delta > 0 {
+			_ = s.userRepo.AddBeans(ctx, publisherID, delta, false)
+		} else if delta < 0 {
+			_ = s.userRepo.DecBeans(ctx, publisherID, -delta)
+		}
+		return nil, err
+	}
+
+	return s.taskRepo.FindByID(ctx, taskID)
 }
 
 func (s *TaskService) GetPublishedTasks(ctx context.Context, userID string, page, size int) ([]model.Task, int64, error) {

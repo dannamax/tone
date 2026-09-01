@@ -9,6 +9,7 @@ struct TaskDetailView: View {
     @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = TaskDetailViewModel()
     @Environment(\.dismiss) var dismiss
+    @State private var showEditTask = false
 
     private var isOwnTask: Bool {
         guard let task = vm.task, let cu = appState.currentUser else { return false }
@@ -64,6 +65,13 @@ struct TaskDetailView: View {
         }
         .sheet(isPresented: $vm.showChatPhotoPicker) {
             PhotoPickerView(selectedImages: $vm.pendingImages, selectedCount: vm.pendingImages.count)
+        }
+        .sheet(isPresented: $showEditTask, onDismiss: {
+            vm.loadAll(taskID: taskID, currentUserID: appState.currentUser?.id ?? "")
+        }) {
+            if let t = vm.task {
+                PublishView(editingTask: t)
+            }
         }
         .onAppear { vm.loadAll(taskID: taskID, currentUserID: appState.currentUser?.id ?? "") }
     }
@@ -183,6 +191,17 @@ struct TaskDetailView: View {
                     // 发布人的审核按钮
                     if (task.status == "submitted" || task.status == "disputed") && isOwnTask {
                         reviewButtons
+                    }
+                    // 发布人编辑未被领取的任务
+                    if task.status == "published" && isOwnTask {
+                        Button {
+                            showEditTask = true
+                        } label: {
+                            Label(L10n.taskEditTitle, systemImage: "pencil.circle")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .bountyButton(color: .bountyWarning)
+                        .padding(.top, 4)
                     }
                 }
                 .padding(12)

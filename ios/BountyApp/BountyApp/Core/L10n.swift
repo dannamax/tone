@@ -283,6 +283,9 @@ enum L10n {
     static var walletTxEmptyTitle: String { localized("wallet_tx_empty_title") }
     static var walletTxEmptySubtitle: String { localized("wallet_tx_empty_subtitle") }
     static var walletTxBountyPaid: String { localized("wallet_tx_bounty_paid") }
+    static var taskEditTitle: String { localized("task_edit_title") }
+    static var taskEditSave: String { localized("task_edit_save") }
+    static var taskEditSuccess: String { localized("task_edit_success") }
 
     // MARK: - Profile
     static var profileTitle: String { localized("profile_title") }
