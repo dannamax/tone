@@ -9,8 +9,8 @@ ARG GIT_SHA=unknown
 FROM ${BASE_GOLANG} AS builder
 # 重新声明 ARG 使其在当前 stage 可见（FROM 前的全局 ARG 不会自动透传）
 ARG GIT_SHA=unknown
-# apk 换阿里云源加速
-RUN sed -i 's#https\?://dl-cdn.alpinelinux.org#https://mirrors.aliyun.com#g' /etc/apk/repositories \
+# apk 换腾讯云源加速（部署目标为腾讯云 HK CVM，访问 mirrors.cloud.tencent.com 快于 aliyun）
+RUN sed -i 's#https\?://dl-cdn.alpinelinux.org#https://mirrors.cloud.tencent.com#g' /etc/apk/repositories \
  && apk add --no-cache gcc musl-dev
 # 国内无法直连 proxy.golang.org，使用 goproxy.cn 加速
 ENV GOPROXY=https://goproxy.cn,direct
