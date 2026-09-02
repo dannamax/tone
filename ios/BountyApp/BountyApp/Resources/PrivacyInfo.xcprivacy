@@ -6,34 +6,10 @@
 	<array>
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
-			<string>NSLocation</string>
-			<key>NSPrivacyAccessedAPITypeReasons</key>
-			<array>
-				<string>0351.1</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyAccessedAPIType</key>
-			<string>NSCamera</string>
-			<key>NSPrivacyAccessedAPITypeReasons</key>
-			<array>
-				<string>3B38.1</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyAccessedAPIType</key>
-			<string>NSUserDefaults</string>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyAccessedAPIType</key>
-			<string>NSFileManager</string>
-			<key>NSPrivacyAccessedAPITypeReasons</key>
-			<array>
-				<string>0F2E.1</string>
 			</array>
 		</dict>
 	</array>
