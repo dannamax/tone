@@ -226,10 +226,17 @@ tx=$(curl -s "$BASE/api/v1/wallet/transactions" -H "$AUTH")
 check "交易记录 200" "$(echo "$tx" | grep -q '"total"' && echo 0 || echo 1)"
 check "交易记录含 bean_spend" "$(echo "$tx" | grep -q 'bean_spend' && echo 0 || echo 1)"
 
+# 生产/默认部署应返回 404（dev 充值后门已由 ENABLE_DEV_WALLET_ROUTES 守卫关闭）
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/wallet/recharge" -H "$AUTH" -H 'Content-Type: application/json' -d "{\"amount\":100}")
-check "模拟充值 recharge 200" "$([ "$code" = "200" ] && echo 0 || echo 1)"
-wd=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/wallet/withdraw" -H "$AUTH" -H 'Content-Type: application/json' -d "{\"amount\":1,\"method\":\"paypal\",\"account\":\"x@y.com\"}")
-check "提现 withdraw 200/4xx(门槛拦截正常)" "$([ "$wd" = "200" ] || [ "$wd" = "400" ] || [ "$wd" = "422" ] && echo 0 || echo 1)"
+if [ "$code" = "404" ]; then
+  check "模拟充值路由已关闭(404, 生产期望)" 0
+  wdc=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/wallet/withdraw" -H "$AUTH" -H 'Content-Type: application/json' -d "{\"amount\":1,\"method\":\"paypal\",\"account\":\"x@y.com\"}")
+  check "提现路由已关闭(404, 生产期望)" "$([ "$wdc" = "404" ] && echo 0 || echo 1)"
+else
+  check "模拟充值 recharge 200(仅本地e2e模式)" "$([ "$code" = "200" ] && echo 0 || echo 1)"
+  wd=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/wallet/withdraw" -H "$AUTH" -H 'Content-Type: application/json' -d "{\"amount\":1,\"method\":\"paypal\",\"account\":\"x@y.com\"}")
+  check "提现 withdraw 200/4xx(门槛拦截正常)" "$([ "$wd" = "200" ] || [ "$wd" = "400" ] || [ "$wd" = "422" ] && echo 0 || echo 1)"
+fi
 
 # ---------- IAP 套餐 / 订单 / 假收据拒绝 ----------
 pk=$(curl -s "$BASE/api/v1/wallet/quota-packages" -H "$AUTH")

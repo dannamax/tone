@@ -29,7 +29,7 @@ if [ "$1" = "--fresh" ]; then
   rm -f "$DB"
   # 本地 e2e 永远不需要真实发信：强制 mock 模式，验证码仍生成并写入日志，
   # 但不再触达真实 SMTP（避免 example.com / 测试邮箱产生退信污染个人邮箱）。
-  ( cd "$(dirname "$0")/.." && go build -o /tmp/seeker-server ./cmd/server && SERVER_PORT="$PORT" DB_NAME="$DB" EMAIL_PROVIDER=mock /tmp/seeker-server >"$LOG" 2>&1 & )
+  ( cd "$(dirname "$0")/.." && go build -o /tmp/seeker-server ./cmd/server && SERVER_PORT="$PORT" DB_NAME="$DB" EMAIL_PROVIDER=mock ENABLE_DEV_WALLET_ROUTES=true /tmp/seeker-server >"$LOG" 2>&1 & )
   sleep 3
   grep -q "Listening on" "$LOG" && ok "服务已启动" || bad "服务启动失败，请查看 $LOG"
 fi

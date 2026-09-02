@@ -270,8 +270,13 @@ func main() {
 
 		// 钱包 & 通知
 		api.GET("/wallet", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.GetWallet)
-		api.POST("/wallet/recharge", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.Recharge)
-		api.POST("/wallet/withdraw", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.Withdraw)
+		// Dev-only 模拟充值/提现后门（e2e 专用）：默认不注册，生产禁用，
+		// 仅本地 e2e 以 ENABLE_DEV_WALLET_ROUTES=true 启动时开放。
+		// 真实充值唯一入口是 IAP: POST /wallet/quota/confirm-apple（Apple 验签）。
+		if os.Getenv("ENABLE_DEV_WALLET_ROUTES") == "true" {
+			api.POST("/wallet/recharge", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.Recharge)
+			api.POST("/wallet/withdraw", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.Withdraw)
+		}
 		api.GET("/wallet/transactions", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.GetTransactions)
 		// 发布额度（方案1）
 		api.GET("/wallet/quota-packages", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.Packages)
