@@ -150,6 +150,9 @@ func (r *UserRepo) DeleteCascade(ctx context.Context, userID string) error {
 		// 前置检查已保证无进行中任务，此处只可能是终态任务）
 		{`UPDATE tasks SET claimer_id = NULL WHERE claimer_id = ?`, []interface{}{userID}},
 		{`DELETE FROM email_codes WHERE email = ?`, []interface{}{email}},
+		// 应用层级联：举报与拉黑记录（表无 FK，但孤儿数据会造成引用残留）
+		{`DELETE FROM content_reports WHERE reporter_id = ?`, []interface{}{userID}},
+		{`DELETE FROM user_blocks WHERE blocker_id = ? OR blocked_id = ?`, []interface{}{userID, userID}},
 	} {
 		if _, err := r.db.ExecContext(ctx, q.sql, q.args...); err != nil {
 			return err
