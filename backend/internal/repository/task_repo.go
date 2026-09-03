@@ -136,7 +136,9 @@ func (r *TaskRepo) SquareList(ctx context.Context, viewerID string, lat, lng flo
 	case model.SortNewest:
 		order = "t.created_at DESC"
 	default:
-		order = "distance"
+		// distance 相同时按创建时间倒序（次序键）：避免同点任务在 LIMIT 截断下
+		// 顺序退化导致新任务被旧任务挤出第一页。
+		order = "distance, t.created_at DESC"
 	}
 
 	var total int64
