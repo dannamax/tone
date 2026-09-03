@@ -140,7 +140,9 @@ enum AppConfig {
         // 模拟器保留原逻辑：返回空字符串，request() 会快速失败并提示用户手动设置
         return ""
         #else
+        // 真机回退生产 API
         return productionBaseHost
+        #endif
         #endif
     }
 
