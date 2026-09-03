@@ -65,6 +65,7 @@ func NewTaskService(
 		messageRepo:    messageRepo,
 		wsHub:          wsHub,
 		txRepo:         txRepo,
+		reportRepo:     reportRepo,
 		push:           push,
 	}
 }
