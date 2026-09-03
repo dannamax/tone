@@ -78,6 +78,34 @@ func RunMigrations(ctx context.Context, db *sql.DB, driver, migrationsDir string
 		if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id)`); err != nil {
 			return fmt.Errorf("创建 device_tokens 索引失败: %w", err)
 		}
+		// 举报与拉黑（Guideline 1.2 UGC 合规，幂等）
+		if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS user_blocks (
+			blocker_id TEXT NOT NULL,
+			blocked_id TEXT NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (blocker_id, blocked_id)
+		)`); err != nil {
+			return fmt.Errorf("创建 user_blocks 表失败: %w", err)
+		}
+		if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked ON user_blocks(blocked_id)`); err != nil {
+			return fmt.Errorf("创建 user_blocks 索引失败: %w", err)
+		}
+		if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS content_reports (
+			id TEXT PRIMARY KEY,
+			reporter_id TEXT NOT NULL,
+			target_type TEXT NOT NULL CHECK (target_type IN ('task','user','message')),
+			target_id TEXT NOT NULL,
+			reason VARCHAR(500) NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`); err != nil {
+			return fmt.Errorf("创建 content_reports 表失败: %w", err)
+		}
+		if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_content_reports_target ON content_reports(target_type, target_id)`); err != nil {
+			return fmt.Errorf("创建 content_reports 索引失败: %w", err)
+		}
+		if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_content_reports_reporter ON content_reports(reporter_id, created_at DESC)`); err != nil {
+			return fmt.Errorf("创建 content_reports reporter 索引失败: %w", err)
+		}
 		fmt.Println("[Migration] ✓ sqlite_schema.sql")
 		return nil
 	}
