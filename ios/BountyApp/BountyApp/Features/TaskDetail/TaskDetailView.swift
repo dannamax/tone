@@ -786,9 +786,10 @@ class TaskDetailViewModel: ObservableObject {
             }
         }
     }
-    }
 
-    // MARK: - Send Message (text + images)    func sendMessage(taskID: String, onError: @escaping (String) -> Void) {
+    // MARK: - Send Message (text + images)
+
+    func sendMessage(taskID: String, onError: @escaping (String) -> Void) {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasImages = !pendingImages.isEmpty
         guard !text.isEmpty || hasImages else {
