@@ -90,6 +90,23 @@ class AppState: ObservableObject {
         restoreSessionIfNeeded()
     }
 
+    /// 主动刷新当前用户资料（金豆余额等）并更新 currentUser。
+    /// 钱包变动（充值/领取/确认发布）后，保证 Profile 等页面与 Wallet 页显示一致。
+    /// 静默失败：网络异常时保留旧值，下次进入相关页面会再次刷新。
+    func refreshCurrentUser() {
+        guard let token = TokenStorage.shared.token, !token.isEmpty else { return }
+        Task { @MainActor in
+            do {
+                let resp: APIResponse<UserProfile> = try await APIClient.shared.request("/me")
+                if resp.code == 0, let user = resp.data {
+                    currentUser = user
+                }
+            } catch {
+                // 静默失败，下次进入页面会再次刷新
+            }
+        }
+    }
+
     /// 冷启动恢复登录态：先用本地缓存的用户资料乐观恢复 UI，
     /// 再后台调 GET /me 校验 token 是否仍有效：
     ///   - 有效 → 刷新最新资料（金豆余额等）

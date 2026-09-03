@@ -242,6 +242,11 @@ struct ProfileView: View {
         } message: {
             Text(L10n.profileEditNameInvalid)
         }
+        .onAppear {
+            // 进入 Profile 时刷新用户快照：保证 My Wallet 行的金豆数与 Wallet 页一致
+            //（充值/领取/确认等操作后 currentUser 缓存可能滞后）。
+            appState.refreshCurrentUser()
+        }
     }
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct WalletView: View {
     @ObservedObject private var lang = LanguageManager.shared
     @StateObject private var vm = WalletViewModel()
+    @EnvironmentObject var appState: AppState
     @State private var showPackages = false
     @State private var showRewardsComingSoon = false
 
@@ -122,7 +123,10 @@ struct WalletView: View {
         .sheet(isPresented: $showRewardsComingSoon) {
             RewardsCenterSheet(earned: vm.beansEarned, completed: vm.completedTasks)
         }
-        .onAppear { vm.load() }
+        .onAppear {
+            vm.load()
+            appState.refreshCurrentUser()
+        }
     }
 }
 
