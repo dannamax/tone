@@ -159,7 +159,7 @@ CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked ON user_blocks(blocked_id);
 
 CREATE TABLE IF NOT EXISTS content_reports (
     id          TEXT PRIMARY KEY,
-    reporter_id TEXT NOT NULL REFERENCES users(id),
+    reporter_id TEXT NOT NULL,
     target_type TEXT NOT NULL CHECK (target_type IN ('task','user','message')),
     target_id   TEXT NOT NULL,
     reason      VARCHAR(500) NOT NULL,
