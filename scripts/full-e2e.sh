@@ -136,8 +136,8 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks" -H "$
   -d "{\"title\":\"bad\",\"bounty_beans\":4,\"target_lat\":22.3,\"target_lng\":114.2,\"target_addr\":\"HK\",\"radius\":5000,\"time_limit\":30}")
 check "B bounty_beans=4 校验拒绝 4xx" "$([ "$code" = "400" ] || [ "$code" = "422" ] && echo 0 || echo 1)"
 
-# T1 链路
-code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$TID/claim" -H "$AUTH2")
+# T1 链路（claim 需携带定位：设备坐标必须在任务半径内，Guideline 领取围栏）
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$TID/claim" -H "$AUTH2" -H 'Content-Type: application/json' -d '{"lat":22.3,"lng":114.2}')
 check "T1 B claim 200" "$([ "$code" = "200" ] && echo 0 || echo 1)"
 
 SUB=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$TID/submit" -H "$AUTH2" -H 'Content-Type: application/json' \
@@ -167,7 +167,7 @@ check "广场(距离排序)可见 T2" "$(echo "$sq" | grep -q "e2e_disp_$TS" && 
 sq=$(curl -s "$BASE/api/v1/tasks/square?lat=22.3&lng=114.2&radius=10000&sort=beans" -H "$AUTH")
 check "广场(金豆排序)可见 T2" "$(echo "$sq" | grep -q "e2e_disp_$TS" && echo 0 || echo 1)"
 
-curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$T2/claim" -H "$AUTH"
+curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$T2/claim" -H "$AUTH" -H 'Content-Type: application/json' -d '{"lat":22.3,"lng":114.2}'
 curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$T2/submit" -H "$AUTH" -H 'Content-Type: application/json' \
   -d "{\"note\":\"done\",\"submit_lat\":22.3,\"submit_lng\":114.2}"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$T2/dispute" -H "$AUTH2" -H 'Content-Type: application/json' -d "{\"reason\":\"e2e test\"}")
@@ -196,7 +196,7 @@ pub=$(curl -s -X POST "$BASE/api/v1/tasks" -H "$AUTH2" -H 'Content-Type: applica
 T4=$(jqget "$pub" id)
 check "T4 B 发布任务 201" "$([ -n "$T4" ] && echo 0 || echo 1)"
 
-code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$T4/claim" -H "$AUTH")
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$T4/claim" -H "$AUTH" -H 'Content-Type: application/json' -d '{"lat":22.3,"lng":114.2}')
 check "T4 A claim 200" "$([ "$code" = "200" ] && echo 0 || echo 1)"
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$T4/messages" -H "$AUTH" -H 'Content-Type: application/json' -d "{\"content\":\"hi from claimer\"}")
@@ -313,7 +313,7 @@ check "T5 删除后详情 404" "$([ "$code" = "404" ] && echo 0 || echo 1)"
 pub=$(curl -s -X POST "$BASE/api/v1/tasks" -H "$AUTH" -H 'Content-Type: application/json' \
   -d "{\"title\":\"e2e_delprog_$TS\",\"bounty_beans\":5,\"target_lat\":22.3,\"target_lng\":114.2,\"target_addr\":\"HK\",\"radius\":5000,\"time_limit\":30}")
 T6=$(jqget "$pub" id)
-curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$T6/claim" -H "$AUTH2"
+curl -s -o /dev/null -X POST "$BASE/api/v1/tasks/$T6/claim" -H "$AUTH2" -H 'Content-Type: application/json' -d '{"lat":22.3,"lng":114.2}'
 code=$(curl -s -o /tmp/del2.txt -w '%{http_code}' -X DELETE "$BASE/api/v1/tasks/$T6" -H "$AUTH")
 check "T6 删除进行中任务跳过(200+skipped)" "$([ "$code" = "200" ] && grep -q '"skipped":\[' /tmp/del2.txt && echo 0 || echo 1)"; echo "    resp=$(head -c 200 /tmp/del2.txt)"
 

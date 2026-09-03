@@ -168,7 +168,7 @@ func (r *TaskRepo) SquareList(ctx context.Context, viewerID string, lat, lng flo
 	if radius <= 0 {
 		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, viewerID, viewerID, limit, offset)
 	} else {
-		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, lat, lng, lat, radius, viewerID, viewerID, limit, offset)
+		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, lat, lng, lat, radius, lat, lng, lat, viewerID, viewerID, limit, offset)
 	}
 	if err != nil {
 		return nil, 0, err
