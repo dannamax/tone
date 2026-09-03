@@ -764,7 +764,8 @@ class TaskDetailViewModel: ObservableObject {
                     onDone(resp.message.isEmpty ? L10n.taskSendFailRetry : resp.message)
                 }
             } catch {
-                onDone(error.localizedDescription)
+                NSLog("[TaskDetail] report error: \(error)")
+                onDone((error as? APIError)?.friendlyMessage ?? error.localizedDescription)
             }
         }
     }
@@ -782,7 +783,8 @@ class TaskDetailViewModel: ObservableObject {
                     onDone(resp.message.isEmpty ? L10n.taskSendFailRetry : resp.message)
                 }
             } catch {
-                onDone(error.localizedDescription)
+                NSLog("[TaskDetail] block error: \(error)")
+                onDone((error as? APIError)?.friendlyMessage ?? error.localizedDescription)
             }
         }
     }

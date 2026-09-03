@@ -132,9 +132,15 @@ enum AppConfig {
         if let saved = UserDefaults.standard.string(forKey: "bounty_host"), !saved.isEmpty {
             return "http://\(saved):8080"
         }
-        // 真机上绝不回退到 127.0.0.1（指向 iPhone 自身，永远不可达）
-        // 返回空字符串，request() 会快速失败并提示用户手动设置
+        // 真机上无缓存且未发现局域网后端时，绝不用 127.0.0.1（指向 iPhone 自身），
+        // 也不返回空字符串（会导致 baseURL="/api/v1"、URL(string:) 为 nil、所有请求
+        // invalidURL）。回退生产 API：Debug 真机在户外/无局域网后端时与 TestFlight、
+        // App Store 包行为一致。本地联调仍可通过 BOUNTY_HOST env 或已有缓存走局域网。
+        #if targetEnvironment(simulator)
+        // 模拟器保留原逻辑：返回空字符串，request() 会快速失败并提示用户手动设置
         return ""
+        #else
+        return productionBaseHost
         #endif
     }
 
