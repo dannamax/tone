@@ -96,13 +96,20 @@ func (r *TaskRepo) FindByID(ctx context.Context, id string) (*model.Task, error)
 //   - newest：发布时间降序
 //
 // lat、lng 均为 0 视为「全部」；radius > 0 表示仅返回该半径内的任务。
-func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, limit, offset int, sort string) ([]model.Task, int64, error) {
+// viewerID 非空时排除与查看者存在拉黑关系的发布者（Guideline 1.2 blocking）。
+func (r *TaskRepo) SquareList(ctx context.Context, viewerID string, lat, lng float64, radius, limit, offset int, sort string) ([]model.Task, int64, error) {
 	cols := prefixedTaskCols("t.")
+
+	// 拉黑过滤：排除与查看者存在双向拉黑关系的发布者
+	const blockFilter = ` AND publisher_id NOT IN
+		(SELECT blocked_id FROM user_blocks WHERE blocker_id = ?
+		 UNION SELECT blocker_id FROM user_blocks WHERE blocked_id = ?)`
 
 	if lat == 0 && lng == 0 {
 		var total int64
 		if err := r.db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM tasks WHERE status = 'published'`).Scan(&total); err != nil {
+			`SELECT COUNT(*) FROM tasks WHERE status = 'published'`+blockFilter,
+			viewerID, viewerID).Scan(&total); err != nil {
 			return nil, 0, err
 		}
 		order := "t.created_at DESC"
@@ -110,8 +117,8 @@ func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, lim
 			order = "t.bounty_beans DESC, t.created_at DESC"
 		}
 		query := fmt.Sprintf(`SELECT %s, 0 AS distance FROM tasks t
-				  WHERE t.status = 'published' ORDER BY %s LIMIT ? OFFSET ?`, cols, order)
-		rows, err := r.db.QueryContext(ctx, query, limit, offset)
+				  WHERE t.status = 'published'`+blockFilter+` ORDER BY %s LIMIT ? OFFSET ?`, cols, order)
+		rows, err := r.db.QueryContext(ctx, query, viewerID, viewerID, limit, offset)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -135,12 +142,13 @@ func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, lim
 	var total int64
 	if radius <= 0 {
 		if err := r.db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM tasks WHERE status = 'published'`).Scan(&total); err != nil {
+			`SELECT COUNT(*) FROM tasks WHERE status = 'published'`+blockFilter,
+			viewerID, viewerID).Scan(&total); err != nil {
 			return nil, 0, err
 		}
 	} else {
-		countQ := fmt.Sprintf(`SELECT COUNT(*) FROM tasks t WHERE t.status = 'published' AND %s <= ? AND %s <= t.radius`, dExpr, dExpr)
-		if err := r.db.QueryRowContext(ctx, countQ, lat, lng, lat, lat, lng, lat, radius).Scan(&total); err != nil {
+		countQ := fmt.Sprintf(`SELECT COUNT(*) FROM tasks t WHERE t.status = 'published' AND %s <= ? AND %s <= t.radius`+blockFilter, dExpr, dExpr)
+		if err := r.db.QueryRowContext(ctx, countQ, lat, lng, lat, lat, lng, lat, radius, viewerID, viewerID).Scan(&total); err != nil {
 			return nil, 0, err
 		}
 	}
@@ -148,19 +156,19 @@ func (r *TaskRepo) SquareList(ctx context.Context, lat, lng float64, radius, lim
 	var query string
 	if radius <= 0 {
 		query = fmt.Sprintf(`SELECT %s, %s AS distance FROM tasks t
-				  WHERE t.status = 'published' ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, order)
+				  WHERE t.status = 'published'`+blockFilter+` ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, order)
 	} else {
 		// Nearby = executable filter: distance within user filter radius AND within task claim radius
 		query = fmt.Sprintf(`SELECT %s, %s AS distance FROM tasks t
-				  WHERE t.status = 'published' AND %s <= ? AND %s <= t.radius ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, dExpr, dExpr, order)
+				  WHERE t.status = 'published' AND %s <= ? AND %s <= t.radius`+blockFilter+` ORDER BY %s LIMIT ? OFFSET ?`, cols, dExpr, dExpr, dExpr, order)
 	}
 
 	var rows *sql.Rows
 	var err error
 	if radius <= 0 {
-		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, limit, offset)
+		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, viewerID, viewerID, limit, offset)
 	} else {
-		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, lat, lng, lat, radius, lat, lng, lat, limit, offset)
+		rows, err = r.db.QueryContext(ctx, query, lat, lng, lat, lat, lng, lat, radius, viewerID, viewerID, limit, offset)
 	}
 	if err != nil {
 		return nil, 0, err

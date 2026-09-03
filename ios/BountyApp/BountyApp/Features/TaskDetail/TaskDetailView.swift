@@ -10,6 +10,11 @@ struct TaskDetailView: View {
     @StateObject private var vm = TaskDetailViewModel()
     @Environment(\.dismiss) var dismiss
     @State private var showEditTask = false
+    // Guideline 1.2: content reporting & blocking
+    @State private var showReportAlert = false
+    @State private var reportTargetType = "task" // task | user
+    @State private var reportReason = ""
+    @State private var showBlockConfirm = false
 
     private var isOwnTask: Bool {
         guard let task = vm.task, let cu = appState.currentUser else { return false }
@@ -59,6 +64,60 @@ struct TaskDetailView: View {
             ToolbarItem(placement: .principal) {
                 Text(L10n.taskDetailTitle).font(.system(size: 17, weight: .semibold))
             }
+            // Guideline 1.2: report / block entry for third-party tasks
+            if !isOwnTask, vm.task != nil {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            reportTargetType = "task"
+                            showReportAlert = true
+                        } label: {
+                            Label(L10n.reportTask, systemImage: "flag")
+                        }
+                        Button {
+                            reportTargetType = "user"
+                            showReportAlert = true
+                        } label: {
+                            Label(L10n.reportUser, systemImage: "person.crop.circle.badge.exclamationmark")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            showBlockConfirm = true
+                        } label: {
+                            Label(L10n.blockUser, systemImage: "hand.raised.slash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 17, weight: .medium))
+                    }
+                }
+            }
+        }
+        .alert(L10n.reportTitle, isPresented: $showReportAlert) {
+            TextField(L10n.reportReasonPlaceholder, text: $reportReason)
+            Button(L10n.commonSend) {
+                let reason = reportReason.trimmingCharacters(in: .whitespacesAndNewlines)
+                let isTask = reportTargetType == "task"
+                guard !reason.isEmpty, let task = vm.task else { return }
+                let targetID = isTask ? taskID : (task.publisherID)
+                vm.report(targetType: isTask ? "task" : "user", targetID: targetID, reason: reason) { msg in
+                    appState.showToast(msg)
+                }
+                reportReason = ""
+            }
+            Button(L10n.commonCancel, role: .cancel) { reportReason = "" }
+        } message: {
+            Text(reportTargetType == "task" ? L10n.reportTaskHint : L10n.reportUserHint)
+        }
+        .confirmationDialog(L10n.blockUserConfirm, isPresented: $showBlockConfirm, titleVisibility: .visible) {
+            Button(L10n.blockUser, role: .destructive) {
+                guard let publisherID = vm.task?.publisherID else { return }
+                vm.block(userID: publisherID) { msg in
+                    appState.showToast(msg)
+                    dismiss()
+                }
+            }
+            Button(L10n.commonCancel, role: .cancel) {}
         }
         .sheet(isPresented: $vm.showPhotoPicker) {
             PhotoPickerView(selectedImages: $vm.selectedImages, selectedCount: vm.selectedImages.count)
@@ -689,9 +748,47 @@ class TaskDetailViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Send Message (text + images)
+    // MARK: - Report & Block (Guideline 1.2 UGC)
 
-    func sendMessage(taskID: String, onError: @escaping (String) -> Void) {
+    /// 举报任务或用户（targetType: "task" | "user"）
+    func report(targetType: String, targetID: String, reason: String, onDone: @escaping (String) -> Void) {
+        Task { @MainActor in
+            do {
+                let body: [String: Any] = ["target_type": targetType, "target_id": targetID, "reason": reason]
+                let resp: APIResponse<String> = try await APIClient.shared.request(
+                    "/reports", method: "POST", body: body
+                )
+                if resp.code == 0 {
+                    onDone(L10n.reportSubmitted)
+                } else {
+                    onDone(resp.message.isEmpty ? L10n.taskSendFailRetry : resp.message)
+                }
+            } catch {
+                onDone(error.localizedDescription)
+            }
+        }
+    }
+
+    /// 拉黑用户：双方互相不可见任务、不可领取、不可在任务内发消息。
+    func block(userID: String, onDone: @escaping (String) -> Void) {
+        Task { @MainActor in
+            do {
+                let resp: APIResponse<String> = try await APIClient.shared.request(
+                    "/users/\(userID)/block", method: "POST", body: [String: Any]()
+                )
+                if resp.code == 0 {
+                    onDone(L10n.userBlocked)
+                } else {
+                    onDone(resp.message.isEmpty ? L10n.taskSendFailRetry : resp.message)
+                }
+            } catch {
+                onDone(error.localizedDescription)
+            }
+        }
+    }
+    }
+
+    // MARK: - Send Message (text + images)    func sendMessage(taskID: String, onError: @escaping (String) -> Void) {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasImages = !pendingImages.isEmpty
         guard !text.isEmpty || hasImages else {

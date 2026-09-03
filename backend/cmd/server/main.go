@@ -174,10 +174,12 @@ func main() {
 	log.Printf("[Auth] Verification code store: %s", cfg.CodeStore.Kind)
 	deviceRepo := repository.NewDeviceTokenRepo(db)
 	pushSvc := service.NewPushService(deviceRepo)
-	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, messageRepo, hub, txRepo, pushSvc)
+	reportRepo := repository.NewReportRepo(db)
+	taskSvc := service.NewTaskService(taskRepo, userRepo, notifyRepo, submissionRepo, messageRepo, hub, txRepo, pushSvc, reportRepo)
 	subSvc := service.NewSubmissionService(submissionRepo)
 	paySvc := service.NewPaymentService(userRepo, taskRepo, txRepo, notifyRepo, hub, pushSvc)
 	walletSvc := service.NewWalletService(userRepo, txRepo, notifyRepo, taskRepo)
+	reportSvc := service.NewReportService(reportRepo, userRepo, taskRepo)
 	rechargeRepo := repository.NewRechargeRepo(db)
 	quotaSvc := service.NewQuotaService(rechargeRepo, userRepo, txRepo, appleiap.NewVerifier(cfg.Apple.Password))
 	accountSvc := service.NewAccountService(userRepo, taskRepo, messageRepo, submissionRepo, notifyRepo, txRepo, rechargeRepo, deviceRepo)
@@ -217,8 +219,9 @@ func main() {
 			}
 		}
 	}
-	taskHandler := handler.NewTaskHandler(taskSvc, subSvc, paySvc, messageRepo, allowedImageBases)
+	taskHandler := handler.NewTaskHandler(taskSvc, subSvc, paySvc, messageRepo, reportRepo, allowedImageBases)
 	uploadHandler := handler.NewUploadHandler(store)
+	reportHandler := handler.NewReportHandler(reportSvc)
 	configH := handler.NewConfigHandler(cfg)
 
 	// --- Router ---
@@ -267,6 +270,12 @@ func main() {
 
 		// 图片上传
 		api.POST("/upload", middleware.AuthMiddleware(cfg.JWT.Secret), uploadHandler.Upload)
+
+		// 举报与拉黑（Guideline 1.2 UGC 合规）
+		api.GET("/users/blocked", middleware.AuthMiddleware(cfg.JWT.Secret), reportHandler.ListBlocked)
+		api.POST("/users/:id/block", middleware.AuthMiddleware(cfg.JWT.Secret), reportHandler.BlockUser)
+		api.DELETE("/users/:id/block", middleware.AuthMiddleware(cfg.JWT.Secret), reportHandler.UnblockUser)
+		api.POST("/reports", middleware.AuthMiddleware(cfg.JWT.Secret), reportHandler.CreateReport)
 
 		// 钱包 & 通知
 		api.GET("/wallet", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.GetWallet)

@@ -256,6 +256,32 @@ if [ -n "$OID" ]; then
   check "假JWS确认被拒绝 4xx" "$([ "$code" = "400" ] || [ "$code" = "401" ] || [ "$code" = "422" ] && echo 0 || echo 1)"; echo "    http=$code"
 fi
 
+# ---------- 举报与拉黑（Guideline 1.2 UGC）----------
+UID_B=$(curl -s "$BASE/api/v1/me" -H "$AUTH2" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+rp=$(curl -s -X POST "$BASE/api/v1/reports" -H "$AUTH" -H 'Content-Type: application/json' \
+  -d "{\"target_type\":\"task\",\"target_id\":\"$TID\",\"reason\":\"e2e report\"}")
+check "举报任务 200" "$(echo "$rp" | grep -q 'submitted' && echo 0 || echo 1)"
+rp2=$(curl -s -X POST "$BASE/api/v1/reports" -H "$AUTH" -H 'Content-Type: application/json' \
+  -d "{\"target_type\":\"user\",\"target_id\":\"$UID_B\",\"reason\":\"e2e report user\"}")
+check "举报用户 200" "$(echo "$rp2" | grep -q 'submitted' && echo 0 || echo 1)"
+bl=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/users/$UID_B/block" -H "$AUTH")
+check "拉黑用户 200" "$([ "$bl" = "200" ] && echo 0 || echo 1)"
+blst=$(curl -s "$BASE/api/v1/users/blocked" -H "$AUTH")
+check "拉黑列表含对方" "$(echo "$blst" | grep -q "$UID_B" && echo 0 || echo 1)"
+# 拉黑后：A 的广场不再出现 B 新发布的任务
+bpub=$(curl -s -X POST "$BASE/api/v1/tasks" -H "$AUTH2" -H 'Content-Type: application/json' \
+  -d "{\"title\":\"blocked_vis_$TS\",\"description\":\"x\",\"bounty_beans\":5,\"target_lat\":22.3,\"target_lng\":114.2,\"target_addr\":\"HK\",\"radius\":5000,\"time_limit\":30}")
+BTID=$(echo "$bpub" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+sq=$(curl -s "$BASE/api/v1/tasks/square?lat=22.3&lng=114.2&radius=10000" -H "$AUTH")
+check "拉黑后广场排除对方任务" "$([ -n "$BTID" ] && ! echo "$sq" | grep -q "blocked_vis_$TS" && echo 0 || echo 1)"
+# 拉黑后：领取被拒
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/v1/tasks/$BTID/claim" -H "$AUTH" -H 'Content-Type: application/json' -d '{"lat":22.3,"lng":114.2}')
+check "拉黑后领取被拒 4xx" "$([ "$code" = "400" ] || [ "$code" = "403" ] && echo 0 || echo 1)"
+ub=$(curl -s -X DELETE "$BASE/api/v1/users/$UID_B/block" -H "$AUTH")
+check "解除拉黑 200" "$(echo "$ub" | grep -q 'unblocked' && echo 0 || echo 1)"
+ubst=$(curl -s "$BASE/api/v1/users/blocked" -H "$AUTH")
+check "解除后列表清空" "$(echo "$ubst" | grep -q "$UID_B" && echo 1 || echo 0)"
+
 # ---------- 通知 ----------
 nt=$(curl -s "$BASE/api/v1/notifications" -H "$AUTH")
 check "通知列表 200" "$(echo "$nt" | grep -q '"total"' && echo 0 || echo 1)"

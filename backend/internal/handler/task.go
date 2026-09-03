@@ -19,11 +19,12 @@ type TaskHandler struct {
 	subSvc       *service.SubmissionService
 	paySvc       *service.PaymentService
 	messageRepo  *repository.MessageRepo
+	reportRepo   *repository.ReportRepo
 	allowedImageBases []string
 }
 
-func NewTaskHandler(taskSvc *service.TaskService, subSvc *service.SubmissionService, paySvc *service.PaymentService, messageRepo *repository.MessageRepo, allowedImageBases []string) *TaskHandler {
-	return &TaskHandler{taskSvc: taskSvc, subSvc: subSvc, paySvc: paySvc, messageRepo: messageRepo, allowedImageBases: allowedImageBases}
+func NewTaskHandler(taskSvc *service.TaskService, subSvc *service.SubmissionService, paySvc *service.PaymentService, messageRepo *repository.MessageRepo, reportRepo *repository.ReportRepo, allowedImageBases []string) *TaskHandler {
+	return &TaskHandler{taskSvc: taskSvc, subSvc: subSvc, paySvc: paySvc, messageRepo: messageRepo, reportRepo: reportRepo, allowedImageBases: allowedImageBases}
 }
 
 func (h *TaskHandler) Square(c *gin.Context) {
@@ -34,7 +35,7 @@ func (h *TaskHandler) Square(c *gin.Context) {
 		return
 	}
 
-	tasks, total, err := h.taskSvc.SquareList(c.Request.Context(), &req)
+	tasks, total, err := h.taskSvc.SquareList(c.Request.Context(), middleware.GetUserID(c), &req)
 	if err != nil {
 		response.InternalError(c, err.Error())
 		return
@@ -382,6 +383,22 @@ func (h *TaskHandler) SendMessage(c *gin.Context) {
 		if !validator.IsAllowedImageURL(u, h.allowedImageBases) {
 			response.BadRequest(c, i18n.T(lang, "image_url_not_allowed"))
 			return
+		}
+	}
+
+	// 拉黑关系校验：发送者与任务另一方任一存在拉黑即拒绝（Guideline 1.2）。
+	if h.reportRepo != nil {
+		if task, terr := h.taskSvc.GetTask(c.Request.Context(), taskID); terr == nil && task != nil {
+			other := task.PublisherID
+			if other == userID && task.ClaimerID != nil {
+				other = *task.ClaimerID
+			}
+			if other != "" && other != userID {
+				if blocked, berr := h.reportRepo.IsBlockedBetween(c.Request.Context(), userID, other); berr == nil && blocked {
+					response.BadRequest(c, i18n.T(lang, "user_unavailable"))
+					return
+				}
+			}
 		}
 	}
 

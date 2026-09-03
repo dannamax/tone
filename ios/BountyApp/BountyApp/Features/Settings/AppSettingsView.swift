@@ -66,6 +66,16 @@ struct AppSettingsView: View {
                         value: nil
                     )
                 }
+
+                NavigationLink {
+                    BlockedUsersView()
+                } label: {
+                    settingsRow(
+                        icon: "person.slash.fill", iconColor: .bountyDanger,
+                        title: L10n.blockedUsers,
+                        value: nil
+                    )
+                }
             } header: {
                 Text(L10n.settingsSectionPrivacy)
             }
@@ -189,6 +199,99 @@ struct AppSettingsView_Previews: PreviewProvider {
         NavigationStack {
             AppSettingsView()
                 .environmentObject(AppState())
+        }
+    }
+}
+
+// MARK: - Blocked Users View (Guideline 1.2 UGC)
+
+struct BlockedUser: Codable, Identifiable {
+    let userID: String
+    let nickname: String
+    let createdAt: String
+
+    var id: String { userID }
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case nickname
+        case createdAt = "created_at"
+    }
+}
+
+struct BlockedUsersView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var users: [BlockedUser] = []
+    @State private var isLoading = true
+
+    var body: some View {
+        Group {
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if users.isEmpty {
+                EmptyStateView(
+                    icon: "person.slash",
+                    title: L10n.blockedUsers,
+                    subtitle: L10n.blockedUsersEmpty
+                )
+            } else {
+                List {
+                    ForEach(users) { user in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(user.nickname.isEmpty ? user.userID : user.nickname)
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.bountyText)
+                                Text(user.userID)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.bountyTextSecondary)
+                            }
+                            Spacer()
+                            Button(L10n.unblock) {
+                                unblock(user)
+                            }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.bountyInfo)
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+        }
+        .background(Color.bountyBg)
+        .scrollContentBackground(.hidden)
+        .navigationTitle(L10n.blockedUsers)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { load() }
+    }
+
+    private func load() {
+        isLoading = users.isEmpty
+        Task { @MainActor in
+            do {
+                let resp: APIResponse<[BlockedUser]> = try await APIClient.shared.request("/users/blocked")
+                users = resp.data ?? []
+            } catch {
+                print("[BlockedUsers] load error: \(error)")
+            }
+            isLoading = false
+        }
+    }
+
+    private func unblock(_ user: BlockedUser) {
+        Task { @MainActor in
+            do {
+                _ = try await APIClient.shared.request(
+                    "/users/\(user.userID)/block", method: "DELETE"
+                ) as APIResponse<String>
+                withAnimation { users.removeAll { $0.userID == user.userID } }
+                appState.showToast(L10n.userUnblocked)
+            } catch {
+                print("[BlockedUsers] unblock error: \(error)")
+            }
         }
     }
 }

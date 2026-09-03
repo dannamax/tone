@@ -54,6 +54,13 @@ var enMessages = map[string]string{
 	"not_claimer":               "You are not the claimer of this task",
 	"not_publisher":             "You are not the publisher of this task",
 	"not_in_radius":             "Current location is not within the task radius",
+
+	// --- Reports & blocks (Guideline 1.2 UGC) ---
+	"cannot_block_self": "You cannot block yourself",
+	"user_blocked":      "User blocked",
+	"user_unblocked":    "User unblocked",
+	"user_unavailable":  "This user is unavailable",
+	"report_submitted":  "Report submitted. Thank you.",
 	"submission_save_failed":    "Failed to save submission",
 	"no_location":               "No location provided",
 

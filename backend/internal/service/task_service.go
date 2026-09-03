@@ -43,6 +43,7 @@ type TaskService struct {
 	wsHub          *websocket.Hub
 	txRepo         *repository.TransactionRepo
 	push           *PushService
+	reportRepo     *repository.ReportRepo
 }
 
 func NewTaskService(
@@ -54,6 +55,7 @@ func NewTaskService(
 	wsHub *websocket.Hub,
 	txRepo *repository.TransactionRepo,
 	push *PushService,
+	reportRepo *repository.ReportRepo,
 ) *TaskService {
 	return &TaskService{
 		taskRepo:       taskRepo,
@@ -123,8 +125,8 @@ func (s *TaskService) GetTask(ctx context.Context, taskID string) (*model.Task, 
 	return task, nil
 }
 
-func (s *TaskService) SquareList(ctx context.Context, req *model.SquareListRequest) ([]model.Task, int64, error) {
-	return s.taskRepo.SquareList(ctx, req.Lat, req.Lng, req.DefaultRadius(), req.DefaultSize(), req.Offset(), req.NormalizedSort())
+func (s *TaskService) SquareList(ctx context.Context, viewerID string, req *model.SquareListRequest) ([]model.Task, int64, error) {
+	return s.taskRepo.SquareList(ctx, viewerID, req.Lat, req.Lng, req.DefaultRadius(), req.DefaultSize(), req.Offset(), req.NormalizedSort())
 }
 
 func (s *TaskService) Claim(ctx context.Context, taskID, claimerID string, req *model.ClaimRequest) error {
@@ -148,6 +150,17 @@ func (s *TaskService) Claim(ctx context.Context, taskID, claimerID string, req *
 	}
 	if task.Status != model.StatusPublished {
 		return errors.New(i18n.TCtx(ctx, "task_already_claimed"))
+	}
+
+	// 拉黑关系：任一方拉黑对方即不可领取（Guideline 1.2 UGC blocking 机制）
+	if s.reportRepo != nil {
+		blocked, berr := s.reportRepo.IsBlockedBetween(ctx, task.PublisherID, claimerID)
+		if berr != nil {
+			return berr
+		}
+		if blocked {
+			return errors.New(i18n.TCtx(ctx, "user_unavailable"))
+		}
 	}
 
 	// 定向领取：领取时用户必须位于任务领取围栏内（与提交围栏同一把尺子）。

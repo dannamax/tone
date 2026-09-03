@@ -284,6 +284,23 @@
 "quota_package_count_fmt" = "%d Beans";
 "quota_purchasing" = "Processing purchase...";
 "common_close" = "Close";
+"common_send" = "Send";
+"common_cancel" = "Cancel";
+
+/* Reports & blocks (Guideline 1.2 UGC) */
+"report_task" = "Report Task";
+"report_user" = "Report User";
+"block_user" = "Block User";
+"unblock" = "Unblock";
+"report_title" = "Report";
+"report_reason_placeholder" = "Describe the issue…";
+"report_task_hint" = "Tell us what's wrong with this task. Your report is not visible to the other party.";
+"report_user_hint" = "Tell us why you're reporting this user.";
+"report_submitted" = "Report submitted. Thank you.";
+"user_blocked" = "User blocked";
+"blocked_users" = "Blocked Users";
+"blocked_users_empty" = "You haven't blocked anyone.";
+"block_user_confirm" = "Block this user? You will no longer see their tasks, and they won't be able to interact with you.";
 
 /* StoreKit / Apple IAP */
 "store_product_not_found" = "Product not available";

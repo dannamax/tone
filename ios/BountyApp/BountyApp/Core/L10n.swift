@@ -273,6 +273,24 @@ enum L10n {
     static var rewardsRuleNoTransfer: String { localized("rewards_rule_no_transfer") }
     static var rewardsRuleFinalNote: String { localized("rewards_rule_final_note") }
     static var commonClose: String { localized("common_close") }
+    static var commonSend: String { localized("common_send") }
+    static var commonCancel: String { localized("common_cancel") }
+
+    // MARK: - Reports & blocks (Guideline 1.2 UGC)
+    static var reportTask: String { localized("report_task") }
+    static var reportUser: String { localized("report_user") }
+    static var blockUser: String { localized("block_user") }
+    static var unblock: String { localized("unblock") }
+    static var reportTitle: String { localized("report_title") }
+    static var reportReasonPlaceholder: String { localized("report_reason_placeholder") }
+    static var reportTaskHint: String { localized("report_task_hint") }
+    static var reportUserHint: String { localized("report_user_hint") }
+    static var reportSubmitted: String { localized("report_submitted") }
+    static var userBlocked: String { localized("user_blocked") }
+    static var userUnblocked: String { localized("user_unblocked") }
+    static var blockedUsers: String { localized("blocked_users") }
+    static var blockedUsersEmpty: String { localized("blocked_users_empty") }
+    static var blockUserConfirm: String { localized("block_user_confirm") }
 
     // MARK: - StoreKit / Apple IAP
     static var storeProductNotFound: String { localized("store_product_not_found") }
