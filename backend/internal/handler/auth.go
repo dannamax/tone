@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"log"
 	"strings"
 
 	"seeker/internal/middleware"
@@ -118,10 +120,11 @@ func (h *AuthHandler) DeleteAccount(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 
 	if err := h.accountSvc.DeleteAccount(c.Request.Context(), userID); err != nil {
-		if strings.Contains(err.Error(), i18n.T(lang, "account_delete_active_tasks")) {
-			response.Error(c, 409, 40900, err.Error())
+		if errors.Is(err, service.ErrActiveTasks) {
+			response.Error(c, 409, 40900, strings.TrimPrefix(err.Error(), service.ErrActiveTasks.Error()+": "))
 			return
 		}
+		log.Printf("[DeleteAccount] user=%s internal error: %v", userID, err)
 		response.InternalError(c, i18n.T(lang, "account_delete_failed"))
 		return
 	}
