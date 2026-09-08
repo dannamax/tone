@@ -43,6 +43,7 @@
 - P2.6 监控/日志接入云监控；CD 失败告警（2026-08-26 曾发生 CD SSH 会话中断导致容器被 down 未 up，人工恢复；建议加部署失败重试/告警）。
 - P2.7 **App Store 服务器通知（ASN V2）**：后端新增 `POST /api/v1/apple/webhook`（Apple Root CA 校验 signedPayload），ASC 配置生产/沙盒通知 URL。首提审核可暂时不填，上线后建议补——**退款感知是金豆经济的财务完整性依赖**。
 - P2.8 奖励中心 V2 兑换实现（触发条件：累计 IAP 收入 ≥ $1K 且月活猎人 ≥ 300）：redeem 流水类型 + 兑换订单表 + 双门槛校验（50 任务 + 50 earned 豆）+ Stripe Connect payout。
+- P2.9 ⚠️ **部署纪律：禁止直接用 `latest` 标签拉起容器**。2026-09-04 HK 磁盘清理时发现：`bountyapp:latest` 指向旧提交 `97b53bea`，而线上运行的是 `1fd0a6f`——直接 `docker compose up` 用 latest 会部署到旧版本。**部署必须坚持 GIT_SHA 纪律（用 `bountyapp:<sha>` tag）**；建议后续在 deploy-hk.sh 部署成功后自动把 `latest` 标签打到当前 sha 镜像上，保持两者一致。
 
 ---
 
