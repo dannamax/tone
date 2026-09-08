@@ -19,12 +19,19 @@ type Config struct {
 	Exchange  ExchangeRateConfig
 	Apple     AppleConfig
 	Reviewer  ReviewerConfig
+	Admin     AdminConfig
 }
 
 // ReviewerConfig App Review 演示账号：固定验证码（白名单），未配置则禁用
 type ReviewerConfig struct {
 	Email string
 	Code  string
+}
+
+// AdminConfig 运营统计接口（GET /api/v1/admin/stats）的静态令牌。
+// 通过 X-Admin-Token 请求头传递；未配置则端点自动禁用（403）。
+type AdminConfig struct {
+	Token string
 }
 
 // ...
@@ -210,6 +217,9 @@ func Load() *Config {
 		Reviewer: ReviewerConfig{
 			Email: getEnv("REVIEWER_EMAIL", ""),
 			Code:  getEnv("REVIEWER_CODE", ""),
+		},
+		Admin: AdminConfig{
+			Token: getEnv("ADMIN_API_TOKEN", ""),
 		},
 	}
 }

@@ -223,6 +223,7 @@ func main() {
 	uploadHandler := handler.NewUploadHandler(store)
 	reportHandler := handler.NewReportHandler(reportSvc)
 	configH := handler.NewConfigHandler(cfg)
+	adminStatsHandler := handler.NewAdminStatsHandler(db)
 
 	// --- Router ---
 	r := gin.New()
@@ -297,6 +298,10 @@ func main() {
 		api.GET("/notifications", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.GetNotifications)
 		api.POST("/notifications/:id/read", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.MarkRead)
 		api.POST("/notifications/read-all", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.ReadAllNotifications)
+
+		// 运营统计（只读，独立 X-Admin-Token 鉴权，未配置 ADMIN_API_TOKEN 时端点自动禁用。
+		// 纯新增路由，不影响 App 使用的任何现有接口；SQL 兼容 SQLite/PostgreSQL）
+		api.GET("/admin/stats", middleware.AdminTokenMiddleware(cfg.Admin.Token), adminStatsHandler.GetStats)
 	}
 
 	// WebSocket 通知（token 通过 query 参数 ?token= 传递）
