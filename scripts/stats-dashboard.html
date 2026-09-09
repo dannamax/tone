@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SeekerHub 运营监控 · 24h</title>
+<style>
+  :root {
+    --bg: #0f1115; --card: #171a21; --line: #262b36;
+    --text: #e6e9ef; --muted: #8b93a3;
+    --c-users: #4f8cff; --c-dev: #35c98e; --c-tasks: #ffb340; --c-rev: #ff6b81;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.6 -apple-system, "PingFang SC", "Segoe UI", sans-serif; padding: 24px; }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card .label { color: var(--muted); font-size: 12px; }
+  .card .value { font-size: 26px; font-weight: 700; margin-top: 2px; }
+  .card .delta { font-size: 11px; color: var(--muted); }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+  .panel h2 { font-size: 14px; margin-bottom: 10px; color: var(--muted); font-weight: 600; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; font-size: 12px; }
+  .legend label { cursor: pointer; user-select: none; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+  canvas { width: 100%; height: 320px; display: block; }
+  .status { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .status.err { color: var(--c-rev); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); color: var(--muted); }
+  td { color: var(--text); }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button { background: #232936; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 12px; }
+  button:hover { background: #2c3444; }
+  textarea { width: 100%; min-height: 70px; background: #0d0f13; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: 12px monospace; margin: 8px 0; }
+  details { color: var(--muted); font-size: 12px; }
+  .ok { color: var(--c-dev); }
+</style>
+</head>
+<body>
+
+<h1>SeekerHub 运营监控</h1>
+<div class="sub">每 30 分钟自动采样 · 本地保留最近 24 小时 · 数据源：api.gotseeker.com/admin/stats</div>
+
+<div class="cards">
+  <div class="card"><div class="label">注册用户</div><div class="value" id="v-users">–</div><div class="delta">近24h +<span id="v-new">–</span></div></div>
+  <div class="card"><div class="label">推送设备（≈装机）</div><div class="value" id="v-dev">–</div></div>
+  <div class="card"><div class="label">任务总数</div><div class="value" id="v-tasks">–</div></div>
+  <div class="card"><div class="label">充值订单额</div><div class="value" id="v-rev">–</div><div class="delta"><span id="v-orders">–</span> 笔</div></div>
+</div>
+
+<div class="panel">
+  <h2>24 小时曲线</h2>
+  <div class="legend">
+    <label><input type="checkbox" checked data-series="users"><span class="dot" style="background:var(--c-users)"></span>用户</label>
+    <label><input type="checkbox" checked data-series="devices"><span class="dot" style="background:var(--c-dev)"></span>设备</label>
+    <label><input type="checkbox" checked data-series="tasks"><span class="dot" style="background:var(--c-tasks)"></span>任务</label>
+    <label><input type="checkbox" checked data-series="revenue"><span class="dot" style="background:var(--c-rev)"></span>充值额($)</label>
+    <span style="margin-left:auto" id="next-in"></span>
+  </div>
+  <canvas id="chart"></canvas>
+  <div class="status" id="status">初始化…</div>
+</div>
+
+<div class="panel">
+  <h2>采样记录（最近 24h）</h2>
+  <table id="tbl"><thead><tr><th>时间</th><th>用户</th><th>设备</th><th>任务</th><th>充值($)</th><th>近24h新增</th></tr></thead><tbody></tbody></table>
+</div>
+
+<div class="panel">
+  <h2>手动补点（CORS 异常时，粘贴 API 返回的 JSON）</h2>
+  <details open>
+    <textarea id="paste" placeholder='粘贴 curl 返回的完整 JSON…'></textarea>
+    <div class="toolbar"><button onclick="manualAdd()">解析并加入数据点</button><button onclick="clearAll()">清空本地数据</button></div>
+    <div class="status" id="manual-status"></div>
+  </details>
+</div>
+
+<script>
+const API = "https://api.gotseeker.com/api/v1/admin/stats";
+const TOKEN = "e1e9d593bb703fccdd4e6060df54a67ba8e60e5dbc65c50a";
+const KEY = "seeker_stats_v1";
+const WINDOW_MS = 24 * 3600 * 1000;
+const INTERVAL_MS = 30 * 60 * 1000;
+const $ = id => document.getElementById(id);
+
+function loadHist() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(KEY) || "[]");
+    const cut = Date.now() - WINDOW_MS;
+    return arr.filter(p => p.ts >= cut);
+  } catch { return []; }
+}
+function saveHist(h) { localStorage.setItem(KEY, JSON.stringify(h.slice(-200))); }
+let hist = loadHist();
+
+function parseStats(json) {
+  const d = json.data || {};
+  const tasks = (d.tasks?.by_status || []).reduce((s, x) => s + x.count, 0);
+  const paid = (d.recharge_orders?.by_status || []).filter(x => x.status === "paid");
+  const revenue = paid.reduce((s, x) => s + (x.amount || 0), 0);
+  const orders = paid.reduce((s, x) => s + (x.orders || 0), 0);
+  return {
+    ts: Date.now(),
+    users: d.users?.total ?? 0,
+    new_24h: d.users?.new_24h ?? 0,
+    devices: d.push_devices ?? 0,
+    tasks, revenue: Math.round(revenue * 100) / 100, orders,
+  };
+}
+
+async function sample(manualJSON) {
+  try {
+    let point;
+    if (manualJSON) {
+      point = parseStats(JSON.parse(manualJSON));
+      setStatus("手动数据点已加入", false);
+    } else {
+      const res = await fetch(API + "?admin_token=" + TOKEN);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      point = parseStats(await res.json());
+      setStatus("上次采样成功 · " + new Date().toLocaleTimeString(), false);
+    }
+    // 距上一采样 <5 分钟则覆盖最后一个点（刷新页面时防重复拉取）
+    const last = hist[hist.length - 1];
+    if (last && point.ts - last.ts < 5 * 60 * 1000) hist[hist.length - 1] = point;
+    else hist.push(point);
+    hist = hist.filter(p => p.ts >= Date.now() - WINDOW_MS);
+    saveHist(hist);
+    render();
+  } catch (e) {
+    setStatus("采样失败：" + e.message + "（可用下方手动补点）", true);
+    render();
+  }
+}
+
+function setStatus(msg, err) { const s = $("status"); s.textContent = msg; s.className = "status" + (err ? " err" : ""); }
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+function render() {
+  const last = hist[hist.length - 1];
+  if (last) {
+    $("v-users").textContent = last.users;
+    $("v-new").textContent = last.new_24h;
+    $("v-dev").textContent = last.devices;
+    $("v-tasks").textContent = last.tasks;
+    $("v-rev").textContent = "$" + last.revenue.toFixed(2);
+    $("v-orders").textContent = last.orders ?? "–";
+    const tb = $("tbl").querySelector("tbody");
+    tb.innerHTML = hist.slice().reverse().map(p =>
+      `<tr><td>${fmtTime(p.ts)}</td><td>${p.users}</td><td>${p.devices}</td><td>${p.tasks}</td><td>$${p.revenue.toFixed(2)}</td><td>${p.new_24h}</td></tr>`
+    ).join("");
+  }
+  drawChart();
+}
+
+function drawChart() {
+  const cv = $("chart"), dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  const padL = 44, padR = 12, padT = 10, padB = 24;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const now = Date.now(), t0 = now - WINDOW_MS;
+  const series = [
+    { key: "users",    color: getCSS("--c-users"), on: chk("users") },
+    { key: "devices",  color: getCSS("--c-dev"),   on: chk("devices") },
+    { key: "tasks",    color: getCSS("--c-tasks"), on: chk("tasks") },
+    { key: "revenue",  color: getCSS("--c-rev"),   on: chk("revenue") },
+  ];
+  const on = series.filter(s => s.on);
+  // Y 轴范围
+  let maxV = 1;
+  hist.forEach(p => on.forEach(s => { if (p[s.key] > maxV) maxV = p[s.key]; }));
+  maxV = Math.ceil(maxV * 1.15) || 1;
+  // 网格 + Y 轴刻度
+  ctx.strokeStyle = getCSS("--line"); ctx.fillStyle = getCSS("--muted");
+  ctx.font = "10px sans-serif"; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + plotH * i / 4;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+    ctx.fillText(String(Math.round(maxV * (4 - i) / 4)), 8, y + 3);
+  }
+  // X 轴时间刻度（每 4h）
+  for (let i = 0; i <= 6; i++) {
+    const x = padL + plotW * i / 6;
+    ctx.fillText(fmtTime(t0 + WINDOW_MS * i / 6), x - 12, H - 8);
+  }
+  // 折线
+  const X = ts => padL + plotW * (ts - t0) / WINDOW_MS;
+  const Y = v => padT + plotH * (1 - v / maxV);
+  on.forEach(s => {
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.beginPath();
+    hist.forEach((p, i) => {
+      const x = X(p.ts), y = Y(p[s.key]);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    if (hist.length === 1) { const p = hist[0]; ctx.arc(X(p.ts), Y(p[s.key]), 3, 0, 7); ctx.fillStyle = s.color; ctx.fill(); }
+    ctx.stroke();
+    // 末端点
+    if (hist.length) {
+      const p = hist[hist.length - 1];
+      ctx.beginPath(); ctx.arc(X(p.ts), Y(p[s.key]), 3, 0, 7); ctx.fillStyle = s.color; ctx.fill();
+    }
+  });
+  if (!hist.length) {
+    ctx.fillStyle = getCSS("--muted"); ctx.font = "12px sans-serif";
+    ctx.fillText("暂无数据点，等待首次采样…", padL + plotW / 2 - 70, padT + plotH / 2);
+  }
+}
+function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function chk(k) { return document.querySelector(`[data-series="${k}"]`).checked; }
+document.querySelectorAll("[data-series]").forEach(el => el.addEventListener("change", drawChart));
+window.addEventListener("resize", drawChart);
+
+function manualAdd() {
+  const v = $("paste").value.trim();
+  if (!v) return;
+  sample(v);
+  $("manual-status").textContent = "已加入 1 个数据点 " + new Date().toLocaleTimeString();
+  $("paste").value = "";
+}
+function clearAll() { hist = []; saveHist(hist); render(); setStatus("本地数据已清空", false); }
+
+// 每 30 分钟倒计时显示
+setInterval(() => {
+  const next = Number(localStorage.getItem(KEY + "_next") || 0);
+  if (next > Date.now()) $("next-in").textContent = "下次采样 " + Math.ceil((next - Date.now()) / 1000) + "s";
+}, 1000);
+
+async function tick() {
+  localStorage.setItem(KEY + "_next", String(Date.now() + INTERVAL_MS));
+  await sample();
+  setInterval(() => {}, INTERVAL_MS); // noop
+}
+// 启动：距上次成功采样 >= 5 分钟才立即拉取，否则只渲染历史
+(function init() {
+  hist = loadHist();
+  const last = hist[hist.length - 1];
+  render();
+  if (!last || Date.now() - last.ts > 5 * 60 * 1000) sample();
+  setInterval(sample, INTERVAL_MS);
+  setInterval(() => { // 滚动清理过期点
+    hist = hist.filter(p => p.ts >= Date.now() - WINDOW_MS);
+    saveHist(hist);
+  }, 60 * 1000);
+})();
+</script>
+</body>
+</html>

@@ -56,3 +56,18 @@ func TestAdminTokenMiddleware_CorrectToken(t *testing.T) {
 		t.Errorf("correct token: code = %d, want 200", w.Code)
 	}
 }
+
+func TestAdminTokenMiddleware_QueryToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/protected", AdminTokenMiddleware("secret-token"), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+	w := httptest.NewRecorder()
+	// 无自定义 header 的简单 GET（浏览器 HTML 页面场景），token 走查询参数
+	req := httptest.NewRequest(http.MethodGet, "/protected?admin_token=secret-token", nil)
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("query token: code = %d, want 200", w.Code)
+	}
+}

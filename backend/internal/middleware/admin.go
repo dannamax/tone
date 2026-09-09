@@ -7,8 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AdminTokenMiddleware 校验运维统计接口的静态令牌（X-Admin-Token）。
-// 与用户 JWT 体系解耦，供外部脚本/监控直接调用。
+// AdminTokenMiddleware 校验运维统计接口的静态令牌（X-Admin-Token 请求头，
+// 或简单 GET 场景下的 ?admin_token= 查询参数——供本地 HTML 监控页使用，
+// 避免 CORS 预检）。与用户 JWT 体系解耦，供外部脚本/监控直接调用。
 //   - token 未配置（空串）时端点整体禁用，返回 403，避免误部署后裸奔；
 //   - token 校验使用恒时比较，防时序侧信道。
 func AdminTokenMiddleware(token string) gin.HandlerFunc {
@@ -21,6 +22,9 @@ func AdminTokenMiddleware(token string) gin.HandlerFunc {
 			return
 		}
 		got := c.GetHeader("X-Admin-Token")
+		if got == "" {
+			got = c.Query("admin_token")
+		}
 		if subtle.ConstantTimeCompare([]byte(got), []byte(token)) != 1 {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40100,
