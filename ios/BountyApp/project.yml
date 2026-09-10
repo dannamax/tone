@@ -15,7 +15,7 @@ settings:
     CODE_SIGN_STYLE: Automatic
     PRODUCT_BUNDLE_IDENTIFIER: com.gotseeker.app
     PRODUCT_NAME: SeekerHub
-    MARKETING_VERSION: "1.0"
+    MARKETING_VERSION: "1.0.1"
     CURRENT_PROJECT_VERSION: "27"
   configs:
     Release:
