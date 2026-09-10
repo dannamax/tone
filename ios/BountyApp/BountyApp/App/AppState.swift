@@ -65,9 +65,12 @@ class AppState: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.showToast(L10n.networkSwitched)
-            // 网络切换后触发后端地址重新发现
+            // 网络切换后触发后端地址重新发现（仅非 PRODUCTION 构建）。
+            // 生产构建固定公网域名：禁止子网扫描/自动发现劫持 baseURL。
+            #if !PRODUCTION
             AppConfig.clearCachedHost()
             AppConfig.rediscoverOnNetworkChange()
+            #endif
         }
         NotificationCenter.default.addObserver(
             forName: .networkDidDisconnect,

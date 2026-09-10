@@ -409,6 +409,14 @@ final class APIClient: @unchecked Sendable {
             return try Self.mockResponse(for: path, as: T.self)
         }
 
+        // PRODUCTION 构建直连固定公网 HTTPS 域名（Info.plist BackendBaseHost），
+        // 完全跳过局域网自动发现与 1.5s 探活门禁：跨境链路（大陆/欧美 → HK）
+        // 的 TLS 握手经常超过 1.5s，探活误判会直接抛 "Cannot connect to server"
+        // 且业务请求从未发出（v1.0 (26) 线上缺陷，WiFi 弱网下高发）。
+        // 网络错误交由真实请求的 15s 超时与 URLSession 错误自然呈现。
+        #if PRODUCTION
+        // 无前置门禁，直接构造业务请求。
+        #else
         // 等待自动发现完成（最多 5s），避免请求发到占位地址 127.0.0.1
         await AppConfig.waitForDiscovery()
 
@@ -432,6 +440,7 @@ final class APIClient: @unchecked Sendable {
             NSLog("[APIClient] 无可用后端地址，直接失败: '%@'", reachableHost)
             throw APIError.networkError(NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotConnectToHost, userInfo: [NSLocalizedDescriptionKey: L10n.serverSetHint]))
         }
+        #endif
 
         guard let url = URL(string: "\(baseURL)\(path)") else {
             throw APIError.invalidURL
