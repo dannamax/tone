@@ -10,7 +10,6 @@
 		09F6C05DAD3CF33CD16F5FA2 /* SeekerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B7C8EE6F52FFE932D6C16D8 /* SeekerUITests.swift */; };
 		0DDF4759AC7C9E3FA98C86EB /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B56E59E56C67D699084C70F /* StoreKitManager.swift */; };
 		19058BC2CD0BEB781B58F80C /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F51057E77EBDB332BA36B82 /* APIClient.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* PushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* PushManager.swift */; };
 		218FAADA1552DEBB969532E2 /* NetworkDiscoverer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0B48DC8D3837FD83307F5F /* NetworkDiscoverer.swift */; };
 		2B7F8F69667BD40620F3818E /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F08ABDC66DE3563D71E220 /* L10n.swift */; };
 		358FF57129D847E9F6EB8745 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E60A5E3E4C4C43C4F1FCFB3 /* ProfileView.swift */; };
@@ -47,6 +46,7 @@
 		EABA247FAF4A3F958E257FDB /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44A7773C5BC85F5581D5967 /* WebSocketClient.swift */; };
 		ECD633D8A457465B90C0C89C /* Color+Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17816496783966CC3BF67EFB /* Color+Theme.swift */; };
 		F990424E12A9362995EED942 /* PublishView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F32E36EB1FF60A0F4C6D2362 /* PublishView.swift */; };
+		FE4912497AA6810CA4D7FB50 /* PushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCAE07BC5E439AD07152A85D /* PushManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,12 +72,11 @@
 		388944C22D006F57047BE655 /* TaskCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCardView.swift; sourceTree = "<group>"; };
 		3BDA7A80701B792CF798B88C /* Seeker.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Seeker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3F51057E77EBDB332BA36B82 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5D /* PushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushManager.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5E /* Seeker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seeker.entitlements; sourceTree = "<group>"; };
 		4956D76283359A5866980FBE /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
 		4ABF538D625AC7644DDF51DE /* SquareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SquareView.swift; sourceTree = "<group>"; };
 		4DD763DC8E5EC8058BD0BD8E /* TaskDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailView.swift; sourceTree = "<group>"; };
 		56FDD25EDE81ED480083057C /* iap_icon_pkg_cny_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iap_icon_pkg_cny_1.png; sourceTree = "<group>"; };
+		5C6E04D83999B7E0AE624834 /* Seeker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seeker.entitlements; sourceTree = "<group>"; };
 		5ED7510C56E19F3D5D3651C4 /* Quota.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quota.swift; sourceTree = "<group>"; };
 		67C34D74210BA1F38500D1ED /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		77744B6482E38A8FC51EDCAB /* AppSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsView.swift; sourceTree = "<group>"; };
@@ -95,6 +94,7 @@
 		9A6033441D988E0549F8AD5D /* MyTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyTasksView.swift; sourceTree = "<group>"; };
 		9C0B48DC8D3837FD83307F5F /* NetworkDiscoverer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkDiscoverer.swift; sourceTree = "<group>"; };
 		B66E6CD1903F3CD788073E94 /* Date+Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Format.swift"; sourceTree = "<group>"; };
+		BCAE07BC5E439AD07152A85D /* PushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushManager.swift; sourceTree = "<group>"; };
 		C44A7773C5BC85F5581D5967 /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		D5F08ABDC66DE3563D71E220 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		D954F449B89DE26F43603308 /* BountyBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BountyBadge.swift; sourceTree = "<group>"; };
@@ -129,8 +129,8 @@
 		286021A0A69BC7D681B36988 /* BountyApp */ = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D4E5F60718293A4B5E /* Seeker.entitlements */,
 				F032C248B7F62E5F23C25C7E /* Assets.xcassets */,
+				5C6E04D83999B7E0AE624834 /* Seeker.entitlements */,
 				3583C4FA562F71BD1C8C3F89 /* App */,
 				6766016A8D47589DC4E25878 /* Core */,
 				CE9C2586D5E00F97CB62E117 /* Features */,
@@ -221,18 +221,10 @@
 				807973AF77C9FEB71B14CD80 /* Components */,
 				65F84DBE5FBC10CBB668B2C8 /* Extensions */,
 				4CE88D05CBD52F156B383B37 /* Network */,
-				A1B2C3D4E5F60718293A4B5F /* Push */,
 				3FCC1930F8E14D58893E2898 /* Purchase */,
+				B1BEF17E99A641047BF9F863 /* Push */,
 			);
 			path = Core;
-			sourceTree = "<group>";
-		};
-		A1B2C3D4E5F60718293A4B5F /* Push */ = {
-			isa = PBXGroup;
-			children = (
-				A1B2C3D4E5F60718293A4B5D /* PushManager.swift */,
-			);
-			path = Push;
 			sourceTree = "<group>";
 		};
 		807973AF77C9FEB71B14CD80 /* Components */ = {
@@ -276,6 +268,14 @@
 				2B711FA87CAB36F83F694088 /* MessagesView.swift */,
 			);
 			path = Messages;
+			sourceTree = "<group>";
+		};
+		B1BEF17E99A641047BF9F863 /* Push */ = {
+			isa = PBXGroup;
+			children = (
+				BCAE07BC5E439AD07152A85D /* PushManager.swift */,
+			);
+			path = Push;
 			sourceTree = "<group>";
 		};
 		B3C078CC900FFE0789FC4A95 /* Onboarding */ = {
@@ -464,7 +464,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				19058BC2CD0BEB781B58F80C /* APIClient.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5C /* PushManager.swift in Sources */,
 				AF99B40BB340E10A3CAC6388 /* AppSettingsView.swift in Sources */,
 				4B462ED20BD16CEC1002F8A0 /* AppState.swift in Sources */,
 				453DE6E21D5CBD236747BFF8 /* BountyApp.swift in Sources */,
@@ -483,6 +482,7 @@
 				D668A15B8A86747849207E62 /* PrivacyConsentView.swift in Sources */,
 				358FF57129D847E9F6EB8745 /* ProfileView.swift in Sources */,
 				F990424E12A9362995EED942 /* PublishView.swift in Sources */,
+				FE4912497AA6810CA4D7FB50 /* PushManager.swift in Sources */,
 				3E3959DB5F8A8954EF76BA06 /* Quota.swift in Sources */,
 				9C0882B4B18C23D7BDCC7DE5 /* ReviewView.swift in Sources */,
 				68921ABF8313C53117160B3C /* RootView.swift in Sources */,
@@ -579,7 +579,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 28;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = B646TQ3P36;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -595,10 +595,9 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = BountyApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				CODE_SIGN_ENTITLEMENTS = BountyApp/Seeker.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gotseeker.app;
 				PRODUCT_NAME = SeekerHub;
 				SDKROOT = iphoneos;
@@ -619,7 +618,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_NAME = SeekerUITests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Seeker;
@@ -661,7 +659,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 28;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = B646TQ3P36;
 				ENABLE_PREVIEWS = NO;
@@ -683,11 +681,10 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = BountyApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				CODE_SIGN_ENTITLEMENTS = BountyApp/Seeker.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gotseeker.app;
 				PRODUCT_NAME = SeekerHub;
 				SDKROOT = iphoneos;
@@ -707,7 +704,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_NAME = SeekerUITests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Seeker;
