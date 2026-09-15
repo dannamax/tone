@@ -109,6 +109,9 @@ CREATE TABLE IF NOT EXISTS recharge_orders (
     status          VARCHAR(20) NOT NULL DEFAULT 'created',
     gateway_order_id TEXT NOT NULL DEFAULT '',
     receipt_data    TEXT NOT NULL DEFAULT '',
+    fail_stage      TEXT NOT NULL DEFAULT '',
+    fail_code       TEXT NOT NULL DEFAULT '',
+    fail_reason     TEXT NOT NULL DEFAULT '',
     paid_at         DATETIME,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

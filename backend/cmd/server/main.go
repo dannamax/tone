@@ -294,6 +294,8 @@ func main() {
 		api.POST("/wallet/quota/confirm-apple", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.ConfirmApple)
 		// 恢复购买（App Store 3.1.1 合规）
 		api.POST("/wallet/quota/restore", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.Restore)
+		// 支付失败/取消原因上报（支付漏斗可观测性）
+		api.POST("/wallet/quota/report-issue", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.ReportIssue)
 		api.GET("/wallet/quota/order/:id", middleware.AuthMiddleware(cfg.JWT.Secret), quotaHandler.GetOrder)
 		api.GET("/notifications", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.GetNotifications)
 		api.POST("/notifications/:id/read", middleware.AuthMiddleware(cfg.JWT.Secret), walletHandler.MarkRead)

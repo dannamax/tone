@@ -44,6 +44,29 @@ func (s *QuotaService) CreateOrder(ctx context.Context, userID, packageID, chann
 	return s.rechargeRepo.Create(ctx, order)
 }
 
+// ReportIssue 记录客户端上报的支付失败/取消原因（支付漏斗可观测性）。
+// 仅当订单属于该用户且仍处于 created 状态时生效；已支付订单不可被上报篡改。
+func (s *QuotaService) ReportIssue(ctx context.Context, userID, orderID, stage, code, message string) error {
+	order, err := s.rechargeRepo.FindByID(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	if order == nil || order.UserID != userID {
+		return fmt.Errorf("%s", i18n.TCtx(ctx, "order_not_found"))
+	}
+	if order.Status != model.OrderStatusCreated {
+		// 已支付/已失败的订单不接受上报（幂等安全，静默成功）
+		return nil
+	}
+	if stage == "" {
+		stage = "unknown"
+	}
+	if code == "" {
+		code = "unknown"
+	}
+	return s.rechargeRepo.ReportFailure(ctx, orderID, userID, stage, code, message)
+}
+
 // redeem 支付成功后幂等发放金豆（进 beans_purchased） + 写流水
 func (s *QuotaService) redeem(ctx context.Context, order *model.RechargeOrder) error {
 	_, err := s.rechargeRepo.MarkPaid(ctx, order.ID, order.GatewayOrderID, order.BeansGranted,

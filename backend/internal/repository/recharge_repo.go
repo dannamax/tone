@@ -144,6 +144,22 @@ func (r *RechargeRepo) MarkPaid(ctx context.Context, id, gatewayOrderID string, 
 	return o, nil
 }
 
+// ReportFailure 记录支付失败/取消原因（支付漏斗可观测性）。
+// 仅当订单处于 created 时才更新为 failed；paid 订单不允许被客户端上报篡改。
+func (r *RechargeRepo) ReportFailure(ctx context.Context, id, userID, stage, code, reason string) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE recharge_orders SET status = ?, fail_stage = ?, fail_code = ?, fail_reason = ?
+		 WHERE id = ? AND user_id = ? AND status = ?`,
+		model.OrderStatusFailed, stage, code, reason, id, userID, model.OrderStatusCreated)
+	if err != nil {
+		return err
+	}
+	if affected, _ := res.RowsAffected(); affected == 0 {
+		return ErrOrderConflict
+	}
+	return nil
+}
+
 // ErrOrderNotFound / ErrOrderConflict 订单查询与并发错误
 var ErrOrderNotFound = errors.New("recharge order not found")
 var ErrOrderConflict = errors.New("recharge order status conflict")

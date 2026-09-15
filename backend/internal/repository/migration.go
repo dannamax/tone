@@ -57,6 +57,18 @@ func RunMigrations(ctx context.Context, db *sql.DB, driver, migrationsDir string
 			`UPDATE users SET beans_purchased = MAX(beans_purchased, 5) WHERE beans_purchased < 5 AND beans_earned = 0`); err != nil {
 			return fmt.Errorf("存量金豆补齐失败: %w", err)
 		}
+		// 支付失败原因上报（支付漏斗可观测性）：客户端上报取消/失败原因
+		for _, q := range []string{
+			`ALTER TABLE recharge_orders ADD COLUMN fail_stage TEXT NOT NULL DEFAULT ''`,
+			`ALTER TABLE recharge_orders ADD COLUMN fail_code TEXT NOT NULL DEFAULT ''`,
+			`ALTER TABLE recharge_orders ADD COLUMN fail_reason TEXT NOT NULL DEFAULT ''`,
+		} {
+			if _, err := db.ExecContext(ctx, q); err != nil {
+				if !strings.Contains(err.Error(), "duplicate column name") {
+					return fmt.Errorf("支付失败列迁移失败: %w", err)
+				}
+			}
+		}
 		// 金豆制改造：删除旧库遗留的 tasks.bounty 列（NOT NULL 且无默认值，
 		// 新模型 INSERT 不再写该列会直接失败）。SQLite >= 3.35 支持 DROP COLUMN；
 		// 新库 schema 无此列，报 no such column 时忽略（幂等）。

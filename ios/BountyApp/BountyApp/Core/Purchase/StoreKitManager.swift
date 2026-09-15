@@ -25,6 +25,51 @@ final class StoreKitManager: ObservableObject {
     ///   - orderID: 后端创建订单时返回的商户订单号
     @MainActor
     func purchase(productSKU: String, orderID: String) async throws -> RechargeOrder {
+        do {
+            return try await _purchaseImpl(productSKU: productSKU, orderID: orderID)
+        } catch {
+            // 支付漏斗可观测性：任何失败/取消都上报原因（fire-and-forget，不干扰主流程）
+            await reportPaymentIssue(orderID: orderID, error: error)
+            throw error
+        }
+    }
+
+    /// 上报支付失败/取消原因到后端（静默失败，不影响用户）
+    private func reportPaymentIssue(orderID: String, error: Error) async {
+        let (stage, code, message) = Self.classify(error)
+        let _: APIResponse<EmptyResponse>? = try? await APIClient.shared.request(
+            "/wallet/quota/report-issue",
+            method: "POST",
+            body: ["order_id": orderID, "stage": stage, "code": code, "message": message],
+            requiresAuth: true
+        )
+        print("[StoreKit] payment issue reported: stage=\(stage) code=\(code)")
+    }
+
+    /// 将支付异常分类为 (stage, code, message) 三元组
+    private static func classify(_ error: Error) -> (stage: String, code: String, message: String) {
+        if let se = error as? StoreError {
+            switch se {
+            case .productNotFound:
+                return ("fetch_products", "product_not_found", "SKU not found in App Store")
+            case .userCancelled:
+                return ("purchase", "user_cancelled", "User cancelled the Apple payment sheet")
+            case .pending:
+                return ("purchase", "pending", "Transaction pending (approval required)")
+            case .unknown:
+                return ("purchase", "unknown_result", "Unknown StoreKit purchase result")
+            case .backendFailed(let m):
+                return ("confirm_backend", "backend_rejected", m)
+            }
+        }
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            return ("network", String(ns.code), ns.localizedDescription)
+        }
+        return ("purchase", "unverified", ns.localizedDescription)
+    }
+
+    private func _purchaseImpl(productSKU: String, orderID: String) async throws -> RechargeOrder {
         // 1. 从 App Store 拉取商品
         let products = try await Product.products(for: [productSKU])
         guard let product = products.first else {

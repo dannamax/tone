@@ -16,7 +16,7 @@ settings:
     PRODUCT_BUNDLE_IDENTIFIER: com.gotseeker.app
     PRODUCT_NAME: SeekerHub
     MARKETING_VERSION: "1.0.1"
-    CURRENT_PROJECT_VERSION: "27"
+    CURRENT_PROJECT_VERSION: "28"
   configs:
     Release:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: PRODUCTION
@@ -41,6 +41,7 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         CFBundleLocalizations:
           - en
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         BackendBaseHost: "https://api.gotseeker.com"
         PrivacyPolicyURL: "https://gotseeker.com/privacy"
         TermsOfServiceURL: "https://gotseeker.com/terms"

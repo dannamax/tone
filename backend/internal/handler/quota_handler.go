@@ -96,6 +96,42 @@ func (h *QuotaHandler) Restore(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": result})
 }
 
+// ReportIssue 客户端上报支付失败/取消原因（支付漏斗可观测性）
+// POST /wallet/quota/report-issue  body: {order_id, stage, code, message}
+//   - stage: fetch_products | purchase | confirm_backend | network
+//   - code:  user_cancelled | pending | product_not_found | unverified | <errno>
+//   - message: 自由文本（截断至 300 字符）
+func (h *QuotaHandler) ReportIssue(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+
+	var req struct {
+		OrderID string `json:"order_id" binding:"required"`
+		Stage   string `json:"stage"`
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": i18n.T(i18n.LanguageFromRequest(c.Request), "invalid_params")})
+		return
+	}
+	// 长度限制（防滥用）
+	if len(req.Stage) > 40 {
+		req.Stage = req.Stage[:40]
+	}
+	if len(req.Code) > 60 {
+		req.Code = req.Code[:60]
+	}
+	if len(req.Message) > 300 {
+		req.Message = req.Message[:300]
+	}
+
+	if err := h.quotaSvc.ReportIssue(c.Request.Context(), userID, req.OrderID, req.Stage, req.Code, req.Message); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok"})
+}
+
 // GetOrder 查询充值订单状态
 // GET /wallet/quota/order/:id
 func (h *QuotaHandler) GetOrder(c *gin.Context) {
