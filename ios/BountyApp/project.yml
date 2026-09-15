@@ -42,6 +42,7 @@ targets:
         CFBundleLocalizations:
           - en
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         BackendBaseHost: "https://api.gotseeker.com"
         PrivacyPolicyURL: "https://gotseeker.com/privacy"
         TermsOfServiceURL: "https://gotseeker.com/terms"
